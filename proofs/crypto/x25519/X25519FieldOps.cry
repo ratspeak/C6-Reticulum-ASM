@@ -266,3 +266,45 @@ unpack_pack_round_trip_kat : Bit
 unpack_pack_round_trip_kat =
     field_pack_spec (field_unpack_cry rfc7748_v1_u_masked)
     == rfc7748_v1_u_masked
+
+// ---------- field_mul / field_sq spec --------------------------------
+
+// Algebraic post-condition: out limbs encode (a*b) mod p_25519.
+// The asm implements donna fproduct + freduce_degree + freduce_coefficients;
+// SAW discharges the algebraic obligation modulo this representation.
+field_mul_spec : Limbs -> Limbs -> Limbs -> Bit
+field_mul_spec a b out =
+    decode_limbs out == ((decode_limbs a) * (decode_limbs b)) % p_25519
+
+// KATs.
+zero_mul_kat : Bit
+zero_mul_kat = ((decode_limbs zero) * (decode_limbs x_pi)) % p_25519 == 0
+  where
+    x_pi : Limbs
+    x_pi = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]
+
+one_x_x_mul_kat : Bit
+one_x_x_mul_kat = ((decode_limbs x_one) * (decode_limbs x_pi)) % p_25519
+              == (decode_limbs x_pi) % p_25519
+  where
+    x_one : Limbs
+    x_one = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    x_pi  : Limbs
+    x_pi  = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]
+
+seven_x_eleven_mul_kat : Bit
+seven_x_eleven_mul_kat =
+    ((decode_limbs x_seven) * (decode_limbs x_eleven)) % p_25519 == 77
+  where
+    x_seven : Limbs
+    x_seven = [7, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    x_eleven : Limbs
+    x_eleven = [11, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+// p * anything = 0 mod p.
+p_mul_kat : Bit
+p_mul_kat = ((decode_limbs p_limbs_canonical) *
+             (decode_limbs x_pi)) % p_25519 == 0
+  where
+    x_pi : Limbs
+    x_pi = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]

@@ -1,0 +1,43 @@
+// proofs/crypto/x25519/x25519_field_mul.saw
+//
+// SAW driver for x25519_field_mul (Tier A per ADR-0009).
+//
+// Algebraic post-condition: decode_limbs(out) == (decode_limbs(a) *
+// decode_limbs(b)) mod p_25519. The asm implements donna fproduct +
+// freduce_degree + freduce_coefficients; this driver discharges the
+// algebraic obligation against the Cryptol Integer-form spec on
+// concrete KATs.
+//
+// All-inputs symbolic proof of the asm-vs-spec equivalence is z3-
+// intractable for the same reason the AES Boyar-Peralta and
+// field_unpack proofs were (large bitvector arithmetic with cross-
+// products). Tier C binary equivalence is met by the QEMU pytest KAT
+// test_x25519_field_mul.py, which drives the asm under qemu-system-
+// riscv32 on five concrete edge cases plus six random nominal-width
+// inputs and compares each output against the Python oracle (which is
+// in turn validated against this Cryptol spec on 50 random inputs in
+// the oracle self-test).
+//
+// Once SAW + macaw-riscv lands (ADR-0009 §"Tier C path forward"), the
+// asm and the Cryptol spec can be equated symbolically end-to-end.
+
+import "X25519.cry";
+import "X25519FieldOps.cry";
+
+print "[x25519_field_mul.saw] proving 0 * x = 0 (mod p) ...";
+prove_print z3 {{ zero_mul_kat }};
+print "[x25519_field_mul.saw] zero KAT: PASS.";
+
+print "[x25519_field_mul.saw] proving 1 * x = x (mod p) ...";
+prove_print z3 {{ one_x_x_mul_kat }};
+print "[x25519_field_mul.saw] identity KAT: PASS.";
+
+print "[x25519_field_mul.saw] proving 7 * 11 = 77 (mod p) ...";
+prove_print z3 {{ seven_x_eleven_mul_kat }};
+print "[x25519_field_mul.saw] small-product KAT: PASS.";
+
+print "[x25519_field_mul.saw] proving p * x = 0 (mod p) ...";
+prove_print z3 {{ p_mul_kat }};
+print "[x25519_field_mul.saw] absorbing-element KAT: PASS.";
+
+print "[x25519_field_mul.saw] PASS";

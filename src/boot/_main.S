@@ -110,6 +110,10 @@
         .ascii "aes\tcbc_decrypt\thex="
 .Laes_cbc_dec_tag_end:
         .equ   .Laes_cbc_dec_tag_len, .Laes_cbc_dec_tag_end - .Laes_cbc_dec_tag
+.Lx25519_fmul_tag:
+        .ascii "x25519\tfield_mul\thex="
+.Lx25519_fmul_tag_end:
+        .equ   .Lx25519_fmul_tag_len, .Lx25519_fmul_tag_end - .Lx25519_fmul_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -178,6 +182,8 @@ _main:
         beq     t1, t2, .Laes_cbc_enc_kat
         li      t2, 0x76
         beq     t1, t2, .Laes_cbc_dec_kat
+        li      t2, 0x46
+        beq     t1, t2, .Lx25519_fmul_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -605,6 +611,31 @@ _main:
         la      t0, kiss_buf
         lbu     a1, 49(t0)
         slli    a1, a1, 4
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Lx25519_fmul_kat:
+        /* x25519_field_mul: 'F' || a_limbs[40] || b_limbs[40] →
+         * emits 80 hex chars (40 little-endian bytes of out_limbs). */
+        la      a0, x25519_field_buf
+        la      a1, kiss_buf
+        addi    a1, a1, 1               /* &a_limbs */
+        addi    a2, a1, 40              /* &b_limbs */
+        call    x25519_field_mul
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lx25519_fmul_tag
+        li      a1, .Lx25519_fmul_tag_len
+        call    log_str
+        la      a0, x25519_field_buf
+        li      a1, 40
         call    log_hex_buf
         li      a0, 13
         call    uart_tx_byte
