@@ -11,6 +11,7 @@ become decisions move into ADRs.
 | OQ-1 | `verify/` vs `./verify` collision | Resolved by [ADR-0008](adr/0008-naming-toolchain-format.md): rename `verify/` → `proofs/`. |
 | OQ-2 | Espressif fork vs vanilla binutils | Resolved by [ADR-0008](adr/0008-naming-toolchain-format.md): vanilla `riscv64-elf-binutils`, target rv32imac via `-march`. |
 | OQ-3 | Hex vs decimal log timestamps | Resolved by [ADR-0008](adr/0008-naming-toolchain-format.md): 8 hex digits, emitted by `log_hex(width=8)`. |
+| OQ-4 | Defer `tools/check_stack.py` until call graph exists | Implemented now that `_main` calls into the bring-up chain. Wired into `make ci`; current binary's deepest reachable stack is 48 bytes (limit STACK_SIZE = 16384). |
 
 The original entries are kept below for the audit trail.
 

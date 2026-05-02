@@ -54,6 +54,7 @@ help:
 	@echo "Targets:"
 	@echo "  test           run pytest over tests/"
 	@echo "  registry       check FUNCTIONS.md <-> src/ agreement"
+	@echo "  stack          worst-case stack depth from _reset"
 	@echo "  spec FILE=…    validate one spec block (any path)"
 	@echo "  verify FN=…    dispatch one function's tests + verifier [JSON=1]"
 	@echo "  verify-all     dispatch every registered function"
@@ -72,6 +73,9 @@ tools-test:
 registry:
 	$(PYTHON) tools/check_registry.py
 
+stack:
+	$(PYTHON) tools/check_stack.py
+
 spec:
 	@if [ -z "$(FILE)" ]; then echo "usage: make spec FILE=path/to/file.S"; exit 2; fi
 	$(PYTHON) tools/parse_spec.py "$(FILE)"
@@ -83,7 +87,7 @@ verify:
 verify-all:
 	$(PYTHON) verify_cli.py --all $(if $(JSON),--json)
 
-ci: registry test
+ci: registry stack test
 
 # --- target-side build ----------------------------------------------------
 
