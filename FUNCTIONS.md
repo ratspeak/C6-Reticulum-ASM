@@ -89,8 +89,8 @@ Structured logging primitives over UART0. See ADR-0004.
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `log_init` | ☐ planned | `uart_init`, `clock_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_str` | ☐ planned | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_init` | ◉ verified | `uart_init`, `clock_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_str` | ◉ verified | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
 | `log_hex` | ☐ planned | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
 | `log_u32` | ☐ planned | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
 | `log_bytes` | ☐ planned | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
