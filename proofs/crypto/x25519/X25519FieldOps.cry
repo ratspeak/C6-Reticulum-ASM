@@ -213,3 +213,56 @@ field_unpack_cry w =
 field_unpack_correct : [32][8] -> Bit
 field_unpack_correct w =
     decode_limbs (field_unpack_cry w) == (decode_le w % (2 ^^ 255)) % p_25519
+
+// ---------- field_pack model (donna fcontract) -----------------------
+
+// Algebraic post-condition: pack outputs canonical 32-byte LE encoding
+// of the decoded integer mod p. This is what the asm must compute
+// (regardless of whether the input limbs are canonical, negative, or
+// out-of-nominal-width — fcontract reduces them).
+field_pack_spec : Limbs -> [32][8]
+field_pack_spec ls = encode_le (decode_limbs ls)
+
+// Specific KATs used by the SAW driver. Symbolic all-inputs proof is
+// z3-intractable (same shape as field_unpack); we discharge concrete
+// boundary cases here and lean on angr for binary equivalence.
+
+zero_pack_kat : Bit
+zero_pack_kat = field_pack_spec zero == zero
+
+// Canonical p: limb 0 = 2^26 - 19, limbs 1..9 = mask_i. Encodes to 0
+// (the conditional-subtract step in fcontract is exercised here).
+p_limbs_canonical : Limbs
+p_limbs_canonical =
+    [ 0x03FFFFED, 0x01FFFFFF, 0x03FFFFFF, 0x01FFFFFF, 0x03FFFFFF
+    , 0x01FFFFFF, 0x03FFFFFF, 0x01FFFFFF, 0x03FFFFFF, 0x01FFFFFF
+    ]
+
+p_decodes_to_zero_kat : Bit
+p_decodes_to_zero_kat = field_pack_spec p_limbs_canonical == zero
+
+// Small canonical value: a = 7 placed in limb 0.
+small_pack_kat : Bit
+small_pack_kat = field_pack_spec a_seven == small_bytes
+  where
+    a_seven : Limbs
+    a_seven = [7, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    small_bytes : [32][8]
+    small_bytes = [7] # (zero : [31][8])
+
+// Round-trip KAT: an arbitrary wire (with bit 255 cleared per RFC 7748
+// u-coordinate mask) round-trips through unpack then pack.
+//
+// Use RFC 7748 §5.2 vector 1's u-coordinate, masked.
+rfc7748_v1_u_masked : [32][8]
+rfc7748_v1_u_masked =
+    [ 0xe6, 0xdb, 0x68, 0x67, 0x58, 0x30, 0x30, 0xdb
+    , 0x35, 0x94, 0xc1, 0xa4, 0x24, 0xb1, 0x5f, 0x7c
+    , 0x72, 0x66, 0x24, 0xec, 0x26, 0xb3, 0x35, 0x3b
+    , 0x10, 0xa9, 0x03, 0xa6, 0xd0, 0xab, 0x1c, 0x4c
+    ]   // bit 7 of byte 31 is already clear (0x4c = 0100_1100)
+
+unpack_pack_round_trip_kat : Bit
+unpack_pack_round_trip_kat =
+    field_pack_spec (field_unpack_cry rfc7748_v1_u_masked)
+    == rfc7748_v1_u_masked

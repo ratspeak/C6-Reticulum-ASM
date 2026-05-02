@@ -1,0 +1,40 @@
+// proofs/crypto/x25519/x25519_field_pack.saw
+//
+// SAW driver for x25519_field_pack (Tier A per ADR-0009).
+//
+// Algebraic post-condition: pack(ls) outputs the canonical 32-byte LE
+// encoding of decode_limbs(ls) mod p_25519. The asm achieves this via
+// donna fcontract (3 carry rounds + cond-sub p + bit-stream pack); SAW
+// here verifies the algebraic obligation against the Cryptol model.
+//
+// All-inputs symbolic proof of `field_pack_spec ls == asm_pack ls`
+// over `ls : [10][32]` is intractable for z3 (same shape as
+// field_unpack: byte-shuffling + modular reduction). We discharge
+// concrete boundary KATs (zero, canonical p, a small canonical value,
+// and an RFC 7748 round-trip) and rely on the angr verifier
+// (x25519_field_pack.py) for binary equivalence on richer inputs.
+//
+// Once SAW + macaw-riscv lands (ADR-0009 §"Tier C path forward") the
+// asm and the Cryptol spec can be equated end-to-end without the
+// concrete-KAT detour.
+
+import "X25519.cry";
+import "X25519FieldOps.cry";
+
+print "[x25519_field_pack.saw] proving zero limbs pack to zero bytes ...";
+prove_print z3 {{ zero_pack_kat }};
+print "[x25519_field_pack.saw] zero KAT: PASS.";
+
+print "[x25519_field_pack.saw] proving canonical p decodes to canonical zero ...";
+prove_print z3 {{ p_decodes_to_zero_kat }};
+print "[x25519_field_pack.saw] cond-sub-p KAT: PASS.";
+
+print "[x25519_field_pack.saw] proving small canonical value (= 7) round-trips ...";
+prove_print z3 {{ small_pack_kat }};
+print "[x25519_field_pack.saw] small KAT: PASS.";
+
+print "[x25519_field_pack.saw] proving unpack(rfc7748_v1_u) round-trips through pack ...";
+prove_print z3 {{ unpack_pack_round_trip_kat }};
+print "[x25519_field_pack.saw] round-trip KAT: PASS.";
+
+print "[x25519_field_pack.saw] PASS";

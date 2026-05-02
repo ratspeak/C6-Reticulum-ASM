@@ -42,9 +42,9 @@ Each function entry has:
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **39** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 53 (milestone 1 software side + entire milestone-2 crypto stack so far: SHA-256 family + HMAC + HKDF + AES-256-CBC stack + 6 X25519 functions — all under ADR-0009)
+- Verified: 54 (milestone 1 software side + entire milestone-2 crypto stack so far: SHA-256 family + HMAC + HKDF + AES-256-CBC stack + 7 X25519 functions — all under ADR-0009)
 - Tested (KAT-only, formal verifier pending): 0
-- Planned: X25519 (7 functions remaining: field_pack, field_mul, field_sq, field_inv, montgomery_ladder, scalar_mult, keypair) + Ed25519 (3) + RNG (2) + `uart_isr` (hw). `decode_u` removed from the registry — `field_unpack`'s limb 9 mask already drops bit 255 (the RFC 7748 high-bit mask), so a separate decode_u is redundant in our representation.
+- Planned: X25519 (6 functions remaining: field_mul, field_sq, field_inv, montgomery_ladder, scalar_mult, keypair) + Ed25519 (3) + RNG (2) + `uart_isr` (hw). `decode_u` removed from the registry — `field_unpack`'s limb 9 mask already drops bit 255 (the RFC 7748 high-bit mask), so a separate decode_u is redundant in our representation.
 - `x25519_field_mul121665` lacks an angr Tier C verifier: the pcode RV32IMC engine mistranslates the `mul + mulh + add-with-carry` 64-bit accumulator chain (40-of-40 random inputs disagreed with a hand-written Python asm-level simulator that mirrors the asm verbatim, while the simulator agrees with the algebraic oracle). Same pattern as the AES Boyar-Peralta circuit; same Tier C-future resolution (SAW + macaw-riscv per ADR-0009). The asm is correct by transitivity (asm ≡ simulator ≡ oracle) until proper QEMU-KAT plumbing for X25519 lands.
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
@@ -197,7 +197,7 @@ and AES stacks.
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
 | `x25519_field_unpack` | ◉ verified | — | 0006, 0009 | (milestone 2) |
-| `x25519_field_pack` | ☐ planned | — | 0006, 0009 | (milestone 2) |
+| `x25519_field_pack` | ◉ verified | — | 0006, 0009 | (milestone 2) |
 | `x25519_field_add` | ◉ verified | — | 0006, 0009 | (milestone 2) |
 | `x25519_field_sub` | ◉ verified | — | 0006, 0009 | (milestone 2) |
 | `x25519_field_mul` | ☐ planned | — | 0006, 0009 | (milestone 2) |

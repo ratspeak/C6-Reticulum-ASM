@@ -101,6 +101,67 @@ def field_mul121665_oracle(in_limbs: list[int]) -> list[int]:
     return [v & 0xFFFF_FFFF for v in out]
 
 
+_WIDTHS = (26, 25, 26, 25, 26, 25, 26, 25, 26, 25)
+_MASKS  = tuple((1 << w) - 1 for w in _WIDTHS)
+_BIT_OFFSETS = (0, 26, 51, 77, 102, 128, 153, 179, 204, 230)
+# Canonical p_25519 in limb form: p[0] = 2^26 - 19, p[i>=1] = mask_i.
+_P_LIMBS = ((1 << 26) - 19,) + _MASKS[1:]
+
+
+def _carry_round(limbs: list[int]) -> list[int]:
+    """One round of donna-style signed carry propagation with the 2^255 ≡ 19
+    fold of limb 9's overflow back into limb 0."""
+    out = list(limbs)
+    for i in range(9):
+        # Python's `>>` on negative ints is arithmetic; matches RISC-V `srai`.
+        carry = out[i] >> _WIDTHS[i]
+        out[i] -= carry << _WIDTHS[i]
+        out[i + 1] += carry
+    carry = out[9] >> 25
+    out[9] -= carry << 25
+    out[0] += 19 * carry
+    return out
+
+
+def _cond_sub_p(limbs: list[int]) -> list[int]:
+    """Constant-time conditional subtract of p. Input limbs must be in
+    nominal width (post `_carry_round` ×3). Returns canonical limbs in
+    [0, p)."""
+    r: list[int] = []
+    borrow = 0  # 0 or -1, mirrors the asm's signed `srai` carry
+    for i in range(10):
+        d = limbs[i] - _P_LIMBS[i] + borrow
+        borrow = -1 if d < 0 else 0
+        r.append(d & _MASKS[i])
+    # If borrow == -1, limbs < p — keep limbs. Else use r.
+    mask = 0xFFFF_FFFF if borrow == -1 else 0
+    return [(ri ^ ((ri ^ li) & mask)) & 0xFFFF_FFFF
+            for ri, li in zip(r, limbs)]
+
+
+def _pack_canonical(limbs: list[int]) -> bytes:
+    """Distribute 10 nominal-width limbs across 32 LE bytes (inverse of
+    field_unpack_oracle)."""
+    out = bytearray(32)
+    for limb, bit_off, width in zip(limbs, _BIT_OFFSETS, _WIDTHS):
+        for b in range(width):
+            if (limb >> b) & 1:
+                idx = bit_off + b
+                out[idx >> 3] |= 1 << (idx & 7)
+    return bytes(out)
+
+
+def field_pack_oracle(in_limbs: list[int]) -> bytes:
+    """Mirror of x25519_field_pack (donna fcontract): 10 limbs in any
+    representation -> canonical 32-byte little-endian encoding mod p."""
+    assert len(in_limbs) == 10
+    limbs = [_signed_limb(l) for l in in_limbs]
+    for _ in range(3):
+        limbs = _carry_round(limbs)
+    limbs = _cond_sub_p(limbs)
+    return _pack_canonical(limbs)
+
+
 # ---- field op specs (the algebraic post-conditions) --------------------
 
 def f_add(a: int, b: int) -> int:
@@ -134,4 +195,30 @@ if __name__ == "__main__":
     # Pointwise sub.
     pointwise_diff = [(x - y) & 0xFFFF_FFFF for x, y in zip(a, b)]
     assert decode_limbs(pointwise_diff) == f_sub(decode_limbs(a), decode_limbs(b))
+
+    # field_pack: round-trips against field_unpack on a concrete u-coordinate.
+    rfc_v1_u = bytes.fromhex(
+        "e6db6867583030db3594c1a424b15f7c"
+        "726624ec26b3353b10a903a6d0ab1c4c")
+    # field_unpack drops bit 255 already (limb 9's mask is 25 bits);
+    # apply RFC 7748 mask explicitly so the round-trip holds verbatim.
+    masked = bytearray(rfc_v1_u); masked[31] &= 0x7F
+    masked = bytes(masked)
+    assert field_pack_oracle(field_unpack_oracle(masked)) == masked
+
+    # Pack of zero-limbs is 32 zero bytes.
+    assert field_pack_oracle([0] * 10) == b"\x00" * 32
+
+    # Pack of value 7 (placed as canonical limb_0=7) round-trips.
+    seven = [7] + [0] * 9
+    assert field_pack_oracle(seven) == bytes([7]) + b"\x00" * 31
+
+    # p_25519 itself encodes to canonical 0 (the conditional-subtract works).
+    p_limbs = list(_P_LIMBS)
+    assert field_pack_oracle(p_limbs) == b"\x00" * 32
+
+    # 2*p encodes to canonical 0 too (via the carry rounds + cond subtract).
+    two_p = [2 * l for l in _P_LIMBS]
+    assert field_pack_oracle(two_p) == b"\x00" * 32
+
     print("X25519 oracle self-test PASS")
