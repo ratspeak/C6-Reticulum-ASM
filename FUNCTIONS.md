@@ -39,13 +39,17 @@ Each function entry has:
 ## Statistics
 
 (Updated manually at milestone boundaries; tooling to auto-generate this section is a
-post-milestone-1 task.)
+post-milestone-1 task. Run `./verify --all` for the live tally.)
 
-- Total functions registered: **0** (project initialized; milestone 1 will add the first batch)
-- Verified: 0
-- Tested: 0
+- Total functions registered: **23** (excludes wildcard placeholders like `x25519_field_*`)
+- Verified: 20
 - In progress: 0
-- Planned: 0
+- Planned: 3 (`clock_get_freq`, `clock_delay_us`, `uart_isr` — all in milestone 1)
+
+The end-to-end milestone-1 demo path is observable: KISS-framed Reticulum
+packets sent to qemu's stdin produce `boot.ready`, `kiss.rx_frame`, and
+`packet.parsed`/`packet.rejected` log lines on its stdout. See
+[docs/milestones/milestone-1.md#current-frontier](docs/milestones/milestone-1.md#current-frontier).
 
 ---
 

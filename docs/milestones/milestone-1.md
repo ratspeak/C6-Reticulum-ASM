@@ -338,6 +338,73 @@ Lives in `tools/`.
 | The Adafruit Feather pinout may differ from a generic ESP32-C6 dev board | Use the official Adafruit schematic only; do not generalize from other boards. |
 | SAW + Cryptol for KISS decoder turns out to be heavyweight for the verification value | Acceptable: KISS is a simple state machine and exhaustive symbolic execution (angr) may suffice; document the choice in the function's `@verify` field. |
 
+## Current frontier
+
+> Maintained in-place. Whoever finishes a chunk updates this section in the
+> same commit that flips a function's status.
+
+**Last updated:** 2026-05-01 (post-`tools/check_stack.py` commit `b9e8a1d`).
+
+**State:** 20 / 23 milestone-1 functions verified. Build chain, dispatcher,
+EmuTarget→qemu, harness, three structural tools (`parse_spec`,
+`check_registry`, `check_stack`), and end-to-end demo all live. `make ci`
+green (154 tests). Working tree clean.
+
+**Eligible next chunks** — pick one; each is a few hours:
+
+1. **Close milestone 1 leaves.**
+   - `clock_get_freq` — return cached frequency. On qemu-virt this is a
+     hard-coded constant; on the C6 it reads what `clock_init` programmed.
+   - `clock_delay_us` — busy-wait by cycle counting. Used by future
+     LoRa SPI register accesses (milestone 8).
+   - `uart_isr` — interrupt-driven RX/TX path. qemu-virt's PLIC modeling
+     has gaps; consider marking this hw-target-only and gating its tests
+     accordingly. The polled `uart_rx_byte` already covers what `_main`
+     needs.
+
+2. **Open milestone 2 (cryptographic primitives).**
+   Spec lives at [milestone-2.md](milestone-2.md) (does not exist yet —
+   write it first per the workflow in [../../CLAUDE.md](../../CLAUDE.md)
+   §"Workflow: starting a new milestone"). Order: `sha256_init` →
+   `sha256_compress` → `sha256_update` → `sha256_final` → `hmac_sha256` →
+   `hkdf_*`. Install verifiers before implementing: SAW + Cryptol +
+   fiat-crypto + ct-verif (per `toolchain/README.md`).
+
+3. **Replace the timestamp placeholder in `log_event`.**
+   Currently emits `00000000` (per ADR-0008's hex format choice). Once
+   `clock_get_freq` lands, sample qemu-virt's CLINT mtime (10 MHz tick
+   at `0x0200bff8`) or, on the C6, the systimer; divide to milliseconds.
+   The wire format is final; only the value changes.
+
+4. **Formal verifier specs (deferred from milestone 1).**
+   `proofs/kiss/kiss_decode_byte.saw` and `proofs/packet/packet_parse_header.saw`.
+   These need SAW installed (`brew install saw` is not available — build from
+   source or use a binary release). Mark a new ADR if the install proves
+   intractable.
+
+**Conventions discovered during bring-up** (worth knowing before continuing):
+
+* RISC-V GAS treats `;` as a statement separator, not a comment. The spec-block
+  prefix is `#` (per [ADR-0008](../adr/0008-naming-toolchain-format.md)).
+  `tools/parse_spec.py` accepts both during transition.
+* Linker comments like `# 800000d8 <__bss_end>` resolve symbols to whichever
+  alias they share an address with — when `__bss_start == __bss_end == __data_end`
+  (empty BSS), tests should check disassembly *shape*, not the source-symbol
+  name in the comment.
+* GNU `make` defaults `AS = as`. Use `:=` (not `?=`) for the assembler
+  override in the Makefile so the system `as` (clang on macOS) doesn't take
+  over.
+* qemu launch incantation that gives a clean stdin/stdout to the UART
+  (no monitor mux): `qemu-system-riscv32 -machine virt -cpu rv32 -bios none
+  -kernel <elf> -display none -serial stdio -monitor none -no-reboot`.
+* Globals declared in `src/state/<module>.S` are data, not functions.
+  `tools/check_registry.py` only treats a global as a function if it is
+  also `.type @function` — keep the convention.
+* Integration tests for pure-data functions (KISS, packet) work today by
+  pumping bytes through qemu's UART RX into `_main`'s bridge loop. No
+  per-function test firmware was needed; the boot chain serves as the
+  driver.
+
 ## Retrospective
 
 (To be added when the milestone reaches `Complete`.)
