@@ -72,6 +72,35 @@ def field_unpack_oracle(wire: bytes) -> list[int]:
     return out
 
 
+def _signed_limb(l: int) -> int:
+    """Sign-extend an int32 bit-pattern to a Python int."""
+    return l - (1 << 32) if l & 0x8000_0000 else l
+
+
+def field_mul121665_oracle(in_limbs: list[int]) -> list[int]:
+    """Mirror of x25519_field_mul121665: limbwise multiply by 121665 with
+    carry-propagation and high-overflow fold back into limb 0 (×19)."""
+    assert len(in_limbs) == 10
+    scalar = 121665
+    accum = 0
+    out = [0] * 10
+    widths = (26, 25, 26, 25, 26, 25, 26, 25, 26, 25)
+    masks  = (0x03FFFFFF, 0x01FFFFFF) * 5
+    for i in range(10):
+        accum += _signed_limb(in_limbs[i]) * scalar
+        out[i] = accum & masks[i]
+        accum >>= widths[i]
+    # Fold the high overflow back into limb 0 with weight 19.
+    out[0] += accum * 19
+    # One more carry to keep limb 0 in 26 bits.
+    c = out[0] >> 26
+    out[0] &= 0x03FFFFFF
+    out[1] += c
+    # Mask all output limbs to 32-bit unsigned representation (since the
+    # asm stores signed int32 bit-patterns).
+    return [v & 0xFFFF_FFFF for v in out]
+
+
 # ---- field op specs (the algebraic post-conditions) --------------------
 
 def f_add(a: int, b: int) -> int:
