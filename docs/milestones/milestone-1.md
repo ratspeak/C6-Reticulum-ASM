@@ -187,9 +187,23 @@ sequence is:
 Detailed register sequences are deferred to the implementation; the spec block in each
 function will reference the TRM section.
 
-`clock_delay_us` is a busy-wait by cycle counting. Used during peripheral initialization and
-LoRa register access (milestone 8). Constant-time is not required since delay is the entire
-purpose.
+`clock_now_ticks` reads the platform's 64-bit free-running counter (CLINT mtime on
+qemu-virt @ 0x0200bff8, 10 MHz; SYSTIMER UNIT0 on the C6, 16 MHz). The standard
+hi/lo/hi-recheck pattern protects against low-half rollover during the read.
+
+`clock_now_ms` divides the tick count by `MTIME_TICKS_PER_MS` (a target constant) and
+returns the low 32 bits — milliseconds since boot, wrapping every ~49.7 days. This is
+the time source the structured-log timestamps (ADR-0008) sample. Division is open-coded
+shift-and-subtract long division because rv32imac has no native 64×32 divide.
+
+`clock_delay_us` is a busy-wait that subtracts mtime samples in 32-bit modular
+arithmetic. Used during peripheral initialization and LoRa register access (milestone 8).
+Constant-time is not required since delay is the entire purpose. Caller-side input is
+capped at us &lt; 2^28 to keep `us * 10` in 32 bits; well above any sane busy-wait.
+
+`clock_get_freq` returns the configured CPU frequency (regs.S `CPU_HZ`). On qemu-virt
+this value is documented "indicative" because qemu does not rate-limit the host CPU;
+callers needing wall-clock should use `clock_now_ms` / `clock_delay_us`.
 
 ## uart
 
@@ -343,26 +357,17 @@ Lives in `tools/`.
 > Maintained in-place. Whoever finishes a chunk updates this section in the
 > same commit that flips a function's status.
 
-**Last updated:** 2026-05-01 (post-`tools/check_stack.py` commit `b9e8a1d`).
+**Last updated:** 2026-05-02 (post `clock_now_*` + real-timestamp wiring).
 
-**State:** 20 / 23 milestone-1 functions verified. Build chain, dispatcher,
-EmuTarget→qemu, harness, three structural tools (`parse_spec`,
-`check_registry`, `check_stack`), and end-to-end demo all live. `make ci`
-green (154 tests). Working tree clean.
+**State:** 24 / 25 milestone-1 functions verified. Build chain,
+dispatcher, EmuTarget→qemu, harness, three structural tools
+(`parse_spec`, `check_registry`, `check_stack`), end-to-end demo, and
+real wall-clock log timestamps via CLINT mtime are all live. The only
+remaining planned function is `uart_isr`, which is hw-target-only.
 
 **Eligible next chunks** — pick one; each is a few hours:
 
-1. **Close milestone 1 leaves.**
-   - `clock_get_freq` — return cached frequency. On qemu-virt this is a
-     hard-coded constant; on the C6 it reads what `clock_init` programmed.
-   - `clock_delay_us` — busy-wait by cycle counting. Used by future
-     LoRa SPI register accesses (milestone 8).
-   - `uart_isr` — interrupt-driven RX/TX path. qemu-virt's PLIC modeling
-     has gaps; consider marking this hw-target-only and gating its tests
-     accordingly. The polled `uart_rx_byte` already covers what `_main`
-     needs.
-
-2. **Open milestone 2 (cryptographic primitives).**
+1. **Open milestone 2 (cryptographic primitives).**
    Spec lives at [milestone-2.md](milestone-2.md) (does not exist yet —
    write it first per the workflow in [../../CLAUDE.md](../../CLAUDE.md)
    §"Workflow: starting a new milestone"). Order: `sha256_init` →
@@ -370,17 +375,27 @@ green (154 tests). Working tree clean.
    `hkdf_*`. Install verifiers before implementing: SAW + Cryptol +
    fiat-crypto + ct-verif (per `toolchain/README.md`).
 
-3. **Replace the timestamp placeholder in `log_event`.**
-   Currently emits `00000000` (per ADR-0008's hex format choice). Once
-   `clock_get_freq` lands, sample qemu-virt's CLINT mtime (10 MHz tick
-   at `0x0200bff8`) or, on the C6, the systimer; divide to milliseconds.
-   The wire format is final; only the value changes.
+2. **Close `uart_isr` (hw-only).**
+   Interrupt-driven RX/TX path. qemu-virt's PLIC modeling has gaps;
+   the function lands as part of C6 bring-up and ships gated by
+   `.ifdef TARGET_C6`. The polled `uart_rx_byte` already covers
+   what `_main` needs on either target. Doing this now blocks on
+   the C6 register definitions (`src/include/regs.S` TARGET_C6
+   block).
 
-4. **Formal verifier specs (deferred from milestone 1).**
+3. **Formal verifier specs (deferred from milestone 1).**
    `proofs/kiss/kiss_decode_byte.saw` and `proofs/packet/packet_parse_header.saw`.
    These need SAW installed (`brew install saw` is not available — build from
    source or use a binary release). Mark a new ADR if the install proves
    intractable.
+
+4. **Begin C6 hardware bring-up.**
+   Populate the `TARGET_C6` block of `src/include/regs.S` (UART0
+   address, GPIO matrix base, image-header offset). Implement
+   `clock_init`, `clock_now_ticks`, `uart_init`, `uart_tx_byte`,
+   `uart_rx_byte` for `TARGET_C6`. This is the path to a real demo
+   on the Adafruit Feather. Requires the user's hardware in-loop and
+   `esptool.py` flashing.
 
 **Conventions discovered during bring-up** (worth knowing before continuing):
 

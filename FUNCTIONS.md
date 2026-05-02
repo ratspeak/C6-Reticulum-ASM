@@ -41,10 +41,10 @@ Each function entry has:
 (Updated manually at milestone boundaries; tooling to auto-generate this section is a
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
-- Total functions registered: **23** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 20
+- Total functions registered: **25** (excludes wildcard placeholders like `x25519_field_*`)
+- Verified: 24
 - In progress: 0
-- Planned: 3 (`clock_get_freq`, `clock_delay_us`, `uart_isr` — all in milestone 1)
+- Planned: 1 (`uart_isr` — milestone 1; deferred to hw target, see milestone-1.md current frontier)
 
 The end-to-end milestone-1 demo path is observable: KISS-framed Reticulum
 packets sent to qemu's stdin produce `boot.ready`, `kiss.rx_frame`, and
@@ -71,8 +71,10 @@ Clock and PLL configuration. Brings the chip to a known 160 MHz operating state.
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
 | `clock_init` | ◉ verified | — | 0008 | [milestone-1](docs/milestones/milestone-1.md#clock) |
-| `clock_get_freq` | ☐ planned | `clock_init` | — | [milestone-1](docs/milestones/milestone-1.md#clock) |
-| `clock_delay_us` | ☐ planned | `clock_init` | — | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_now_ticks` | ◉ verified | `clock_init` | 0001 | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_now_ms` | ◉ verified | `clock_now_ticks` | 0001, 0008 | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_get_freq` | ◉ verified | `clock_init` | 0001 | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_delay_us` | ◉ verified | `clock_init` | 0001 | [milestone-1](docs/milestones/milestone-1.md#clock) |
 
 ## Module: `uart`
 
@@ -98,7 +100,7 @@ Structured logging primitives over UART0. See ADR-0004.
 | `log_hex` | ◉ verified | `log_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#log) |
 | `log_u32` | ◉ verified | `log_init` | 0001, 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
 | `log_bytes` | ◉ verified | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_event` | ◉ verified | `log_init`, `log_hex`, `log_str` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_event` | ◉ verified | `log_init`, `log_hex`, `log_str`, `clock_now_ms` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#log) |
 
 ## Module: `kiss`
 

@@ -36,6 +36,15 @@ def test_calls_log_hex_with_width_8(artifacts: build.BuildArtifacts) -> None:
     assert re.search(r"\bli\b\s+a1,\s*8\b", body), body
 
 
+def test_calls_clock_now_ms_for_timestamp(
+    artifacts: build.BuildArtifacts,
+) -> None:
+    """The timestamp value comes from clock_now_ms (low 32 bits of
+    monotonic ms). The literal `li a0, 0` placeholder is gone."""
+    body = build.objdump_disassemble(artifacts.elf, symbol="log_event")
+    assert "clock_now_ms" in body, body
+
+
 def test_emits_tab_and_crlf(artifacts: build.BuildArtifacts) -> None:
     body = build.objdump_disassemble(artifacts.elf, symbol="log_event")
     # ASCII codes: TAB=9, CR=13, LF=10. Each is loaded into a0 then sent

@@ -8,7 +8,7 @@
 # @stack:       16
 # @cycles:      bounded (~120 + uart polling)
 # @ct:          not-required
-# @spec:        ADR-0004 (log line format), ADR-0008 (timestamp = 8 hex digits)
+# @spec:        ADR-0004 (log line format), ADR-0008 (timestamp = 8 hex digits ms via clock_now_ms)
 # @verify:      kat-only; integration via tests/log/test_log_event.py (qemu run)
 # @tests:       tests/log/test_log_event.py
 # @adrs:        0004, 0008
@@ -20,11 +20,8 @@
  *     <ts8hex>\t<tag>\r\n
  *
  * `tag` is supplied by the caller pre-baked as `<module>\t<event>`
- * (e.g. "boot\tready"). The timestamp is 8 hex digits per ADR-0008.
- *
- * The timestamp source is not yet wired (clock_get_freq lands later),
- * so log_event currently emits 00000000. The wire format is final;
- * only the value sampled by log_hex changes when the timer is ready.
+ * (e.g. "boot\tready"). The timestamp is 8 hex digits per ADR-0008
+ * and is the low 32 bits of milliseconds since boot (clock_now_ms).
  *
  * Frame: 16 bytes for ra + s0 + s1 (16-byte aligned). s0 holds the
  * tag pointer and s1 the tag length across the inner calls.
@@ -41,9 +38,8 @@ log_event:
         mv      s0, a0                  /* tag_ptr                       */
         mv      s1, a1                  /* tag_len                       */
 
-        /* Timestamp: 8 hex digits. Placeholder value 0 until the timer
-         * source (clock_get_freq) is wired. */
-        li      a0, 0
+        /* Timestamp: low 32 bits of ms since boot, 8 hex digits. */
+        call    clock_now_ms
         li      a1, 8
         call    log_hex
 
