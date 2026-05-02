@@ -66,7 +66,7 @@ Clock and PLL configuration. Brings the chip to a known 160 MHz operating state.
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `clock_init` | ☐ planned | — | — | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_init` | ◉ verified | — | 0008 | [milestone-1](docs/milestones/milestone-1.md#clock) |
 | `clock_get_freq` | ☐ planned | `clock_init` | — | [milestone-1](docs/milestones/milestone-1.md#clock) |
 | `clock_delay_us` | ☐ planned | `clock_init` | — | [milestone-1](docs/milestones/milestone-1.md#clock) |
 
