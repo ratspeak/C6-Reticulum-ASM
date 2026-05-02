@@ -43,7 +43,7 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **38** (excludes wildcard placeholders like `x25519_field_*`)
 - Verified: 25 (milestone 1 software side, including `log_hex_buf` added for sha256 KAT logging)
-- Tested (KAT-only, formal verifier pending): 9 (sha256 family + HMAC + HKDF + `aes_sbox` + `aes_invsbox` — milestone 2; end-to-end KAT via `'S'`/`'H'`/`'E'`/`'X'`/`'B'`/`'I'` markers in `_main`)
+- Tested (KAT-only, formal verifier pending): 16 (sha256 family + HMAC + HKDF + AES helpers — milestone 2; end-to-end KAT via `'S'`/`'H'`/`'E'`/`'X'`/`'B'`/`'I'`/`'M'`/`'m'` markers in `_main`)
 - In progress: 0
 - Planned: 1 milestone-1 leaf (`uart_isr`, hw-only) + the milestone-2..9 chain
 
@@ -165,13 +165,13 @@ the Boyar-Peralta combinational circuit (no table lookups, per ADR-0006).
 |----------|--------|-----------|------|------|
 | `aes_sbox` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
 | `aes_invsbox` | ◑ tested | `aes_sbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_subbytes` | ☐ planned | `aes_sbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invsubbytes` | ☐ planned | `aes_invsbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_shiftrows` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invshiftrows` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_mixcolumns` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invmixcolumns` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_addroundkey` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_subbytes` | ◑ tested | `aes_sbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invsubbytes` | ◑ tested | `aes_invsbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_shiftrows` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invshiftrows` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_mixcolumns` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invmixcolumns` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_addroundkey` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
 | `aes256_key_expand` | ☐ planned | `aes_sbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
 | `aes256_encrypt_block` | ☐ planned | `aes_subbytes`, `aes_shiftrows`, `aes_mixcolumns`, `aes_addroundkey` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
 | `aes256_decrypt_block` | ☐ planned | `aes_invsubbytes`, `aes_invshiftrows`, `aes_invmixcolumns`, `aes_addroundkey` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |

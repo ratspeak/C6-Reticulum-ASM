@@ -81,6 +81,14 @@
         .ascii "aes\tinvsbox\thex="
 .Laes_invsbox_tag_end:
         .equ   .Laes_invsbox_tag_len, .Laes_invsbox_tag_end - .Laes_invsbox_tag
+.Laes_mc_tag:
+        .ascii "aes\tmixcolumns\thex="
+.Laes_mc_tag_end:
+        .equ   .Laes_mc_tag_len, .Laes_mc_tag_end - .Laes_mc_tag
+.Laes_imc_tag:
+        .ascii "aes\tinvmixcolumns\thex="
+.Laes_imc_tag_end:
+        .equ   .Laes_imc_tag_len, .Laes_imc_tag_end - .Laes_imc_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -135,6 +143,10 @@ _main:
         beq     t1, t2, .Laes_sbox_kat
         li      t2, 0x49
         beq     t1, t2, .Laes_invsbox_kat
+        li      t2, 0x4D
+        beq     t1, t2, .Laes_mc_kat
+        li      t2, 0x6D
+        beq     t1, t2, .Laes_imc_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -360,6 +372,53 @@ _main:
         call    log_str
         lw      a0, 0(sp)
         lw      a1, 4(sp)
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Laes_mc_kat:
+        /* MixColumns test: 'M' || 16 bytes. Apply aes_mixcolumns to the
+         * 16 bytes, emit them as 32 hex chars. */
+        la      a0, kiss_buf
+        addi    a0, a0, 1
+        call    aes_mixcolumns
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Laes_mc_tag
+        li      a1, .Laes_mc_tag_len
+        call    log_str
+        la      a0, kiss_buf
+        addi    a0, a0, 1
+        li      a1, 16
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Laes_imc_kat:
+        /* InvMixColumns test: 'm' || 16 bytes. */
+        la      a0, kiss_buf
+        addi    a0, a0, 1
+        call    aes_invmixcolumns
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Laes_imc_tag
+        li      a1, .Laes_imc_tag_len
+        call    log_str
+        la      a0, kiss_buf
+        addi    a0, a0, 1
+        li      a1, 16
         call    log_hex_buf
         li      a0, 13
         call    uart_tx_byte
