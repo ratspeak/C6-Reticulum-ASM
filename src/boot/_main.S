@@ -2,7 +2,7 @@
 # @function:    _main
 # @module:      boot
 # @inputs:      (none; entered from _reset)
-# @outputs:     (does not return; emits the boot banner over UART0)
+# @outputs:     (does not return; emits the boot.ready log event over UART0)
 # @clobbers:    a0, a1, t0..t6, ra
 # @preserves:   sp, gp, s0..s11
 # @stack:       16
@@ -20,21 +20,17 @@
  *   2. _init_data — populate .data from its load image (no-op on qemu-virt)
  *   3. clock_init — bring CPU clock to spec (no-op on qemu-virt)
  *   4. uart_init  — set up UART0 (no-op on qemu-virt)
- *   5. emit a hard-coded banner so the harness can confirm the boot
- *      reached steady state.
- *   6. wfi loop forever.
- *
- * The banner is the literal "00000000\tboot\tready\r\n" — same shape as
- * the eventual log_event output so the parser regression-tests the same
- * format from day one. Step 5 will be replaced with `call log_init` +
- * `call log_event` once the log primitives ship.
+ *   5. log_init   — set up log subsystem (placeholder until clock_get_freq)
+ *   6. log_event(boot.ready) — first structured log line on UART0
+ *   7. wfi loop forever (the polling main-loop replacement lands when
+ *      kiss + packet are wired and there is real work to do).
  */
 
-        .section .rodata.boot_banner, "a"
-.Lboot_banner:
-        .ascii "00000000\tboot\tready\r\n"
-.Lboot_banner_end:
-        .equ   .Lboot_banner_len, .Lboot_banner_end - .Lboot_banner
+        .section .rodata.boot_event_tag, "a"
+.Lboot_ready_tag:
+        .ascii "boot\tready"
+.Lboot_ready_tag_end:
+        .equ   .Lboot_ready_tag_len, .Lboot_ready_tag_end - .Lboot_ready_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -47,10 +43,11 @@ _main:
         call    _init_data
         call    clock_init
         call    uart_init
+        call    log_init
 
-        la      a0, .Lboot_banner
-        li      a1, .Lboot_banner_len
-        call    uart_tx_bytes
+        la      a0, .Lboot_ready_tag
+        li      a1, .Lboot_ready_tag_len
+        call    log_event
 
 1:      wfi
         j       1b

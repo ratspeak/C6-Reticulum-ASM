@@ -58,7 +58,7 @@ System startup, before any other code runs. Lives at the reset vector.
 | `_reset` | ◉ verified | — | 0001, 0002, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 | `_init_bss` | ◉ verified | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 | `_init_data` | ◉ verified | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_main` | ◉ verified | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `uart_tx_bytes` | 0001, 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_main` | ◉ verified | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event` | 0001, 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 
 ## Module: `clock`
 
@@ -91,10 +91,10 @@ Structured logging primitives over UART0. See ADR-0004.
 |----------|--------|-----------|------|------|
 | `log_init` | ◉ verified | `uart_init`, `clock_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
 | `log_str` | ◉ verified | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_hex` | ☐ planned | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_u32` | ☐ planned | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_bytes` | ☐ planned | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_event` | ☐ planned | `log_str`, `clock_get_freq` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_hex` | ◉ verified | `log_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_u32` | ◉ verified | `log_init` | 0001, 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_bytes` | ◉ verified | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_event` | ◉ verified | `log_init`, `log_hex`, `log_str` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#log) |
 
 ## Module: `kiss`
 
