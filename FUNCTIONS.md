@@ -41,9 +41,9 @@ Each function entry has:
 (Updated manually at milestone boundaries; tooling to auto-generate this section is a
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
-- Total functions registered: **29** (excludes wildcard placeholders like `x25519_field_*`)
+- Total functions registered: **38** (excludes wildcard placeholders like `x25519_field_*`)
 - Verified: 25 (milestone 1 software side, including `log_hex_buf` added for sha256 KAT logging)
-- Tested (KAT-only, formal verifier pending): 7 (`sha256_init`, `sha256_compress`, `sha256_update`, `sha256_final`, `hmac_sha256`, `hkdf_extract`, `hkdf_expand` — milestone 2; end-to-end KAT via `'S'`/`'H'`/`'E'`/`'X'` markers in `_main`)
+- Tested (KAT-only, formal verifier pending): 8 (sha256 family + HMAC + HKDF + `aes_sbox` — milestone 2; end-to-end KAT via `'S'`/`'H'`/`'E'`/`'X'`/`'B'` markers in `_main`)
 - In progress: 0
 - Planned: 1 milestone-1 leaf (`uart_isr`, hw-only) + the milestone-2..9 chain
 
@@ -63,7 +63,7 @@ System startup, before any other code runs. Lives at the reset vector.
 | `_reset` | ◉ verified | — | 0001, 0002, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 | `_init_bss` | ◉ verified | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 | `_init_data` | ◉ verified | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_main` | ◉ verified | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event`, `log_hex`, `log_str`, `log_hex_buf`, `uart_rx_byte`, `uart_tx_byte`, `clock_now_ms`, `kiss_decode_byte`, `packet_parse_header`, `sha256_init`, `sha256_update`, `sha256_final`, `hmac_sha256`, `hkdf_extract`, `hkdf_expand` | 0001, 0004, 0006, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_main` | ◉ verified | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event`, `log_hex`, `log_str`, `log_hex_buf`, `uart_rx_byte`, `uart_tx_byte`, `clock_now_ms`, `kiss_decode_byte`, `packet_parse_header`, `sha256_init`, `sha256_update`, `sha256_final`, `hmac_sha256`, `hkdf_extract`, `hkdf_expand`, `aes_sbox` | 0001, 0004, 0006, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 
 ## Module: `clock`
 
@@ -158,15 +158,25 @@ HKDF per RFC 5869. Used for Reticulum key derivation.
 
 ## Module: `crypto/aes`
 
-AES-256-CBC. Used for Reticulum link encryption.
+AES-256-CBC. Used for Reticulum link encryption. Constant-time S-box uses
+the Boyar-Peralta combinational circuit (no table lookups, per ADR-0006).
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `aes256_key_expand` | ☐ planned | — | 0006 | (milestone 2) |
-| `aes256_encrypt_block` | ☐ planned | `aes256_key_expand` | 0006 | (milestone 2) |
-| `aes256_decrypt_block` | ☐ planned | `aes256_key_expand` | 0006 | (milestone 2) |
-| `aes256_cbc_encrypt` | ☐ planned | `aes256_encrypt_block` | 0006 | (milestone 2) |
-| `aes256_cbc_decrypt` | ☐ planned | `aes256_decrypt_block` | 0006 | (milestone 2) |
+| `aes_sbox` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invsbox` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_subbytes` | ☐ planned | `aes_sbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invsubbytes` | ☐ planned | `aes_invsbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_shiftrows` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invshiftrows` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_mixcolumns` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invmixcolumns` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_addroundkey` | ☐ planned | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_key_expand` | ☐ planned | `aes_sbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_encrypt_block` | ☐ planned | `aes_subbytes`, `aes_shiftrows`, `aes_mixcolumns`, `aes_addroundkey` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_decrypt_block` | ☐ planned | `aes_invsubbytes`, `aes_invshiftrows`, `aes_invmixcolumns`, `aes_addroundkey` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_cbc_encrypt` | ☐ planned | `aes256_encrypt_block` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_cbc_decrypt` | ☐ planned | `aes256_decrypt_block` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
 
 ## Module: `crypto/x25519`
 

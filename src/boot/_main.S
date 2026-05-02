@@ -73,6 +73,10 @@
         .ascii "hkdf\texpand\thex="
 .Lhkdf_expand_tag_end:
         .equ   .Lhkdf_expand_tag_len, .Lhkdf_expand_tag_end - .Lhkdf_expand_tag
+.Laes_sbox_tag:
+        .ascii "aes\tsbox\thex="
+.Laes_sbox_tag_end:
+        .equ   .Laes_sbox_tag_len, .Laes_sbox_tag_end - .Laes_sbox_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -104,7 +108,9 @@ _main:
         call    log_event
 
         /* Crypto KAT triggers — the first byte of the frame selects a
-         * test handler. 'S' (0x53) → sha256, 'H' (0x48) → HMAC-SHA-256.
+         * test handler. 'S' (0x53) → sha256, 'H' (0x48) → HMAC-SHA-256,
+         * 'E' (0x45) → HKDF-Extract, 'X' (0x58) → HKDF-Expand,
+         * 'B' (0x42) → AES-S-box (apply per-byte to the rest of the frame).
          * Real Reticulum frames never start with these because their
          * header byte's bit-7 is the IFAC flag, not an ASCII letter
          * (well-formed Reticulum traffic also never carries low-byte
@@ -121,6 +127,8 @@ _main:
         beq     t1, t2, .Lhkdf_extract_kat
         li      t2, 0x58
         beq     t1, t2, .Lhkdf_expand_kat
+        li      t2, 0x42
+        beq     t1, t2, .Laes_sbox_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -256,6 +264,52 @@ _main:
         la      t0, kiss_buf
         lbu     a1, 33(t0)
         la      a0, hkdf_okm_buf
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Laes_sbox_kat:
+        /* AES-S-box test frame: 'B' || byte_0 || ... || byte_(n-1).
+         * Apply aes_sbox to each input byte in place. n = kiss_buf_len - 1.
+         * State spans aes_sbox calls via _main's frame: 0(sp)=base, 4(sp)=n,
+         * 8(sp)=idx. Slots 0..11 are free here (only ra at 12 is used). */
+        la      t0, kiss_buf
+        addi    t0, t0, 1
+        sw      t0, 0(sp)               /* base */
+        la      t0, kiss_buf_len
+        lw      t0, 0(t0)
+        addi    t0, t0, -1
+        sw      t0, 4(sp)               /* n */
+        sw      zero, 8(sp)             /* idx = 0 */
+.Laes_sbox_kat_loop:
+        lw      t0, 4(sp)
+        lw      t1, 8(sp)
+        bgeu    t1, t0, .Laes_sbox_kat_done
+        lw      t2, 0(sp)
+        add     t2, t2, t1
+        lbu     a0, 0(t2)
+        call    aes_sbox
+        lw      t2, 0(sp)
+        lw      t1, 8(sp)
+        add     t2, t2, t1
+        sb      a0, 0(t2)
+        addi    t1, t1, 1
+        sw      t1, 8(sp)
+        j       .Laes_sbox_kat_loop
+.Laes_sbox_kat_done:
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Laes_sbox_tag
+        li      a1, .Laes_sbox_tag_len
+        call    log_str
+        lw      a0, 0(sp)
+        lw      a1, 4(sp)
         call    log_hex_buf
         li      a0, 13
         call    uart_tx_byte
