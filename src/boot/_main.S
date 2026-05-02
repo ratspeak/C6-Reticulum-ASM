@@ -35,6 +35,7 @@
  */
 
         .include "packet.S"
+        .include "aes.S"
 
         .section .rodata.boot_event_tags, "a"
 .Lboot_ready_tag:
@@ -89,6 +90,26 @@
         .ascii "aes\tinvmixcolumns\thex="
 .Laes_imc_tag_end:
         .equ   .Laes_imc_tag_len, .Laes_imc_tag_end - .Laes_imc_tag
+.Laes_ke_tag:
+        .ascii "aes\tkey_expand\thex="
+.Laes_ke_tag_end:
+        .equ   .Laes_ke_tag_len, .Laes_ke_tag_end - .Laes_ke_tag
+.Laes_enc_tag:
+        .ascii "aes\tencrypt\thex="
+.Laes_enc_tag_end:
+        .equ   .Laes_enc_tag_len, .Laes_enc_tag_end - .Laes_enc_tag
+.Laes_dec_tag:
+        .ascii "aes\tdecrypt\thex="
+.Laes_dec_tag_end:
+        .equ   .Laes_dec_tag_len, .Laes_dec_tag_end - .Laes_dec_tag
+.Laes_cbc_enc_tag:
+        .ascii "aes\tcbc_encrypt\thex="
+.Laes_cbc_enc_tag_end:
+        .equ   .Laes_cbc_enc_tag_len, .Laes_cbc_enc_tag_end - .Laes_cbc_enc_tag
+.Laes_cbc_dec_tag:
+        .ascii "aes\tcbc_decrypt\thex="
+.Laes_cbc_dec_tag_end:
+        .equ   .Laes_cbc_dec_tag_len, .Laes_cbc_dec_tag_end - .Laes_cbc_dec_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -147,6 +168,16 @@ _main:
         beq     t1, t2, .Laes_mc_kat
         li      t2, 0x6D
         beq     t1, t2, .Laes_imc_kat
+        li      t2, 0x4B
+        beq     t1, t2, .Laes_ke_kat
+        li      t2, 0x43
+        beq     t1, t2, .Laes_enc_kat
+        li      t2, 0x44
+        beq     t1, t2, .Laes_dec_kat
+        li      t2, 0x56
+        beq     t1, t2, .Laes_cbc_enc_kat
+        li      t2, 0x76
+        beq     t1, t2, .Laes_cbc_dec_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -419,6 +450,161 @@ _main:
         la      a0, kiss_buf
         addi    a0, a0, 1
         li      a1, 16
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Laes_ke_kat:
+        /* AES-256 KeyExpand test: 'K' || key[32]. Emit 240-byte schedule
+         * as 480 hex chars. */
+        la      a0, kiss_buf
+        addi    a0, a0, 1
+        la      a1, aes_round_keys
+        call    aes256_key_expand
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Laes_ke_tag
+        li      a1, .Laes_ke_tag_len
+        call    log_str
+        la      a0, aes_round_keys
+        li      a1, AES256_RK_BYTES
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Laes_enc_kat:
+        /* AES-256 encrypt test: 'C' || key[32] || plaintext[16].
+         * Expand key, encrypt block in place into aes_block_buf, emit. */
+        la      a0, kiss_buf
+        addi    a0, a0, 1
+        la      a1, aes_round_keys
+        call    aes256_key_expand
+        la      a0, aes_round_keys
+        la      a1, kiss_buf
+        addi    a1, a1, 33              /* &plaintext (after 'C' + 32-byte key) */
+        la      a2, aes_block_buf
+        call    aes256_encrypt_block
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Laes_enc_tag
+        li      a1, .Laes_enc_tag_len
+        call    log_str
+        la      a0, aes_block_buf
+        li      a1, AES_BLOCK_SIZE
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Laes_dec_kat:
+        /* AES-256 decrypt test: 'D' || key[32] || ciphertext[16]. */
+        la      a0, kiss_buf
+        addi    a0, a0, 1
+        la      a1, aes_round_keys
+        call    aes256_key_expand
+        la      a0, aes_round_keys
+        la      a1, kiss_buf
+        addi    a1, a1, 33
+        la      a2, aes_block_buf
+        call    aes256_decrypt_block
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Laes_dec_tag
+        li      a1, .Laes_dec_tag_len
+        call    log_str
+        la      a0, aes_block_buf
+        li      a1, AES_BLOCK_SIZE
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Laes_cbc_enc_kat:
+        /* AES-256-CBC encrypt: 'V' || key[32] || iv[16] || nblocks[1] ||
+         * plaintext[16*nblocks]. Encrypts in place over the plaintext. */
+        la      a0, kiss_buf
+        addi    a0, a0, 1
+        la      a1, aes_round_keys
+        call    aes256_key_expand
+        la      a0, aes_round_keys
+        la      a1, kiss_buf
+        addi    a1, a1, 33              /* &iv */
+        la      a2, kiss_buf
+        addi    a2, a2, 50              /* &plaintext (= &ciphertext, in-place) */
+        la      t0, kiss_buf
+        lbu     a3, 49(t0)              /* nblocks */
+        slli    a3, a3, 4               /* * 16 */
+        mv      a4, a2                  /* in-place */
+        call    aes256_cbc_encrypt
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Laes_cbc_enc_tag
+        li      a1, .Laes_cbc_enc_tag_len
+        call    log_str
+        la      a0, kiss_buf
+        addi    a0, a0, 50
+        la      t0, kiss_buf
+        lbu     a1, 49(t0)
+        slli    a1, a1, 4
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Laes_cbc_dec_kat:
+        /* AES-256-CBC decrypt: 'v' || key[32] || iv[16] || nblocks[1] ||
+         * ciphertext[16*nblocks]. Decrypts in place. */
+        la      a0, kiss_buf
+        addi    a0, a0, 1
+        la      a1, aes_round_keys
+        call    aes256_key_expand
+        la      a0, aes_round_keys
+        la      a1, kiss_buf
+        addi    a1, a1, 33
+        la      a2, kiss_buf
+        addi    a2, a2, 50
+        la      t0, kiss_buf
+        lbu     a3, 49(t0)
+        slli    a3, a3, 4
+        mv      a4, a2
+        call    aes256_cbc_decrypt
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Laes_cbc_dec_tag
+        li      a1, .Laes_cbc_dec_tag_len
+        call    log_str
+        la      a0, kiss_buf
+        addi    a0, a0, 50
+        la      t0, kiss_buf
+        lbu     a1, 49(t0)
+        slli    a1, a1, 4
         call    log_hex_buf
         li      a0, 13
         call    uart_tx_byte
