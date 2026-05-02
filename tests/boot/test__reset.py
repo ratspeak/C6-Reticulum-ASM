@@ -48,12 +48,20 @@ def test_reset_sets_sp_and_gp_before_calling_main(
     ]
     assert len(instructions) >= 5, body
 
-    # 1. sp set first (la sp, __stack_top → auipc sp, … ; addi sp, sp, …)
+    # 1. sp set first (la sp, __stack_top → auipc sp, … ; addi sp, sp, …).
+    # The disassembler may render `addi sp, sp, 0` as `mv sp, sp` when
+    # __stack_top happens to land exactly at the auipc-resolved page. Both
+    # mean the same encoded instruction; accept either.
     assert "sp," in instructions[0] and "auipc" in instructions[0], instructions[0]
-    assert "sp," in instructions[1] and "addi" in instructions[1], instructions[1]
-    # The addi resolves to __image_end (which is __stack_top in our linker
-    # script) — the disassembly comment on that addi prints the symbol.
-    assert "__image_end" in instructions[1] or "__stack_top" in instructions[1]
+    second = instructions[1]
+    assert "sp," in second and ("addi" in second or "mv\tsp,sp" in second), second
+    # If the addi has a non-zero immediate, the disassembler annotates it
+    # with the resolved symbol (__image_end or __stack_top). With imm=0
+    # there is no resolved-address comment — the auipc immediate alone
+    # carries the address. We only require the symbol annotation if the
+    # disassembler emitted a comment.
+    if "#" in second:
+        assert "__image_end" in second or "__stack_top" in second, second
 
     # 2. gp set second
     assert "gp," in instructions[2] and "auipc" in instructions[2], instructions[2]

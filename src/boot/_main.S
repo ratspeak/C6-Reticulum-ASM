@@ -57,6 +57,10 @@
         .ascii "packet\trejected"
 .Lpkt_bad_tag_end:
         .equ   .Lpkt_bad_tag_len, .Lpkt_bad_tag_end - .Lpkt_bad_tag
+.Lsha256_tag:
+        .ascii "sha256\tdigest\thex="
+.Lsha256_tag_end:
+        .equ   .Lsha256_tag_len, .Lsha256_tag_end - .Lsha256_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -87,6 +91,16 @@ _main:
         li      a1, .Lkiss_rx_tag_len
         call    log_event
 
+        /* sha256 KAT trigger: kiss_buf[0] == 'S' (0x53) routes the
+         * remainder of the frame through the sha256 chain instead of
+         * the packet parser. The trigger byte is local to this build
+         * variant and never appears in real Reticulum traffic (which
+         * uses a top-bit-set IFAC byte or a low-bit destination type). */
+        la      t0, kiss_buf
+        lbu     t1, 0(t0)
+        li      t2, 0x53
+        beq     t1, t2, .Lsha256_kat
+
         la      a0, kiss_buf
         la      t0, kiss_buf_len
         lw      a1, 0(t0)
@@ -97,6 +111,40 @@ _main:
         la      a0, .Lpkt_ok_tag
         li      a1, .Lpkt_ok_tag_len
         call    log_event
+        j       .Lloop
+
+.Lsha256_kat:
+        /* sha256_init(sha256_ctx) */
+        la      a0, sha256_ctx
+        call    sha256_init
+        /* sha256_update(sha256_ctx, kiss_buf+1, kiss_buf_len-1) */
+        la      a0, sha256_ctx
+        la      a1, kiss_buf
+        addi    a1, a1, 1
+        la      t0, kiss_buf_len
+        lw      a2, 0(t0)
+        addi    a2, a2, -1
+        call    sha256_update
+        /* sha256_final(sha256_ctx, sha256_digest_buf) */
+        la      a0, sha256_ctx
+        la      a1, sha256_digest_buf
+        call    sha256_final
+        /* Emit "<ts>\tsha256\tdigest\thex=<64hex>\r\n" */
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lsha256_tag
+        li      a1, .Lsha256_tag_len
+        call    log_str
+        la      a0, sha256_digest_buf
+        li      a1, 32
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
         j       .Lloop
 
 .Lpkt_bad:

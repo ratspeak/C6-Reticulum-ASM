@@ -13,6 +13,12 @@
         .balign 16
 sha256_ctx:     .skip SHA256_CTX_SIZE
 
+        .section .bss.sha256_digest_buf, "aw", @nobits
+        .global sha256_digest_buf
+        .balign 4
+sha256_digest_buf:
+        .skip SHA256_DIGEST_SIZE
+
         .section .rodata.sha256_iv, "a"
         .global sha256_iv
         .balign 4

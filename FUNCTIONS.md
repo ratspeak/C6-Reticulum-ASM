@@ -41,9 +41,9 @@ Each function entry has:
 (Updated manually at milestone boundaries; tooling to auto-generate this section is a
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
-- Total functions registered: **25** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 24 (milestone 1 software side)
-- Tested (KAT-only, formal verifier pending): 4 (`sha256_init`, `sha256_compress`, `sha256_update`, `sha256_final` — milestone 2; full chain integration pending a sha256-test ELF)
+- Total functions registered: **26** (excludes wildcard placeholders like `x25519_field_*`)
+- Verified: 25 (milestone 1 software side, including `log_hex_buf` added for sha256 KAT logging)
+- Tested (KAT-only, formal verifier pending): 4 (`sha256_init`, `sha256_compress`, `sha256_update`, `sha256_final` — milestone 2; end-to-end KAT integration via the `'S'`-marker path in `_main` exercises the full chain)
 - In progress: 0
 - Planned: 1 milestone-1 leaf (`uart_isr`, hw-only) + the milestone-2..9 chain
 
@@ -63,7 +63,7 @@ System startup, before any other code runs. Lives at the reset vector.
 | `_reset` | ◉ verified | — | 0001, 0002, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 | `_init_bss` | ◉ verified | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 | `_init_data` | ◉ verified | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_main` | ◉ verified | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event`, `uart_rx_byte`, `kiss_decode_byte`, `packet_parse_header` | 0001, 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_main` | ◉ verified | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event`, `log_hex`, `log_str`, `log_hex_buf`, `uart_rx_byte`, `uart_tx_byte`, `clock_now_ms`, `kiss_decode_byte`, `packet_parse_header`, `sha256_init`, `sha256_update`, `sha256_final` | 0001, 0004, 0006, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 
 ## Module: `clock`
 
@@ -102,6 +102,7 @@ Structured logging primitives over UART0. See ADR-0004.
 | `log_u32` | ◉ verified | `log_init` | 0001, 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
 | `log_bytes` | ◉ verified | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
 | `log_event` | ◉ verified | `log_init`, `log_hex`, `log_str`, `clock_now_ms` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_hex_buf` | ◉ verified | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
 
 ## Module: `kiss`
 
