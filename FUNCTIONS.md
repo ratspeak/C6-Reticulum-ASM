@@ -42,9 +42,10 @@ Each function entry has:
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **25** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 24
+- Verified: 24 (milestone 1 software side)
+- Tested (KAT-only, formal verifier pending): 1 (`sha256_init` — milestone 2)
 - In progress: 0
-- Planned: 1 (`uart_isr` — milestone 1; deferred to hw target, see milestone-1.md current frontier)
+- Planned: 1 milestone-1 leaf (`uart_isr`, hw-only) + the milestone-2..9 chain
 
 The end-to-end milestone-1 demo path is observable: KISS-framed Reticulum
 packets sent to qemu's stdin produce `boot.ready`, `kiss.rx_frame`, and
@@ -132,10 +133,10 @@ proof + KAT + constant-time required.
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `sha256_init` | ☐ planned | — | 0006 | (milestone 2) |
-| `sha256_compress` | ☐ planned | — | 0006 | (milestone 2) |
-| `sha256_update` | ☐ planned | `sha256_init`, `sha256_compress` | 0006 | (milestone 2) |
-| `sha256_final` | ☐ planned | `sha256_update` | 0006 | (milestone 2) |
+| `sha256_init` | ◑ tested | — | 0001, 0002, 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
+| `sha256_compress` | ☐ planned | `sha256_init` | 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
+| `sha256_update` | ☐ planned | `sha256_init`, `sha256_compress` | 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
+| `sha256_final` | ☐ planned | `sha256_update` | 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
 
 ## Module: `crypto/hmac`
 

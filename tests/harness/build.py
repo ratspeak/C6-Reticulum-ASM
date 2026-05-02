@@ -110,7 +110,11 @@ def objdump_entry_point(elf: Path) -> int:
 
 
 def symbol_address(elf: Path, name: str) -> int:
-    """Return the address of a symbol from `nm`-style readelf output."""
+    """Return the address of a symbol from `objdump -t` output.
+
+    Function lines have 6 fields (`addr flags F section size name`); data
+    lines (BSS/.rodata globals) have 5 (no F flag). We accept either.
+    """
     if shutil.which("riscv64-elf-objdump") is None:
         raise BuildError("riscv64-elf-objdump not on PATH")
     proc = subprocess.run(
@@ -119,6 +123,6 @@ def symbol_address(elf: Path, name: str) -> int:
     )
     for line in proc.stdout.splitlines():
         parts = line.split()
-        if len(parts) >= 6 and parts[-1] == name:
+        if len(parts) >= 5 and parts[-1] == name:
             return int(parts[0], 16)
     raise BuildError(f"symbol {name!r} not found in {elf}")
