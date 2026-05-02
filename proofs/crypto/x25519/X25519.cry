@@ -1,0 +1,279 @@
+// proofs/crypto/x25519/X25519.cry
+//
+// Cryptol algorithmic specification for X25519 (RFC 7748 §5).
+//
+// X25519 is scalar multiplication on the Montgomery form of Curve25519
+// over GF(p) with p = 2^255 - 19. The wire-level operation takes two
+// 32-byte inputs (scalar k, u-coordinate u) and returns a 32-byte
+// u-coordinate.
+//
+// This module models RFC 7748 §5 (decode_scalar / decode_u / Montgomery
+// ladder / encode_u). Field elements live as `Integer` to sidestep
+// bitvector-width bookkeeping; `% p_25519` reduces after each operation.
+// Cryptol's Integer is arbitrary-precision so no intermediate overflow
+// to track. Byte encoding crosses to/from [32][8] at the boundary.
+//
+// SAW discharges the RFC 7748 §5.2 known-answer vectors and the §6.1
+// Diffie-Hellman example via concrete evaluation through z3.
+
+module X25519 where
+
+// ---------- field constants -------------------------------------------
+
+p_25519 : Integer
+p_25519 = 2^^255 - 19
+
+a24_25519 : Integer
+a24_25519 = 121665
+
+// ---------- modular arithmetic ---------------------------------------
+
+f_add : Integer -> Integer -> Integer
+f_add a b = (a + b) % p_25519
+
+f_sub : Integer -> Integer -> Integer
+f_sub a b = (a + p_25519 - b) % p_25519
+
+f_mul : Integer -> Integer -> Integer
+f_mul a b = (a * b) % p_25519
+
+f_sq : Integer -> Integer
+f_sq a = f_mul a a
+
+// Modular inverse via Fermat: a^(p-2) ≡ a^-1 (mod p) for prime p.
+// Computed by binary exponentiation; exponent is p_25519 - 2.
+f_inv : Integer -> Integer
+f_inv a = f_pow a (p_25519 - 2)
+
+// Fast modular exponentiation (square-and-multiply, MSB-first).
+// Uses the precomputed 255-bit exponent expansion.
+f_pow : Integer -> Integer -> Integer
+f_pow base exponent = (results ! 0)
+  where
+    bits : [255]Bit
+    bits = [ ((exponent / (2 ^^ i)) % 2) == 1
+           | i <- [254, 253 .. 0] : [255]Integer
+           ]
+    results : [256]Integer
+    results = [1] # [ if b then f_mul (f_sq r) base else f_sq r
+                    | r <- results
+                    | b <- bits
+                    ]
+
+// ---------- byte ↔ Integer encoding ----------------------------------
+
+// Decode 32 little-endian bytes as an Integer.
+decode_le : [32][8] -> Integer
+decode_le bs = sum [ (toInteger b) * (256 ^^ i)
+                   | b <- bs
+                   | i <- [0..31] : [32]Integer
+                   ]
+
+// Encode an Integer as 32 little-endian bytes (re-reduces mod p
+// defensively in case caller didn't).
+encode_le : Integer -> [32][8]
+encode_le n = [ fromInteger ((reduced / (256 ^^ i)) % 256)
+              | i <- [0..31] : [32]Integer
+              ]
+  where reduced = n % p_25519
+
+// RFC 7748 §5: decode the u-coordinate. For Curve25519, mask the most
+// significant bit of the final byte (bit 7 of byte 31).
+decode_u_25519 : [32][8] -> Integer
+decode_u_25519 u =
+    decode_le (take`{31} u # [(u @ 31) && 0x7f])
+
+// RFC 7748 §5: decode the scalar with clamping.
+//   k[0]  &= 248       (clear low 3 bits)
+//   k[31] &= 127       (clear high bit)
+//   k[31] |= 64        (set bit 6)
+decode_scalar_25519 : [32][8] -> Integer
+decode_scalar_25519 k =
+    decode_le ([(k @ 0) && 248]
+               # (k @@ ([1..30] : [30][5]))
+               # [((k @ 31) && 127) || 64])
+
+// ---------- Montgomery ladder ----------------------------------------
+
+// One iteration of the Montgomery double-and-add step.
+ladder_step : Integer -> Bit ->
+              (Integer, Integer, Integer, Integer) ->
+              (Integer, Integer, Integer, Integer)
+ladder_step x1 swap (x2, x3, z2, z3) =
+    (x2_pre, x3_pre, z2_pre, z3_pre)
+  where
+    (x2s, x3s) = if swap then (x3, x2) else (x2, x3)
+    (z2s, z3s) = if swap then (z3, z2) else (z2, z3)
+    a   = f_add x2s z2s
+    aa  = f_sq a
+    b   = f_sub x2s z2s
+    bb  = f_sq b
+    e   = f_sub aa bb
+    c   = f_add x3s z3s
+    d   = f_sub x3s z3s
+    da  = f_mul d a
+    cb  = f_mul c b
+    x3_pre = f_sq (f_add da cb)
+    z3_pre = f_mul x1 (f_sq (f_sub cb da))
+    x2_pre = f_mul aa bb
+    z2_pre = f_mul e (f_add aa (f_mul a24_25519 e))
+
+// The bit at position t (0-indexed from LSB) of an Integer.
+bit_at : Integer -> Integer -> Bit
+bit_at n t = ((n / (2 ^^ t)) % 2) == 1
+
+// Full Montgomery ladder. k is the (clamped, decoded) scalar; u is the
+// (decoded) u-coordinate. Returns the resulting field element u'.
+//
+// Per RFC 7748: 255 iterations, scanning k from bit 254 down to bit 0,
+// tracking a swap bit so each cswap toggles based on (prev XOR k_t).
+montgomery_ladder : Integer -> Integer -> Integer
+montgomery_ladder k u = f_mul x2_final (f_inv z2_final)
+  where
+    init_state = (1, u, 0, 1)
+    init_swap : Bit
+    init_swap = False
+    // Process bits 254..0. At each iteration, current_swap = prev XOR k_t.
+    type N = 256                            // 1 initial + 255 iters
+    states : [N](Integer, Integer, Integer, Integer)
+    states = [init_state] # [ ladder_step u (s ^ b) st
+                            | st <- states
+                            | s  <- swaps
+                            | b  <- bits
+                            ]
+    swaps : [255]Bit
+    swaps = [init_swap]
+          # [ b | b <- take`{254} bits ]
+    bits  : [255]Bit
+    bits  = [ bit_at k (254 - i) | i <- [0..254] : [255]Integer ]
+    final_state = states ! 0
+    last_swap = bits ! 0   // k bit 0 — final swap bit
+    (x2_pre, x3_pre, z2_pre, z3_pre) = final_state
+    (x2_final, _) = if last_swap then (x3_pre, x2_pre) else (x2_pre, x3_pre)
+    (z2_final, _) = if last_swap then (z3_pre, z2_pre) else (z2_pre, z3_pre)
+
+// ---------- top-level X25519 ------------------------------------------
+
+x25519 : [32][8] -> [32][8] -> [32][8]
+x25519 k_bytes u_bytes = encode_le u_out
+  where
+    k = decode_scalar_25519 k_bytes
+    u = decode_u_25519 u_bytes
+    u_out = montgomery_ladder k u
+
+x25519_base : [32][8] -> [32][8]
+x25519_base k_bytes = x25519 k_bytes ([9] # (zero : [31][8]))
+
+// ---------- KAT vectors (RFC 7748 §5.2) ------------------------------
+
+// First test vector. Note: RFC presents these as big-endian hex, but
+// the wire/decoded format is little-endian — the bytes ARE the LE form
+// once you split that hex into a byte array left-to-right.
+rfc7748_5_2_v1_scalar : [32][8]
+rfc7748_5_2_v1_scalar =
+    [ 0xa5, 0x46, 0xe3, 0x6b, 0xf0, 0x52, 0x7c, 0x9d
+    , 0x3b, 0x16, 0x15, 0x4b, 0x82, 0x46, 0x5e, 0xdd
+    , 0x62, 0x14, 0x4c, 0x0a, 0xc1, 0xfc, 0x5a, 0x18
+    , 0x50, 0x6a, 0x22, 0x44, 0xba, 0x44, 0x9a, 0xc4
+    ]
+
+rfc7748_5_2_v1_u : [32][8]
+rfc7748_5_2_v1_u =
+    [ 0xe6, 0xdb, 0x68, 0x67, 0x58, 0x30, 0x30, 0xdb
+    , 0x35, 0x94, 0xc1, 0xa4, 0x24, 0xb1, 0x5f, 0x7c
+    , 0x72, 0x66, 0x24, 0xec, 0x26, 0xb3, 0x35, 0x3b
+    , 0x10, 0xa9, 0x03, 0xa6, 0xd0, 0xab, 0x1c, 0x4c
+    ]
+
+rfc7748_5_2_v1_out : [32][8]
+rfc7748_5_2_v1_out =
+    [ 0xc3, 0xda, 0x55, 0x37, 0x9d, 0xe9, 0xc6, 0x90
+    , 0x8e, 0x94, 0xea, 0x4d, 0xf2, 0x8d, 0x08, 0x4f
+    , 0x32, 0xec, 0xcf, 0x03, 0x49, 0x1c, 0x71, 0xf7
+    , 0x54, 0xb4, 0x07, 0x55, 0x77, 0xa2, 0x85, 0x52
+    ]
+
+rfc7748_5_2_v1_kat : Bit
+rfc7748_5_2_v1_kat =
+    x25519 rfc7748_5_2_v1_scalar rfc7748_5_2_v1_u == rfc7748_5_2_v1_out
+
+rfc7748_5_2_v2_scalar : [32][8]
+rfc7748_5_2_v2_scalar =
+    [ 0x4b, 0x66, 0xe9, 0xd4, 0xd1, 0xb4, 0x67, 0x3c
+    , 0x5a, 0xd2, 0x26, 0x91, 0x95, 0x7d, 0x6a, 0xf5
+    , 0xc1, 0x1b, 0x64, 0x21, 0xe0, 0xea, 0x01, 0xd4
+    , 0x2c, 0xa4, 0x16, 0x9e, 0x79, 0x18, 0xba, 0x0d
+    ]
+
+rfc7748_5_2_v2_u : [32][8]
+rfc7748_5_2_v2_u =
+    [ 0xe5, 0x21, 0x0f, 0x12, 0x78, 0x68, 0x11, 0xd3
+    , 0xf4, 0xb7, 0x95, 0x9d, 0x05, 0x38, 0xae, 0x2c
+    , 0x31, 0xdb, 0xe7, 0x10, 0x6f, 0xc0, 0x3c, 0x3e
+    , 0xfc, 0x4c, 0xd5, 0x49, 0xc7, 0x15, 0xa4, 0x93
+    ]
+
+rfc7748_5_2_v2_out : [32][8]
+rfc7748_5_2_v2_out =
+    [ 0x95, 0xcb, 0xde, 0x94, 0x76, 0xe8, 0x90, 0x7d
+    , 0x7a, 0xad, 0xe4, 0x5c, 0xb4, 0xb8, 0x73, 0xf8
+    , 0x8b, 0x59, 0x5a, 0x68, 0x79, 0x9f, 0xa1, 0x52
+    , 0xe6, 0xf8, 0xf7, 0x64, 0x7a, 0xac, 0x79, 0x57
+    ]
+
+rfc7748_5_2_v2_kat : Bit
+rfc7748_5_2_v2_kat =
+    x25519 rfc7748_5_2_v2_scalar rfc7748_5_2_v2_u == rfc7748_5_2_v2_out
+
+// RFC 7748 §6.1 Diffie-Hellman example.
+alice_priv : [32][8]
+alice_priv =
+    [ 0x77, 0x07, 0x6d, 0x0a, 0x73, 0x18, 0xa5, 0x7d
+    , 0x3c, 0x16, 0xc1, 0x72, 0x51, 0xb2, 0x66, 0x45
+    , 0xdf, 0x4c, 0x2f, 0x87, 0xeb, 0xc0, 0x99, 0x2a
+    , 0xb1, 0x77, 0xfb, 0xa5, 0x1d, 0xb9, 0x2c, 0x2a
+    ]
+
+alice_pub : [32][8]
+alice_pub =
+    [ 0x85, 0x20, 0xf0, 0x09, 0x89, 0x30, 0xa7, 0x54
+    , 0x74, 0x8b, 0x7d, 0xdc, 0xb4, 0x3e, 0xf7, 0x5a
+    , 0x0d, 0xbf, 0x3a, 0x0d, 0x26, 0x38, 0x1a, 0xf4
+    , 0xeb, 0xa4, 0xa9, 0x8e, 0xaa, 0x9b, 0x4e, 0x6a
+    ]
+
+bob_priv : [32][8]
+bob_priv =
+    [ 0x5d, 0xab, 0x08, 0x7e, 0x62, 0x4a, 0x8a, 0x4b
+    , 0x79, 0xe1, 0x7f, 0x8b, 0x83, 0x80, 0x0e, 0xe6
+    , 0x6f, 0x3b, 0xb1, 0x29, 0x26, 0x18, 0xb6, 0xfd
+    , 0x1c, 0x2f, 0x8b, 0x27, 0xff, 0x88, 0xe0, 0xeb
+    ]
+
+bob_pub : [32][8]
+bob_pub =
+    [ 0xde, 0x9e, 0xdb, 0x7d, 0x7b, 0x7d, 0xc1, 0xb4
+    , 0xd3, 0x5b, 0x61, 0xc2, 0xec, 0xe4, 0x35, 0x37
+    , 0x3f, 0x83, 0x43, 0xc8, 0x5b, 0x78, 0x67, 0x4d
+    , 0xad, 0xfc, 0x7e, 0x14, 0x6f, 0x88, 0x2b, 0x4f
+    ]
+
+shared : [32][8]
+shared =
+    [ 0x4a, 0x5d, 0x9d, 0x5b, 0xa4, 0xce, 0x2d, 0xe1
+    , 0x72, 0x8e, 0x3b, 0xf4, 0x80, 0x35, 0x0f, 0x25
+    , 0xe0, 0x7e, 0x21, 0xc9, 0x47, 0xd1, 0x9e, 0x33
+    , 0x76, 0xf0, 0x9b, 0x3c, 0x1e, 0x16, 0x17, 0x42
+    ]
+
+dh_alice_pub_kat : Bit
+dh_alice_pub_kat = x25519_base alice_priv == alice_pub
+
+dh_bob_pub_kat : Bit
+dh_bob_pub_kat = x25519_base bob_priv == bob_pub
+
+dh_shared_alice_kat : Bit
+dh_shared_alice_kat = x25519 alice_priv bob_pub == shared
+
+dh_shared_bob_kat : Bit
+dh_shared_bob_kat = x25519 bob_priv alice_pub == shared

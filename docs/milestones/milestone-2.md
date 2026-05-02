@@ -270,9 +270,11 @@ with the test changes.
 > Maintained in-place. Whoever finishes a chunk updates this section in the
 > same commit that flips a function's status.
 
-**Last updated:** 2026-05-02 (**entire crypto/* stack verified** — SHA-256
-family + HMAC + HKDF + complete AES-256-CBC stack, 22 functions total
-under ADR-0009. Only X25519, Ed25519, RNG remain on the milestone-2 plan).
+**Last updated:** 2026-05-02 (**X25519 Tier A foundation landed** — Cryptol
+algorithmic model + SAW driver proving RFC 7748 §5.2 v1/v2 + §6.1 DH KATs.
+The 14-function asm decomposition is registered in FUNCTIONS.md;
+implementation follows. Verified count remains 47 — X25519 functions
+flip to ◉ as their asm + per-function verifiers land.).
 
 **State:**
 
@@ -374,13 +376,24 @@ under ADR-0009. Only X25519, Ed25519, RNG remain on the milestone-2 plan).
 
 **Eligible next chunks:**
 
-1. **X25519 field arithmetic + scalar mult.** The next big block of
-   work — the largest single primitive in the project. Field ops
-   mod 2^255 - 19; Montgomery ladder. Decision still open: hand-write
-   in asm vs adopt fiat-crypto's generated form (now physically
-   available under `references/fiat-crypto/fiat-c/src/curve25519_32.c`).
-   The Cryptol-side spec is the easier piece — Cryptol stdlib already
-   models the GF(p) arithmetic. The asm is the major investment.
+1. **X25519 field arithmetic + scalar mult.** Tier A complete:
+   [X25519.cry](../../proofs/crypto/x25519/X25519.cry) implements
+   RFC 7748 §5 from first principles (decode_scalar/decode_u/Montgomery
+   ladder/Fermat-inverse/encode_u), and [x25519.saw](../../proofs/crypto/x25519/x25519.saw)
+   discharges all 6 published KATs (RFC 7748 §5.2 v1/v2 + §6.1 DH from
+   both directions) via z3 in ~1.3 s. The 14-function asm decomposition
+   is in FUNCTIONS.md (field unpack/pack/add/sub/mul/sq/mul121665/inv,
+   decode_scalar/decode_u/cswap, montgomery_ladder, scalar_mult,
+   keypair).
+
+   Asm implementation strategy: 10-limb radix-2^25.5 representation
+   (BearSSL/curve25519-donna 32-bit form) — each limb fits 32 bits
+   with headroom for accumulating products, and reduction folds into
+   limb carries. Per-function angr verifiers will likely succeed for
+   the simple ops (add/sub/cswap/pack/unpack) and fail for mul/sq
+   (heavy bit manipulation, same pattern as aes_sbox); for those the
+   pytest KATs against QEMU + the Cryptol Tier A spec carry the
+   binary-correctness obligation, until SAW+macaw-riscv lands.
 
 2. **Hardware RNG wrapper (`rng_init`, `rng_bytes`).** Small surface;
    gates Ed25519/X25519 keypair generation. On qemu the deterministic-

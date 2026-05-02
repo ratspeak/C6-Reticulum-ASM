@@ -1,0 +1,46 @@
+// proofs/crypto/x25519/x25519.saw
+//
+// SAW driver for X25519 algorithmic verification (Tier A per ADR-0009).
+// The Cryptol model X25519.cry implements RFC 7748 §5 from first
+// principles; SAW discharges the published RFC 7748 known-answer
+// vectors against it via z3.
+//
+// Coverage:
+//
+//   * RFC 7748 §5.2 single-iteration test vectors v1 and v2.
+//   * RFC 7748 §6.1 Diffie-Hellman example: alice_pub == X25519(a, 9),
+//     bob_pub == X25519(b, 9), and the shared secret X25519(a, B) ==
+//     X25519(b, A) (both directions checked, demonstrating the DH
+//     symmetry).
+//
+// The Montgomery ladder is concretely evaluated for each KAT (255
+// iterations, each ~10 modular ops) so SAW reduces to a constant
+// equality check — discharged in milliseconds via z3.
+
+import "X25519.cry";
+
+print "[x25519.saw] proving RFC 7748 §5.2 v1 (single-step scalar mult) ...";
+prove_print z3 {{ rfc7748_5_2_v1_kat }};
+print "[x25519.saw] §5.2 v1: PASS.";
+
+print "[x25519.saw] proving RFC 7748 §5.2 v2 ...";
+prove_print z3 {{ rfc7748_5_2_v2_kat }};
+print "[x25519.saw] §5.2 v2: PASS.";
+
+print "[x25519.saw] proving RFC 7748 §6.1 alice_pub = X25519(a, 9) ...";
+prove_print z3 {{ dh_alice_pub_kat }};
+print "[x25519.saw] alice_pub: PASS.";
+
+print "[x25519.saw] proving RFC 7748 §6.1 bob_pub = X25519(b, 9) ...";
+prove_print z3 {{ dh_bob_pub_kat }};
+print "[x25519.saw] bob_pub: PASS.";
+
+print "[x25519.saw] proving X25519(a, B) == shared (alice computes shared) ...";
+prove_print z3 {{ dh_shared_alice_kat }};
+print "[x25519.saw] alice's shared: PASS.";
+
+print "[x25519.saw] proving X25519(b, A) == shared (bob computes shared) ...";
+prove_print z3 {{ dh_shared_bob_kat }};
+print "[x25519.saw] bob's shared: PASS.";
+
+print "[x25519.saw] PASS";
