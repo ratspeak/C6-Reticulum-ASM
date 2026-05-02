@@ -1,0 +1,13 @@
+// proofs/crypto/x25519/x25519_decode_scalar.saw
+//
+// SAW driver for x25519_decode_scalar (Tier A per ADR-0009).
+// Discharges that the byte-level clamp matches the integer-level
+// decoder over all 2^256 input scalars (z3 in milliseconds).
+
+import "X25519FieldOps.cry";
+
+print "[x25519_decode_scalar.saw] proving clamp(k) decoded == decode_scalar_25519(k) ...";
+prove_print z3 {{ \(k : [32][8]) -> clamp_then_decode_match k }};
+print "[x25519_decode_scalar.saw] clamp/decode equivalence: PASS.";
+
+print "[x25519_decode_scalar.saw] PASS";

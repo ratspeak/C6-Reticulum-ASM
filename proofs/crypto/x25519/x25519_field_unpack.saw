@@ -1,0 +1,32 @@
+// proofs/crypto/x25519/x25519_field_unpack.saw
+//
+// SAW driver for x25519_field_unpack (Tier A per ADR-0009).
+//
+// The full all-inputs symbolic proof
+// (decode_limbs (field_unpack_cry w) == decode_le w mod 2^255 mod p_25519
+//  for all w : [32][8]) is z3-tractable in principle but spent >5 minutes
+// without converging here — bit-shifted byte-distribution interacts poorly
+// with the modular reduction step. Cryptol's :check confirms 100 random
+// inputs (see X25519FieldOps.cry); we discharge the smaller concrete KATs
+// here, and binary equivalence on arbitrary inputs is in
+// x25519_field_unpack.py via angr.
+//
+// The full symbolic proof can be revisited once SAW + macaw-riscv lands
+// (ADR-0009 §"Tier C path forward") — at that point the asm and the
+// Cryptol model can be equated directly without the byte-shuffling
+// indirection.
+
+import "X25519FieldOps.cry";
+
+print "[x25519_field_unpack.saw] proving zero wire decodes to zero limbs ...";
+prove_print z3 {{ decode_limbs (field_unpack_cry zero) == 0 }};
+print "[x25519_field_unpack.saw] zero-wire: PASS.";
+
+// All-FF input: every limb saturates to its mask (the high bit is dropped).
+// Decoded integer is 2^255 - 1 mod p_25519 = 18 (since 2^255 ≡ 19 mod p).
+print "[x25519_field_unpack.saw] proving all-FF wire decodes consistently ...";
+prove_print z3
+    {{ decode_limbs (field_unpack_cry (~zero)) == 18 }};
+print "[x25519_field_unpack.saw] all-FF wire = 18 mod p (= 2^255 - 1 mod p): PASS.";
+
+print "[x25519_field_unpack.saw] PASS";

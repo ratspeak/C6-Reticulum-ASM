@@ -104,3 +104,112 @@ small_add_kat = decode_limbs (pointwise_add a_seven zero) == 7
   where
     a_seven : Limbs
     a_seven = [7, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+// ---------- cswap on limb buffers ------------------------------------
+
+// Mask: 0xFFFFFFFF when swap, else 0. Exactly the asm's `-swap`.
+swap_mask : Bit -> [32]
+swap_mask s = if s then ~zero else zero
+
+// cswap on a single limb pair: XOR-swap masked by swap_mask.
+cswap_one : Bit -> [32] -> [32] -> ([32], [32])
+cswap_one s a b = (a ^ d, b ^ d)
+  where d = (a ^ b) && (swap_mask s)
+
+// cswap on the full 10-limb arrays — returned as two parallel
+// comprehensions to sidestep Cryptol's lack of unzip on tuple sequences.
+cswap_a : Bit -> Limbs -> Limbs -> Limbs
+cswap_a s a b = [ ai ^ ((ai ^ bi) && swap_mask s) | ai <- a | bi <- b ]
+
+cswap_b : Bit -> Limbs -> Limbs -> Limbs
+cswap_b s a b = [ bi ^ ((ai ^ bi) && swap_mask s) | ai <- a | bi <- b ]
+
+// Properties.
+
+cswap_id_a : Limbs -> Limbs -> Bit
+cswap_id_a a b = cswap_a False a b == a
+
+cswap_id_b : Limbs -> Limbs -> Bit
+cswap_id_b a b = cswap_b False a b == b
+
+cswap_swap_a : Limbs -> Limbs -> Bit
+cswap_swap_a a b = cswap_a True a b == b
+
+cswap_swap_b : Limbs -> Limbs -> Bit
+cswap_swap_b a b = cswap_b True a b == a
+
+cswap_involutive_a : Bit -> Limbs -> Limbs -> Bit
+cswap_involutive_a s a b = cswap_a s (cswap_a s a b) (cswap_b s a b) == a
+
+cswap_involutive_b : Bit -> Limbs -> Limbs -> Bit
+cswap_involutive_b s a b = cswap_b s (cswap_a s a b) (cswap_b s a b) == b
+
+// ---------- byte-form decoders ---------------------------------------
+
+// RFC 7748 §5 scalar clamping on the wire bytes (32-byte buffer).
+// Returns the same 32-byte sequence except bytes 0 and 31 clamped.
+clamp_scalar_bytes : [32][8] -> [32][8]
+clamp_scalar_bytes k =
+    [(k @ 0) && 248] # (k @@ ([1..30] : [30][5]))
+                     # [((k @ 31) && 127) || 64]
+
+// RFC 7748 §5 u-coordinate masking on the wire bytes.
+// Returns the 32-byte sequence with bit 7 of byte 31 cleared.
+mask_u_bytes : [32][8] -> [32][8]
+mask_u_bytes u =
+    take`{31} u # [(u @ 31) && 0x7f]
+
+// Cross-check: applying clamp_scalar_bytes then decoding via decode_le
+// gives the same Integer as decode_scalar_25519 directly.
+clamp_then_decode_match : [32][8] -> Bit
+clamp_then_decode_match k = decode_le (clamp_scalar_bytes k)
+                         == decode_scalar_25519 k
+
+// And for u-coordinate.
+mask_then_decode_match : [32][8] -> Bit
+mask_then_decode_match u = decode_le (mask_u_bytes u) == decode_u_25519 u
+
+// ---------- field_unpack model (donna fexpand) ------------------------
+
+// 4 little-endian bytes from offset `off` of the wire buffer.
+read32_le : [32][8] -> Integer -> [32]
+read32_le w off = w0 || (w1 << 8) || (w2 << 16) || (w3 << 24)
+  where
+    idx i = (w @ ((fromInteger i) : [5])) : [8]
+    w0 = (zero : [24]) # idx off
+    w1 = (zero : [24]) # idx (off + 1)
+    w2 = (zero : [24]) # idx (off + 2)
+    w3 = (zero : [24]) # idx (off + 3)
+
+// Extract one limb at (byte_off, bit_off, mask).
+unpack_limb : [32][8] -> Integer -> [6] -> [32] -> [32]
+unpack_limb w byte_off bit_off mask =
+    ((read32_le w byte_off) >> bit_off) && mask
+
+mask25 : [32]
+mask25 = 0x01FFFFFF
+
+mask26 : [32]
+mask26 = 0x03FFFFFF
+
+field_unpack_cry : [32][8] -> Limbs
+field_unpack_cry w =
+    [ unpack_limb w  0 0 mask26
+    , unpack_limb w  3 2 mask25
+    , unpack_limb w  6 3 mask26
+    , unpack_limb w  9 5 mask25
+    , unpack_limb w 12 6 mask26
+    , unpack_limb w 16 0 mask25
+    , unpack_limb w 19 1 mask26
+    , unpack_limb w 22 3 mask25
+    , unpack_limb w 25 4 mask26
+    , unpack_limb w 28 6 mask25
+    ]
+
+// Property: decode_limbs (field_unpack_cry w) equals the low 255 bits
+// of decode_le w, taken mod p_25519. (The 10 limbs cover 255 bits; the
+// high wire bit at position 255 is dropped — RFC 7748 §5 specifies a
+// separate u-coordinate mask to clear it before passing to the field.)
+field_unpack_correct : [32][8] -> Bit
+field_unpack_correct w =
+    decode_limbs (field_unpack_cry w) == (decode_le w % (2 ^^ 255)) % p_25519

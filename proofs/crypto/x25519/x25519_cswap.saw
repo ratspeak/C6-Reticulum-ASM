@@ -1,0 +1,32 @@
+// proofs/crypto/x25519/x25519_cswap.saw
+//
+// SAW driver for x25519_cswap (Tier A per ADR-0009). The asm performs
+// constant-time conditional swap of two 10-limb buffers via the
+// branchless mask = -swap trick. The Cryptol cswap_a / cswap_b
+// functions in X25519FieldOps.cry model the asm's per-half outputs;
+// SAW discharges the algebraic identities below over ALL 2^640 limb
+// pair inputs via z3 (a few seconds with bitvector reasoning).
+//
+// Properties:
+//   * cswap(0, a, b) = (a, b)   — swap=0 is identity on both halves
+//   * cswap(1, a, b) = (b, a)   — swap=1 actually swaps
+//   * cswap(s, cswap(s, a, b))  = (a, b)   — involution for both halves
+
+import "X25519FieldOps.cry";
+
+print "[x25519_cswap.saw] proving cswap(0) preserves both halves ...";
+prove_print z3 {{ \(a : Limbs) (b : Limbs) -> cswap_id_a a b }};
+prove_print z3 {{ \(a : Limbs) (b : Limbs) -> cswap_id_b a b }};
+print "[x25519_cswap.saw] cswap(0) is identity: PASS.";
+
+print "[x25519_cswap.saw] proving cswap(1) exchanges both halves ...";
+prove_print z3 {{ \(a : Limbs) (b : Limbs) -> cswap_swap_a a b }};
+prove_print z3 {{ \(a : Limbs) (b : Limbs) -> cswap_swap_b a b }};
+print "[x25519_cswap.saw] cswap(1) actually swaps: PASS.";
+
+print "[x25519_cswap.saw] proving cswap is involutive ...";
+prove_print z3 {{ \(s : Bit) (a : Limbs) (b : Limbs) -> cswap_involutive_a s a b }};
+prove_print z3 {{ \(s : Bit) (a : Limbs) (b : Limbs) -> cswap_involutive_b s a b }};
+print "[x25519_cswap.saw] cswap involution: PASS.";
+
+print "[x25519_cswap.saw] PASS";

@@ -42,6 +42,36 @@ def bytes_to_limbs(b: bytes) -> list[int]:
     return list(struct.unpack("<10I", b))
 
 
+# Donna fexpand: split 32 wire bytes across 10 radix-2^25.5 limbs.
+# Mirrors src/crypto/x25519/x25519_field_unpack.S.
+_LIMB_TABLE = [
+    # (byte_offset, bit_offset, width_mask)
+    (0,  0, 0x03FFFFFF),
+    (3,  2, 0x01FFFFFF),
+    (6,  3, 0x03FFFFFF),
+    (9,  5, 0x01FFFFFF),
+    (12, 6, 0x03FFFFFF),
+    (16, 0, 0x01FFFFFF),
+    (19, 1, 0x03FFFFFF),
+    (22, 3, 0x01FFFFFF),
+    (25, 4, 0x03FFFFFF),
+    (28, 6, 0x01FFFFFF),
+]
+
+
+def field_unpack_oracle(wire: bytes) -> list[int]:
+    """Mirror of x25519_field_unpack: 32 wire bytes -> 10 limbs."""
+    assert len(wire) == 32
+    out = []
+    for byte_off, bit_off, mask in _LIMB_TABLE:
+        word = (wire[byte_off]
+                | (wire[byte_off + 1] << 8)
+                | (wire[byte_off + 2] << 16)
+                | (wire[byte_off + 3] << 24))
+        out.append((word >> bit_off) & mask)
+    return out
+
+
 # ---- field op specs (the algebraic post-conditions) --------------------
 
 def f_add(a: int, b: int) -> int:
