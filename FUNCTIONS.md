@@ -43,7 +43,7 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **25** (excludes wildcard placeholders like `x25519_field_*`)
 - Verified: 24 (milestone 1 software side)
-- Tested (KAT-only, formal verifier pending): 1 (`sha256_init` — milestone 2)
+- Tested (KAT-only, formal verifier pending): 2 (`sha256_init`, `sha256_compress` — milestone 2)
 - In progress: 0
 - Planned: 1 milestone-1 leaf (`uart_isr`, hw-only) + the milestone-2..9 chain
 
@@ -134,7 +134,7 @@ proof + KAT + constant-time required.
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
 | `sha256_init` | ◑ tested | — | 0001, 0002, 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
-| `sha256_compress` | ☐ planned | `sha256_init` | 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
+| `sha256_compress` | ◑ tested | `sha256_init` | 0001, 0002, 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
 | `sha256_update` | ☐ planned | `sha256_init`, `sha256_compress` | 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
 | `sha256_final` | ☐ planned | `sha256_update` | 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
 
