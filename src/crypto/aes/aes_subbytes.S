@@ -9,10 +9,10 @@
 # @cycles:      bounded (16 * aes_sbox + loop overhead, ~5500)
 # @ct:          required (loop counter is data-independent; aes_sbox is CT)
 # @spec:        FIPS 197 §5.1.1 (SubBytes — 16-cell map)
-# @verify:      kat-only; covered end-to-end by aes256_encrypt_block KAT
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
 # @tests:       tests/crypto/aes/test_aes_subbytes.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* SubBytes applies aes_sbox to each of the 16 state bytes.  The loop

@@ -11,10 +11,10 @@
 # @spec:        FIPS 197 §5.3.2 + Saarinen identity
 #               iS(x) = A(S(A(x)))   where  A(x) = rol8(x,6) ^ rol8(x,3) ^ rol8(x,1) ^ 0x05
 #               (BearSSL src/symcipher/aes_ct.c:br_aes_ct_bitslice_invSbox)
-# @verify:      kat-only; full 256-input table checked against FIPS 197 §B.5
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
 # @tests:       tests/crypto/aes/test_aes_invsbox.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* AES inverse S-box, byte-wise. Implemented as a sandwich: a small affine

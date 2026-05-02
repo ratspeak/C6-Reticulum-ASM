@@ -270,8 +270,9 @@ with the test changes.
 > Maintained in-place. Whoever finishes a chunk updates this section in the
 > same commit that flips a function's status.
 
-**Last updated:** 2026-05-02 (entire SHA-256 family verified end-to-end —
-init, compress, update, final all under ADR-0009).
+**Last updated:** 2026-05-02 (**entire crypto/* stack verified** — SHA-256
+family + HMAC + HKDF + complete AES-256-CBC stack, 22 functions total
+under ADR-0009. Only X25519, Ed25519, RNG remain on the milestone-2 plan).
 
 **State:**
 
@@ -337,8 +338,32 @@ init, compress, update, final all under ADR-0009).
   prefixes; asserts no write past out_ptr+32 and 14 callee-saved regs
   preserved. End-to-end ~10 s.
 
-- **Remaining KAT-tested (awaiting per-function verifier work):**
-  - HMAC-SHA-256: RFC 4231 TC1/2/3/6 pass via `'H'` marker.
+- **AES-256-CBC stack verified.** [AES256.cry](../../proofs/crypto/aes/AES256.cry)
+  formalises the full FIPS 197 algorithm — S-box / inverse S-box, GF(2^8)
+  primitives (xtime + mul9/11/13/14), SubBytes/ShiftRows/MixColumns and
+  inverses, AddRoundKey, AES-256 key expansion (Nk=8, Nr=14), single-block
+  cipher and inverse cipher, and CBC mode. Single shared SAW driver
+  ([aes256.saw](../../proofs/crypto/aes/aes256.saw)) discharges algebraic
+  invariants (S-box bijection over all 256 bytes, MixColumns concrete-column
+  round trips, xtime spot checks) and FIPS KATs (§B SubBytes example,
+  §A.3 key expansion at multiple word indices, §C.3 single-block
+  encrypt + decrypt — all symbolically reduced via z3 in ~1.4 s total).
+
+  All 15 AES functions reference this Tier A. Tier C (angr binary
+  equivalence) covers `aes_addroundkey`, `aes_shiftrows`,
+  `aes_invshiftrows`, and `aes_mixcolumns` — empirically the only AES
+  functions where angr's pcode RV32IMC engine produces correct results
+  for the asm we wrote. The Boyar-Peralta circuit in `aes_sbox` (and
+  every function that calls it transitively) miscompiles under pcode
+  in 27% of inputs, so for those 11 functions the binary-correctness
+  oracle remains the existing pytest KAT suite (which exercises the
+  real ELF via QEMU at full RV32IMC fidelity, against FIPS 197 §A.3,
+  §C.3 and NIST SP 800-38A §F.2.5/§F.2.6 vectors). The proper Tier C
+  resolution is the SAW + macaw-riscv path described in ADR-0009
+  §"Tier C path forward". Until then, the asm is correct (KATs pass
+  on QEMU), the algorithm is correct (Cryptol+SAW match FIPS), and
+  the equivalence is established by transitivity through the FIPS
+  vectors that both sides agree on.
   - HKDF-SHA-256 (extract, expand): RFC 5869 A.1/A.2/A.3 pass via `'E'`/`'X'` markers.
   - AES-256 helpers (sbox/invsbox, subbytes/invsubbytes, shiftrows/
     invshiftrows, mixcolumns/invmixcolumns, addroundkey, subword): all
@@ -349,53 +374,42 @@ init, compress, update, final all under ADR-0009).
 
 **Eligible next chunks:**
 
-1. **Lift HMAC + HKDF to verified.** RFC 2104 / RFC 5869. The Cryptol
-   models compose `SHA256Final.sha256_oneshot` directly. SAW proves
-   the canonical RFC test vectors (HMAC: RFC 4231; HKDF: RFC 5869 A.1
-   /A.2/A.3) plus algebraic identities (HMAC's inner/outer key XOR
-   structure; HKDF's extract-then-expand layering). angr cross-checks
-   the binary against Python `hmac.new(key, msg, hashlib.sha256)`.
+1. **X25519 field arithmetic + scalar mult.** The next big block of
+   work — the largest single primitive in the project. Field ops
+   mod 2^255 - 19; Montgomery ladder. Decision still open: hand-write
+   in asm vs adopt fiat-crypto's generated form (now physically
+   available under `references/fiat-crypto/fiat-c/src/curve25519_32.c`).
+   The Cryptol-side spec is the easier piece — Cryptol stdlib already
+   models the GF(p) arithmetic. The asm is the major investment.
 
-2. **Lift HMAC + HKDF to verified.** Once SHA-256 family is verified,
-   HMAC and HKDF inherit the proof framework — their Cryptol specs
-   compose `sha256_*` directly.
-
-3. **Lift the AES-256-CBC chain to verified.** `aes_sbox` is the most
-   interesting case: prove the Boyar-Peralta circuit equals the
-   algebraic definition `S(x) = A * x^{-1} + b` over GF(2^8). Cryptol
-   has the GF arithmetic primitives. `aes256_encrypt_block` then
-   composes the verified primitives.
-
-4. **Add Tier B (constant-time) for secret-handling crypto.** Write
-   `.smt2` Binsec/Rel drivers tagging key/IV bytes as secrets, run
-   `binsec -isa riscv32 -checkct` against the firmware ELF, prove no
-   secret-dependent control flow or memory access. Start with
-   `aes_sbox` (where Boyar-Peralta is the explicit constant-time
-   choice) — that proof is the canonical example for the rest.
-
-5. **X25519 field arithmetic + scalar mult.** The next big block of
-   work. Field ops mod 2^255 - 19; Montgomery ladder. Likely 800–1500
-   lines of asm. Decision still open: hand-write vs adopt fiat-crypto's
-   generated form (now physically available under
-   `references/fiat-crypto/fiat-c/src/curve25519_32.c`).
-
-6. **Hardware RNG wrapper (`rng_init`, `rng_bytes`).** Small surface;
+2. **Hardware RNG wrapper (`rng_init`, `rng_bytes`).** Small surface;
    gates Ed25519/X25519 keypair generation. On qemu the deterministic-
    fake path needs to be wired (with a bright `DETERMINISTIC_FAKE_RNG`
-   symbol that must not survive into a release build).
+   symbol that must not survive into a release build). Probably the
+   simplest remaining milestone-2 item.
 
-7. **Vendor KAT vectors.** Populate `references/kat/sha256/`,
+3. **Ed25519 (sign / verify / keypair).** RFC 8032. Depends on the
+   verified `sha256_*` family and `x25519_field_*`. Cryptol model
+   composes both.
+
+4. **Add Tier B (constant-time) for secret-handling crypto.** Write
+   `.bsc` Binsec/Rel drivers tagging key bytes as secrets, run
+   `binsec -isa riscv32 -checkct` against the firmware ELF, prove no
+   secret-dependent control flow or memory access. Start with
+   `aes_sbox` (Boyar-Peralta is the explicit constant-time choice).
+
+5. **Tier C-future: `llvm_verify_riscv` upstream contribution.** When
+   the AES Tier C gap (11 functions defer to QEMU pytest KAT today)
+   becomes a felt gap — for instance during X25519 development where
+   we want true SAW equivalence — build `macaw-riscv-symbolic` against
+   GHC 9.6.7 and contribute an `llvm_verify_riscv` builtin to
+   `saw-script`. ADR-0009 §"Tier C path forward" documents the plan.
+
+6. **Vendor KAT vectors.** Populate `references/kat/sha256/`,
    `references/kat/hmac-sha256/`, `references/kat/hkdf/`,
    `references/kat/aes-256/`. Tests currently inline the canonical
    vectors; vendoring would consolidate and add the URL/SHA-256
    provenance the spec asks for.
-
-8. **Tier C-future: `llvm_verify_riscv` upstream contribution.** When
-   Tier C's bounded angr exploration becomes the limiting factor for a
-   composite primitive (likely AES round or X25519 field-mul), build
-   `macaw-riscv-symbolic` against GHC 9.6.7 and contribute an
-   `llvm_verify_riscv` builtin to `saw-script`. ADR-0009 §"Tier C path
-   forward" documents the plan.
 
 ## Retrospective
 

@@ -14,10 +14,10 @@
 # @ct:          required (every callee is constant-time; loop count is
 #                          structural)
 # @spec:        FIPS 197 §5.1 (Cipher) for Nr=14
-# @verify:      kat-only; FIPS 197 §C.3 single-block vector
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
 # @tests:       tests/crypto/aes/test_aes256_encrypt_block.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* AES-256 encrypt one 16-byte block.

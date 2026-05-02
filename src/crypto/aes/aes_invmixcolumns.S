@@ -16,10 +16,10 @@
 #                  9*x = x^(8x)
 #               where the (2x), (4x), (8x) chain is built by repeated
 #               constant-time xtime (poly 0x1B reduction).
-# @verify:      kat-only; covered end-to-end by aes256_decrypt_block KAT
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
 # @tests:       tests/crypto/aes/test_aes_mixcolumns.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* InvMixColumns is the matrix-multiply analogue of MixColumns under

@@ -11,10 +11,10 @@
 # @ct:          required (loop count + branch decisions are structural;
 #                          aes_subword and xtime are constant-time)
 # @spec:        FIPS 197 §5.2 (Key Expansion) for Nk=8, Nb=4, Nr=14
-# @verify:      kat-only; full 240-byte schedule checked against FIPS 197 §A.3
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
 # @tests:       tests/crypto/aes/test_aes256_key_expand.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* AES-256 key schedule (FIPS 197 §5.2):

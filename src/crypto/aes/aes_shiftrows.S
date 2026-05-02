@@ -9,10 +9,10 @@
 # @cycles:      bounded (~45)
 # @ct:          required (no data-dependent control flow or addresses)
 # @spec:        FIPS 197 §5.1.2 (ShiftRows)
-# @verify:      kat-only; covered end-to-end by aes256_encrypt_block KAT
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_shiftrows.py
 # @tests:       tests/crypto/aes/test_aes_shiftrows.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* AES ShiftRows: row r is rotated left by r positions in the state's

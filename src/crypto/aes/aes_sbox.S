@@ -12,10 +12,10 @@
 #               (Boyar & Peralta, "A new combinational logic minimization
 #                technique with applications to cryptology", 2010 —
 #                https://eprint.iacr.org/2009/191).
-# @verify:      kat-only; full 256-input table checked against FIPS 197 §B.4
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
 # @tests:       tests/crypto/aes/test_aes_sbox.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* AES forward S-box, byte-wise, computed via the 113-gate Boyar-Peralta

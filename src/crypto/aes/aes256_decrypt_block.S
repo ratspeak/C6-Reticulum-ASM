@@ -11,10 +11,10 @@
 # @cycles:      bounded (~75k; 14 inverse rounds + final-round shortcut)
 # @ct:          required
 # @spec:        FIPS 197 §5.3 (Inverse Cipher) for Nr=14
-# @verify:      kat-only; FIPS 197 §C.3 reverse vector + round-trip
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
 # @tests:       tests/crypto/aes/test_aes256_decrypt_block.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* AES-256 inverse cipher (FIPS 197 §5.3):

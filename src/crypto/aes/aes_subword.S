@@ -9,10 +9,10 @@
 # @cycles:      bounded (~1400; 4 * aes_sbox + glue)
 # @ct:          required (4 fixed aes_sbox calls; no data branches)
 # @spec:        FIPS 197 §5.2 (SubWord; helper used by key expansion)
-# @verify:      kat-only; covered end-to-end by aes256_key_expand KAT
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
 # @tests:       tests/crypto/aes/test_aes256_key_expand.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* AES SubWord: apply aes_sbox to each of the 4 bytes of a 32-bit word.

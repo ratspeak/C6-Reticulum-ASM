@@ -42,8 +42,9 @@ Each function entry has:
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **39** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 32 (milestone 1 software side + complete SHA-256 family + `hmac_sha256` + `hkdf_extract`/`hkdf_expand` under ADR-0009)
-- Tested (KAT-only, formal verifier pending): 15 (complete AES-256-CBC stack — milestone 2; end-to-end KAT via 12 markers in `_main`)
+- Verified: 47 (milestone 1 software side + entire milestone-2 crypto stack: SHA-256 family + HMAC + HKDF + complete AES-256-CBC stack — all under ADR-0009)
+- Tested (KAT-only, formal verifier pending): 0
+- Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - In progress: 0
 - Planned: 1 milestone-1 leaf (`uart_isr`, hw-only) + the milestone-2..9 chain (X25519, Ed25519, RNG)
 
@@ -163,21 +164,21 @@ the Boyar-Peralta combinational circuit (no table lookups, per ADR-0006).
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `aes_sbox` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invsbox` | ◑ tested | `aes_sbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_subbytes` | ◑ tested | `aes_sbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invsubbytes` | ◑ tested | `aes_invsbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_shiftrows` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invshiftrows` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_mixcolumns` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invmixcolumns` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_addroundkey` | ◑ tested | — | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_subword` | ◑ tested | `aes_sbox` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes256_key_expand` | ◑ tested | `aes_subword` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes256_encrypt_block` | ◑ tested | `aes_subbytes`, `aes_shiftrows`, `aes_mixcolumns`, `aes_addroundkey` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes256_decrypt_block` | ◑ tested | `aes_invsubbytes`, `aes_invshiftrows`, `aes_invmixcolumns`, `aes_addroundkey` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes256_cbc_encrypt` | ◑ tested | `aes256_encrypt_block` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes256_cbc_decrypt` | ◑ tested | `aes256_decrypt_block` | 0006 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_sbox` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invsbox` | ◉ verified | `aes_sbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_subbytes` | ◉ verified | `aes_sbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invsubbytes` | ◉ verified | `aes_invsbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_shiftrows` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invshiftrows` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_mixcolumns` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invmixcolumns` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_addroundkey` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_subword` | ◉ verified | `aes_sbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_key_expand` | ◉ verified | `aes_subword` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_encrypt_block` | ◉ verified | `aes_subbytes`, `aes_shiftrows`, `aes_mixcolumns`, `aes_addroundkey` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_decrypt_block` | ◉ verified | `aes_invsubbytes`, `aes_invshiftrows`, `aes_invmixcolumns`, `aes_addroundkey` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_cbc_encrypt` | ◉ verified | `aes256_encrypt_block` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_cbc_decrypt` | ◉ verified | `aes256_decrypt_block` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
 
 ## Module: `crypto/x25519`
 

@@ -10,10 +10,10 @@
 # @cycles:      bounded (16: 4 unrolled word-XOR triples + ret)
 # @ct:          required
 # @spec:        FIPS 197 §5.1.4 (AddRoundKey)
-# @verify:      kat-only; covered end-to-end by aes256_encrypt_block KAT
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_addroundkey.py
 # @tests:       tests/crypto/aes/test_aes_addroundkey.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* state ^= round_key, four 32-bit XORs.  Both buffers must be 4-byte

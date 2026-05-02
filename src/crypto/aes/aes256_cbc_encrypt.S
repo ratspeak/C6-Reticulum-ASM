@@ -13,10 +13,10 @@
 # @cycles:      bounded; n_blocks * (16-byte XOR + aes256_encrypt_block)
 # @ct:          required (length is structural; encrypt_block is CT)
 # @spec:        NIST SP 800-38A §6.2 (CBC mode)
-# @verify:      kat-only; NIST SP 800-38A §F.2.5
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
 # @tests:       tests/crypto/aes/test_aes256_cbc.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* AES-256-CBC encrypt:

@@ -1,0 +1,393 @@
+// proofs/crypto/aes/AES256.cry
+//
+// Cryptol algorithmic specification for the AES-256 stack and CBC mode.
+// Written from FIPS 197 first principles (S-box table form; the asm
+// uses Boyar-Peralta's combinational circuit for constant-time, but
+// both compute the same function — that equivalence is the burden of
+// the angr Tier C verifier).
+//
+// This module is the source of truth for the entire crypto/aes module.
+// Each per-function .saw driver imports it and proves the relevant
+// KAT or algebraic property.
+
+module AES256 where
+
+// ---------- types ------------------------------------------------------
+
+type Byte  = [8]
+type Word  = [32]
+type Block = [4][4]Byte    // 16 bytes laid out column-major per FIPS 197 §3.4
+type Key256 = [32]Byte
+
+// AES-256 has 14 rounds. Round-key schedule contains 60 words
+// = 15 × (4 words per round-key) = 240 bytes.
+type Nr = 14
+type Nk = 8
+type ScheduleWords = 60        // (Nr + 1) * 4 = 60
+type ScheduleBytes = 240
+
+// ---------- GF(2^8) primitives -----------------------------------------
+
+// AES uses GF(2^8) with the irreducible polynomial 0x11B.
+// xtime = multiplication by x (i.e., shift left, conditionally XOR 0x1B).
+xtime : Byte -> Byte
+xtime b = if (b && 0x80) != 0 then (b << 1) ^ 0x1b else (b << 1)
+
+// Multiplication by 2, 4, 8 (for InvMixColumns).
+mul2 : Byte -> Byte
+mul2 = xtime
+
+mul4 : Byte -> Byte
+mul4 b = xtime (xtime b)
+
+mul8 : Byte -> Byte
+mul8 b = xtime (xtime (xtime b))
+
+mul9 : Byte -> Byte
+mul9 b = b ^ mul8 b
+
+mulb : Byte -> Byte
+mulb b = b ^ mul2 b ^ mul8 b   // 11
+
+muld : Byte -> Byte
+muld b = b ^ mul4 b ^ mul8 b   // 13
+
+mule : Byte -> Byte
+mule b = mul2 b ^ mul4 b ^ mul8 b  // 14
+
+// ---------- FIPS 197 §5.1.1 S-box and Inverse S-box --------------------
+
+sbox : [256]Byte
+sbox =
+    [ 0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76
+    , 0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0
+    , 0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15
+    , 0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2, 0xeb, 0x27, 0xb2, 0x75
+    , 0x09, 0x83, 0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0, 0x52, 0x3b, 0xd6, 0xb3, 0x29, 0xe3, 0x2f, 0x84
+    , 0x53, 0xd1, 0x00, 0xed, 0x20, 0xfc, 0xb1, 0x5b, 0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf
+    , 0xd0, 0xef, 0xaa, 0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f, 0x50, 0x3c, 0x9f, 0xa8
+    , 0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5, 0xbc, 0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2
+    , 0xcd, 0x0c, 0x13, 0xec, 0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19, 0x73
+    , 0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee, 0xb8, 0x14, 0xde, 0x5e, 0x0b, 0xdb
+    , 0xe0, 0x32, 0x3a, 0x0a, 0x49, 0x06, 0x24, 0x5c, 0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79
+    , 0xe7, 0xc8, 0x37, 0x6d, 0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4, 0xea, 0x65, 0x7a, 0xae, 0x08
+    , 0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a
+    , 0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e
+    , 0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf
+    , 0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
+    ]
+
+inv_sbox : [256]Byte
+inv_sbox =
+    [ 0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb
+    , 0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb
+    , 0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e
+    , 0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24, 0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25
+    , 0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92
+    , 0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda, 0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84
+    , 0x90, 0xd8, 0xab, 0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3, 0x45, 0x06
+    , 0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1, 0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b
+    , 0x3a, 0x91, 0x11, 0x41, 0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6, 0x73
+    , 0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9, 0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e
+    , 0x47, 0xf1, 0x1a, 0x71, 0x1d, 0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b
+    , 0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0, 0xfe, 0x78, 0xcd, 0x5a, 0xf4
+    , 0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07, 0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f
+    , 0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef
+    , 0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61
+    , 0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d
+    ]
+
+// ---------- per-byte S-box / inverse S-box ----------------------------
+
+sub_byte : Byte -> Byte
+sub_byte b = sbox @ b
+
+inv_sub_byte : Byte -> Byte
+inv_sub_byte b = inv_sbox @ b
+
+// ---------- block layout ----------------------------------------------
+
+// FIPS 197 §3.4: state is a 4×4 byte matrix, addressed column-major.
+// Bytes 0..15 in memory occupy state[col][row]:
+//   byte i → state[i / 4][i % 4]
+bytes_to_state : [16]Byte -> Block
+bytes_to_state bs = split bs
+
+state_to_bytes : Block -> [16]Byte
+state_to_bytes st = join st
+
+// ---------- AES round transforms --------------------------------------
+
+// SubBytes: apply S-box per byte.
+sub_bytes : Block -> Block
+sub_bytes st = [ [ sub_byte b | b <- col ] | col <- st ]
+
+inv_sub_bytes : Block -> Block
+inv_sub_bytes st = [ [ inv_sub_byte b | b <- col ] | col <- st ]
+
+// AddRoundKey: XOR the round key into the state.
+add_round_key : Block -> Block -> Block
+add_round_key st rk = [ [ a ^ b | a <- ca | b <- cb ] | ca <- st | cb <- rk ]
+
+// ShiftRows: each row r is rotated left by r positions.
+//   new_state[col][row] = old_state[(col + row) mod 4][row]
+shift_rows : Block -> Block
+shift_rows st =
+    [ [ st @ (((c + r) % 4) : [3]) @ (r : [3])
+      | r <- [0..3] : [4][3]
+      ]
+    | c <- [0..3] : [4][3]
+    ]
+
+inv_shift_rows : Block -> Block
+inv_shift_rows st =
+    [ [ st @ (((c + 4 - r) % 4) : [3]) @ (r : [3])
+      | r <- [0..3] : [4][3]
+      ]
+    | c <- [0..3] : [4][3]
+    ]
+
+// MixColumns: column-wise multiplication by the AES MDS matrix.
+//
+//   new_col[0] = 2*c0 ^ 3*c1 ^   c2 ^   c3
+//   new_col[1] =   c0 ^ 2*c1 ^ 3*c2 ^   c3
+//   new_col[2] =   c0 ^   c1 ^ 2*c2 ^ 3*c3
+//   new_col[3] = 3*c0 ^   c1 ^   c2 ^ 2*c3
+mix_one : [4]Byte -> [4]Byte
+mix_one [c0, c1, c2, c3] =
+    [ mul2 c0 ^ (c1 ^ mul2 c1) ^ c2 ^ c3
+    , c0 ^ mul2 c1 ^ (c2 ^ mul2 c2) ^ c3
+    , c0 ^ c1 ^ mul2 c2 ^ (c3 ^ mul2 c3)
+    , (c0 ^ mul2 c0) ^ c1 ^ c2 ^ mul2 c3
+    ]
+
+mix_columns : Block -> Block
+mix_columns st = map mix_one st
+
+// InvMixColumns: column-wise multiplication by the inverse MDS matrix.
+//   new_col[0] = 14*c0 ^ 11*c1 ^ 13*c2 ^  9*c3
+//   new_col[1] =  9*c0 ^ 14*c1 ^ 11*c2 ^ 13*c3
+//   new_col[2] = 13*c0 ^  9*c1 ^ 14*c2 ^ 11*c3
+//   new_col[3] = 11*c0 ^ 13*c1 ^  9*c2 ^ 14*c3
+inv_mix_one : [4]Byte -> [4]Byte
+inv_mix_one [c0, c1, c2, c3] =
+    [ mule c0 ^ mulb c1 ^ muld c2 ^ mul9 c3
+    , mul9 c0 ^ mule c1 ^ mulb c2 ^ muld c3
+    , muld c0 ^ mul9 c1 ^ mule c2 ^ mulb c3
+    , mulb c0 ^ muld c1 ^ mul9 c2 ^ mule c3
+    ]
+
+inv_mix_columns : Block -> Block
+inv_mix_columns st = map inv_mix_one st
+
+// ---------- Key schedule ---------------------------------------------
+
+// SubWord: apply S-box to each byte of a 4-byte word.
+sub_word : [4]Byte -> [4]Byte
+sub_word w = [ sub_byte b | b <- w ]
+
+// RotWord: cyclic rotation by 1 byte (i.e., [b0, b1, b2, b3] -> [b1, b2, b3, b0]).
+rot_word : [4]Byte -> [4]Byte
+rot_word [a, b, c, d] = [b, c, d, a]
+
+// Round constants. Rcon[i] = (xtime^(i-1)(0x01), 0, 0, 0). We index from 1.
+rcon : [11][4]Byte
+rcon = [ [r, 0, 0, 0] | r <- [ 0x00,  // unused index 0
+                               0x01, 0x02, 0x04, 0x08, 0x10,
+                               0x20, 0x40, 0x80, 0x1b, 0x36 ] ]
+
+// AES-256 key expansion produces 60 4-byte words.
+expand_words : Key256 -> [60][4]Byte
+expand_words k = ws
+  where
+    initial : [8][4]Byte
+    initial = split k
+
+    ws : [60][4]Byte
+    ws = initial # [ if (i % 8) == 0
+                      then (ws @ (i - 8))
+                         ^ (sub_word (rot_word (ws @ (i - 1))))
+                         ^ (rcon @ (i / 8))
+                      else if (i % 8) == 4
+                      then (ws @ (i - 8))
+                         ^ (sub_word (ws @ (i - 1)))
+                      else (ws @ (i - 8))
+                         ^ (ws @ (i - 1))
+                   | i <- [8..59] : [52][8]
+                   ]
+
+// Expanded key as a flat 240-byte sequence (matching the asm's
+// aes256_round_keys[] layout).
+expand_bytes : Key256 -> [240]Byte
+expand_bytes k = join (expand_words k)
+
+// Round-keys as 15 blocks (one per round; [Nr+1] = 15).
+expand_blocks : Key256 -> [15]Block
+expand_blocks k = [ split (join chunk) | chunk <- (split (expand_words k) : [15][4][4]Byte) ]
+
+// ---------- Cipher (encrypt block) -----------------------------------
+
+// One "full" round: SubBytes -> ShiftRows -> MixColumns -> AddRoundKey.
+encrypt_round : Block -> Block -> Block
+encrypt_round st rk = add_round_key (mix_columns (shift_rows (sub_bytes st))) rk
+
+// Final round (no MixColumns).
+encrypt_final_round : Block -> Block -> Block
+encrypt_final_round st rk = add_round_key (shift_rows (sub_bytes st)) rk
+
+encrypt_block : Key256 -> Block -> Block
+encrypt_block k pt = encrypt_final_round (states @ 13) (round_keys @ 14)
+  where
+    round_keys : [15]Block
+    round_keys = expand_blocks k
+
+    initial : Block
+    initial = add_round_key pt (round_keys @ 0)
+
+    states : [14]Block
+    states = [ if i == 0 then initial
+               else encrypt_round (states @ (i - 1)) (round_keys @ i)
+             | i <- [0..13] : [14][4]
+             ]
+
+// One "full" inverse round: InvShiftRows -> InvSubBytes -> AddRoundKey -> InvMixColumns.
+decrypt_round : Block -> Block -> Block
+decrypt_round st rk = inv_mix_columns (add_round_key (inv_sub_bytes (inv_shift_rows st)) rk)
+
+decrypt_final_round : Block -> Block -> Block
+decrypt_final_round st rk = add_round_key (inv_sub_bytes (inv_shift_rows st)) rk
+
+decrypt_block : Key256 -> Block -> Block
+decrypt_block k ct = decrypt_final_round (states @ 13) (round_keys @ 0)
+  where
+    round_keys : [15]Block
+    round_keys = expand_blocks k
+
+    initial : Block
+    initial = add_round_key ct (round_keys @ 14)
+
+    states : [14]Block
+    states = [ if i == 0 then initial
+               else decrypt_round (states @ (i - 1)) (round_keys @ (14 - i))
+             | i <- [0..13] : [14][4]
+             ]
+
+// ---------- CBC mode --------------------------------------------------
+
+xor_blocks : Block -> Block -> Block
+xor_blocks a b = [ [ x ^ y | x <- ca | y <- cb ] | ca <- a | cb <- b ]
+
+cbc_encrypt : {n} (fin n, n >= 1, n <= 256) =>
+                Key256 -> [16]Byte -> [n]Block -> [n]Block
+cbc_encrypt k iv blocks = cts
+  where
+    cts : [n]Block
+    cts = [ if i == 0
+            then encrypt_block k (xor_blocks (bytes_to_state iv) (blocks @ 0))
+            else encrypt_block k (xor_blocks (cts @ (i - 1)) (blocks @ i))
+          | i <- [0..n - 1] : [n][8]
+          ]
+
+cbc_decrypt : {n} (fin n, n >= 1, n <= 256) =>
+                Key256 -> [16]Byte -> [n]Block -> [n]Block
+cbc_decrypt k iv cts = pts
+  where
+    pts : [n]Block
+    pts = [ if i == 0
+            then xor_blocks (bytes_to_state iv) (decrypt_block k (cts @ 0))
+            else xor_blocks (cts @ (i - 1))     (decrypt_block k (cts @ i))
+          | i <- [0..n - 1] : [n][8]
+          ]
+
+// ---------- KAT vectors ----------------------------------------------
+
+// FIPS 197 §B example: SubBytes(0x53) = 0xed.
+sbox_53_kat = sub_byte 0x53 == 0xed
+
+// FIPS 197 §A.3: AES-256 key expansion test key.
+fips_a3_key : Key256
+fips_a3_key =
+    [ 0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe
+    , 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81
+    , 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7
+    , 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4
+    ]
+
+// FIPS 197 §A.3 expected w[0..7] (the input key as words).
+fips_a3_w0_w7 : [8][4]Byte
+fips_a3_w0_w7 =
+    [ [0x60, 0x3d, 0xeb, 0x10], [0x15, 0xca, 0x71, 0xbe]
+    , [0x2b, 0x73, 0xae, 0xf0], [0x85, 0x7d, 0x77, 0x81]
+    , [0x1f, 0x35, 0x2c, 0x07], [0x3b, 0x61, 0x08, 0xd7]
+    , [0x2d, 0x98, 0x10, 0xa3], [0x09, 0x14, 0xdf, 0xf4]
+    ]
+
+// FIPS 197 §A.3 expected w[8] (first computed word).
+fips_a3_w8 : [4]Byte
+fips_a3_w8 = [0x9b, 0xa3, 0x54, 0x11]
+
+// FIPS 197 §A.3 expected w[59] (last word in the schedule = round-14 word 3).
+fips_a3_w59 : [4]Byte
+fips_a3_w59 = [0x70, 0x6c, 0x63, 0x1e]
+
+// FIPS 197 §A.3 expected w[56] (first word of round 14).
+fips_a3_w56 : [4]Byte
+fips_a3_w56 = [0xfe, 0x48, 0x90, 0xd1]
+
+key_expand_w8_kat  = (expand_words fips_a3_key) @ 8 == fips_a3_w8
+key_expand_w56_kat = (expand_words fips_a3_key) @ 56 == fips_a3_w56
+key_expand_w59_kat = (expand_words fips_a3_key) @ 59 == fips_a3_w59
+key_expand_input_preserved =
+    take`{8} (expand_words fips_a3_key) == fips_a3_w0_w7
+
+// FIPS 197 §C.3: AES-256 encrypt block test vector.
+fips_c3_pt : [16]Byte
+fips_c3_pt =
+    [ 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77
+    , 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
+    ]
+
+fips_c3_key : Key256
+fips_c3_key =
+    [ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+    , 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+    , 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17
+    , 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
+    ]
+
+fips_c3_ct : [16]Byte
+fips_c3_ct =
+    [ 0x8e, 0xa2, 0xb7, 0xca, 0x51, 0x67, 0x45, 0xbf
+    , 0xea, 0xfc, 0x49, 0x90, 0x4b, 0x49, 0x60, 0x89
+    ]
+
+encrypt_c3_kat : Bit
+encrypt_c3_kat = state_to_bytes (encrypt_block fips_c3_key (bytes_to_state fips_c3_pt)) == fips_c3_ct
+
+decrypt_c3_kat : Bit
+decrypt_c3_kat = state_to_bytes (decrypt_block fips_c3_key (bytes_to_state fips_c3_ct)) == fips_c3_pt
+
+// Round-trip: enc then dec over arbitrary input ≡ identity.
+roundtrip : Key256 -> Block -> Bit
+roundtrip k pt = decrypt_block k (encrypt_block k pt) == pt
+
+// ---------- algebraic sanity -----------------------------------------
+
+// SubBytes is the inverse of InvSubBytes for any byte.
+sub_invsub_inverse : Byte -> Bit
+sub_invsub_inverse b = inv_sub_byte (sub_byte b) == b
+
+invsub_sub_inverse : Byte -> Bit
+invsub_sub_inverse b = sub_byte (inv_sub_byte b) == b
+
+// MixColumns is the inverse of InvMixColumns for any column.
+mix_invmix_inverse : [4]Byte -> Bit
+mix_invmix_inverse col = inv_mix_one (mix_one col) == col
+
+invmix_mix_inverse : [4]Byte -> Bit
+invmix_mix_inverse col = mix_one (inv_mix_one col) == col
+
+// xtime spot checks.
+xtime_zero = xtime 0 == 0
+xtime_one  = xtime 1 == 0x02
+xtime_msb_set = xtime 0x80 == 0x1b   // wraps to the irreducible poly

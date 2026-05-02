@@ -9,10 +9,10 @@
 # @cycles:      bounded (~45)
 # @ct:          required
 # @spec:        FIPS 197 §5.3.1 (InvShiftRows)
-# @verify:      kat-only; covered end-to-end by aes256_decrypt_block KAT
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_invshiftrows.py
 # @tests:       tests/crypto/aes/test_aes_shiftrows.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* Inverse of ShiftRows: row r is rotated RIGHT by r positions.
