@@ -1,0 +1,167 @@
+// proofs/crypto/hkdf/HKDFSHA256.cry
+//
+// Cryptol algorithmic specification for hkdf_extract and hkdf_expand
+// (HKDF-SHA-256 per RFC 5869).
+//
+//   PRK   = HMAC-SHA-256(salt, IKM)               (Extract)
+//   T(0)  = empty
+//   T(i)  = HMAC-SHA-256(PRK, T(i-1) || info || i)
+//   OKM   = T(1) || T(2) || ... || T(N), truncated to L bytes  (Expand)
+//
+// Composes the verified HMACSHA256.hmac_short / hmac_long. RFC 5869
+// Appendix A vectors A.1, A.2, A.3 provide concrete KATs SAW
+// discharges via z3.
+
+module HKDFSHA256 where
+
+import HMACSHA256
+
+// ---------- Extract ---------------------------------------------------
+
+// HKDF-Extract: PRK = HMAC(salt, IKM). The salt may be empty; per
+// RFC 5869 §2.2 the empty-salt case substitutes 32 zero bytes — the
+// asm handles that substitution and calls hmac_sha256 with the actual
+// salt bytes, so the Cryptol model takes salt as a parameter (caller
+// inserts the zero substitution, mirroring the asm's contract).
+//
+// We expose two arities matching HMACSHA256: salt <= 64 (short) and
+// salt > 64 (long). RFC 5869's intent is salt-len <= block_size (since
+// HMAC hashes longer salts down) — we cover both.
+
+extract_short : {sl, il} (fin sl, fin il, sl <= 64) =>
+                  [sl][8] -> [il][8] -> [32][8]
+extract_short salt ikm = hmac_short salt ikm
+
+extract_long : {sl, il} (fin sl, fin il, sl > 64) =>
+                 [sl][8] -> [il][8] -> [32][8]
+extract_long salt ikm = hmac_long salt ikm
+
+// ---------- Expand ----------------------------------------------------
+
+// HMAC-PRK over (prefix || info || counter_byte). The PRK in HKDF is
+// always 32 bytes (the HMAC-SHA-256 output), so we take it as [32][8]
+// and call hmac_short`{n=32}.
+
+// One iteration: produces T(i) = HMAC(PRK, T(i-1) || info || i).
+// For i = 1, T(0) is empty so the input is info || [i].
+// For i > 1, the input is T(i-1) (32 bytes) || info || [i].
+
+t_first : {il} (fin il, il <= 222) =>
+            [32][8] -> [il][8] -> [8] -> [32][8]
+t_first prk info i =
+    hmac_short prk (info # [i])
+
+t_next : {il} (fin il, il <= 222) =>
+           [32][8] -> [32][8] -> [il][8] -> [8] -> [32][8]
+t_next prk t_prev info i =
+    hmac_short prk (t_prev # info # [i])
+
+// Generate an N-block OKM (N * 32 bytes) given PRK + info. Cryptol's
+// type system requires N at the type level. We provide explicit
+// instantiations for the RFC 5869 Appendix A test sizes.
+//
+// Conceptually: ts[i] = T(i+1), zero-indexed; the recurrence is
+//   ts[0] = T(1) = HMAC(PRK, info || [1])
+//   ts[i] = T(i+1) = HMAC(PRK, ts[i-1] || info || [i+1])  for i >= 1
+
+expand_blocks : {n, il} (fin n, fin il, n >= 1, n <= 255, il <= 222) =>
+                  [32][8] -> [il][8] -> [n][32][8]
+expand_blocks prk info = ts
+  where
+    ts : [n][32][8]
+    ts = [ if i == 0
+           then t_first prk info 1
+           else t_next  prk (ts @ (i - 1)) info (i + 1)
+         | i <- [0..n - 1] : [n][8]
+         ]
+
+// Take the first L bytes of the joined T(1) || ... || T(N).
+expand : {n, l, il} (fin n, fin l, fin il,
+                     n >= 1, n <= 255, l <= n * 32, il <= 222) =>
+            [32][8] -> [il][8] -> [l][8]
+expand prk info = take`{l} (join (expand_blocks`{n, il} prk info))
+
+// ---------- KAT vectors (RFC 5869 Appendix A) -------------------------
+
+// A.1 — basic test case
+a1_ikm : [22][8]
+a1_ikm = repeat 0x0b
+
+a1_salt : [13][8]
+a1_salt = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c]
+
+a1_info : [10][8]
+a1_info = [0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9]
+
+a1_prk : [32][8]
+a1_prk = [ 0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf
+         , 0x0d, 0xdc, 0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63
+         , 0x90, 0xb6, 0xc7, 0x3b, 0xb5, 0x0f, 0x9c, 0x31
+         , 0x22, 0xec, 0x84, 0x4a, 0xd7, 0xc2, 0xb3, 0xe5
+         ]
+
+a1_okm : [42][8]
+a1_okm = [ 0x3c, 0xb2, 0x5f, 0x25, 0xfa, 0xac, 0xd5, 0x7a
+         , 0x90, 0x43, 0x4f, 0x64, 0xd0, 0x36, 0x2f, 0x2a
+         , 0x2d, 0x2d, 0x0a, 0x90, 0xcf, 0x1a, 0x5a, 0x4c
+         , 0x5d, 0xb0, 0x2d, 0x56, 0xec, 0xc4, 0xc5, 0xbf
+         , 0x34, 0x00, 0x72, 0x08, 0xd5, 0xb8, 0x87, 0x18
+         , 0x58, 0x65
+         ]
+
+a1_extract_kat : Bit
+a1_extract_kat = extract_short a1_salt a1_ikm == a1_prk
+
+a1_expand_kat : Bit
+a1_expand_kat = expand`{2, 42, 10} a1_prk a1_info == a1_okm
+
+// A.2 — test with longer inputs
+a2_salt : [80][8]
+a2_salt = [ b
+          | b <- [0x60..0xaf] : [80][8]
+          ]
+
+// (full A.2 is huge — we spot-check just the extract since A.2 OKM is 82
+// bytes which would be a 3-iteration expand.)
+a2_ikm : [80][8]
+a2_ikm = [ b | b <- [0x00..0x4f] : [80][8] ]
+
+a2_prk : [32][8]
+a2_prk = [ 0x06, 0xa6, 0xb8, 0x8c, 0x58, 0x53, 0x36, 0x1a
+         , 0x06, 0x10, 0x4c, 0x9c, 0xeb, 0x35, 0xb4, 0x5c
+         , 0xef, 0x76, 0x00, 0x14, 0x90, 0x46, 0x71, 0x01
+         , 0x4a, 0x19, 0x3f, 0x40, 0xc1, 0x5f, 0xc2, 0x44
+         ]
+
+a2_extract_kat : Bit
+a2_extract_kat = extract_long a2_salt a2_ikm == a2_prk
+
+// A.3 — zero-length salt and info (caller substitutes 32 zero bytes
+// for salt before calling the asm).
+a3_ikm : [22][8]
+a3_ikm = repeat 0x0b
+
+a3_salt_substituted : [32][8]
+a3_salt_substituted = zero
+
+a3_prk : [32][8]
+a3_prk = [ 0x19, 0xef, 0x24, 0xa3, 0x2c, 0x71, 0x7b, 0x16
+         , 0x7f, 0x33, 0xa9, 0x1d, 0x6f, 0x64, 0x8b, 0xdf
+         , 0x96, 0x59, 0x67, 0x76, 0xaf, 0xdb, 0x63, 0x77
+         , 0xac, 0x43, 0x4c, 0x1c, 0x29, 0x3c, 0xcb, 0x04
+         ]
+
+a3_okm : [42][8]
+a3_okm = [ 0x8d, 0xa4, 0xe7, 0x75, 0xa5, 0x63, 0xc1, 0x8f
+         , 0x71, 0x5f, 0x80, 0x2a, 0x06, 0x3c, 0x5a, 0x31
+         , 0xb8, 0xa1, 0x1f, 0x5c, 0x5e, 0xe1, 0x87, 0x9e
+         , 0xc3, 0x45, 0x4e, 0x5f, 0x3c, 0x73, 0x8d, 0x2d
+         , 0x9d, 0x20, 0x13, 0x95, 0xfa, 0xa4, 0xb6, 0x1a
+         , 0x96, 0xc8
+         ]
+
+a3_extract_kat : Bit
+a3_extract_kat = extract_short a3_salt_substituted a3_ikm == a3_prk
+
+a3_expand_kat : Bit
+a3_expand_kat = expand`{2, 42, 0} a3_prk ([] : [0][8]) == a3_okm

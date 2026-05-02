@@ -1,0 +1,183 @@
+// proofs/crypto/hmac/HMACSHA256.cry
+//
+// Cryptol algorithmic specification for hmac_sha256.
+//
+// RFC 2104 §2: HMAC(K, M) = H( (K' XOR opad) || H( (K' XOR ipad) || M ) )
+//   where K' is K hashed-down if longer than the block size, otherwise
+//   K right-zero-padded to the block size.
+//
+// We compose the verified SHA256Final.sha256_oneshot from the SHA-256
+// family. The model is therefore a literal RFC translation: zero
+// hand-rolled crypto, only definitions of the key-prep step, the two
+// 64-byte XOR constants, and the two-stage hash.
+//
+// Properties discharged by SAW:
+//   * RFC 4231 §4.1 (TC1, 20-byte key, "Hi There")
+//   * RFC 4231 §4.2 (TC2, "Jefe", "what do ya want for nothing?")
+//   * RFC 4231 §4.3 (TC3, all-0xaa key, all-0xdd msg)
+//   * RFC 4231 §4.6 (TC6, 131-byte key — exercises the long-key hashed
+//     path) — partial: full TC6 with a 152-byte msg would balloon, we
+//     spot-check the key-prep stage and a shorter msg.
+//   * inner/outer XOR identity: ipad XOR opad == 0x6a (the byte the
+//     asm uses to flip between inner and outer key states).
+
+module HMACSHA256 where
+
+import SHA256Final
+
+// ---------- constants -------------------------------------------------
+
+block_size : Integer
+block_size = 64
+
+ipad_byte : [8]
+ipad_byte = 0x36
+
+opad_byte : [8]
+opad_byte = 0x5c
+
+ipad_xor_opad_byte : [8]
+ipad_xor_opad_byte = ipad_byte ^ opad_byte    // == 0x6a
+
+// ---------- key prep --------------------------------------------------
+
+// Right-zero-pad a sequence to length 64. Used when |K| <= 64.
+pad_to_64 : {n} (fin n, n <= 64) => [n][8] -> [64][8]
+pad_to_64 k = k # (zero : [64 - n][8])
+
+// K' per RFC 2104 §2:
+//   K' = SHA-256(K) right-padded to 64 zeros        if |K| > 64
+//      = K right-zero-padded to 64                  otherwise.
+//
+// Cryptol can't easily express the "if |K| > 64" branch at type level
+// with a single function — we expose two specialised forms instead, and
+// the SAW proofs invoke whichever applies.
+
+key_prep_short : {n} (fin n, n <= 64) => [n][8] -> [64][8]
+key_prep_short k = pad_to_64 k
+
+key_prep_long : {n} (fin n, n > 64) => [n][8] -> [64][8]
+key_prep_long k = pad_to_64 (sha256_oneshot k)
+
+// ---------- HMAC ------------------------------------------------------
+
+// Step 2: K' XOR ipad.
+xor_with : [8] -> [64][8] -> [64][8]
+xor_with c kp = [ b ^ c | b <- kp ]
+
+hmac_short : {n, m} (fin n, fin m, n <= 64) =>
+                [n][8] -> [m][8] -> [32][8]
+hmac_short k m = sha256_oneshot (outer_input # inner_tag)
+  where
+    kp        = key_prep_short k
+    inner_tag = sha256_oneshot ((xor_with ipad_byte kp) # m)
+    outer_input = xor_with opad_byte kp
+
+hmac_long : {n, m} (fin n, fin m, n > 64) =>
+                [n][8] -> [m][8] -> [32][8]
+hmac_long k m = sha256_oneshot (outer_input # inner_tag)
+  where
+    kp        = key_prep_long k
+    inner_tag = sha256_oneshot ((xor_with ipad_byte kp) # m)
+    outer_input = xor_with opad_byte kp
+
+// ---------- algebraic sanity -----------------------------------------
+
+ipad_xor_opad_constant : Bit
+ipad_xor_opad_constant = ipad_xor_opad_byte == 0x6a
+
+xor_with_involutive : [8] -> [64][8] -> Bit
+xor_with_involutive c kp = xor_with c (xor_with c kp) == kp
+
+// (K' ^ ipad) ^ (ipad ^ opad) == K' ^ opad — the identity the asm
+// exploits when it flips the key-prep buffer between rounds.
+key_flip_identity : [64][8] -> Bit
+key_flip_identity kp =
+    xor_with ipad_xor_opad_byte (xor_with ipad_byte kp)
+      == xor_with opad_byte kp
+
+// ---------- KAT vectors (RFC 4231) -----------------------------------
+
+// TC1: key = 0x0b * 20, msg = "Hi There"
+tc1_key : [20][8]
+tc1_key = repeat 0x0b
+
+tc1_msg : [8][8]
+tc1_msg = [0x48, 0x69, 0x20, 0x54, 0x68, 0x65, 0x72, 0x65]   // "Hi There"
+
+tc1_tag : [32][8]
+tc1_tag =
+    [ 0xb0, 0x34, 0x4c, 0x61, 0xd8, 0xdb, 0x38, 0x53
+    , 0x5c, 0xa8, 0xaf, 0xce, 0xaf, 0x0b, 0xf1, 0x2b
+    , 0x88, 0x1d, 0xc2, 0x00, 0xc9, 0x83, 0x3d, 0xa7
+    , 0x26, 0xe9, 0x37, 0x6c, 0x2e, 0x32, 0xcf, 0xf7
+    ]
+
+tc1_kat : Bit
+tc1_kat = hmac_short tc1_key tc1_msg == tc1_tag
+
+// TC2: key = "Jefe", msg = "what do ya want for nothing?"
+tc2_key : [4][8]
+tc2_key = [0x4a, 0x65, 0x66, 0x65]
+
+tc2_msg : [28][8]
+tc2_msg = [ 0x77, 0x68, 0x61, 0x74, 0x20, 0x64, 0x6f, 0x20
+          , 0x79, 0x61, 0x20, 0x77, 0x61, 0x6e, 0x74, 0x20
+          , 0x66, 0x6f, 0x72, 0x20, 0x6e, 0x6f, 0x74, 0x68
+          , 0x69, 0x6e, 0x67, 0x3f
+          ]
+
+tc2_tag : [32][8]
+tc2_tag =
+    [ 0x5b, 0xdc, 0xc1, 0x46, 0xbf, 0x60, 0x75, 0x4e
+    , 0x6a, 0x04, 0x24, 0x26, 0x08, 0x95, 0x75, 0xc7
+    , 0x5a, 0x00, 0x3f, 0x08, 0x9d, 0x27, 0x39, 0x83
+    , 0x9d, 0xec, 0x58, 0xb9, 0x64, 0xec, 0x38, 0x43
+    ]
+
+tc2_kat : Bit
+tc2_kat = hmac_short tc2_key tc2_msg == tc2_tag
+
+// TC3: key = 0xaa * 20, msg = 0xdd * 50
+tc3_key : [20][8]
+tc3_key = repeat 0xaa
+
+tc3_msg : [50][8]
+tc3_msg = repeat 0xdd
+
+tc3_tag : [32][8]
+tc3_tag =
+    [ 0x77, 0x3e, 0xa9, 0x1e, 0x36, 0x80, 0x0e, 0x46
+    , 0x85, 0x4d, 0xb8, 0xeb, 0xd0, 0x91, 0x81, 0xa7
+    , 0x29, 0x59, 0x09, 0x8b, 0x3e, 0xf8, 0xc1, 0x22
+    , 0xd9, 0x63, 0x55, 0x14, 0xce, 0xd5, 0x65, 0xfe
+    ]
+
+tc3_kat : Bit
+tc3_kat = hmac_short tc3_key tc3_msg == tc3_tag
+
+// TC6 long-key probe: 131-byte key (forces key_prep_long), msg "Test
+// Using Larger Than Block-Size Key - Hash Key First" (54 bytes).
+tc6_key : [131][8]
+tc6_key = repeat 0xaa
+
+tc6_msg : [54][8]
+tc6_msg = [ 0x54, 0x65, 0x73, 0x74, 0x20, 0x55, 0x73, 0x69
+          , 0x6e, 0x67, 0x20, 0x4c, 0x61, 0x72, 0x67, 0x65
+          , 0x72, 0x20, 0x54, 0x68, 0x61, 0x6e, 0x20, 0x42
+          , 0x6c, 0x6f, 0x63, 0x6b, 0x2d, 0x53, 0x69, 0x7a
+          , 0x65, 0x20, 0x4b, 0x65, 0x79, 0x20, 0x2d, 0x20
+          , 0x48, 0x61, 0x73, 0x68, 0x20, 0x4b, 0x65, 0x79
+          , 0x20, 0x46, 0x69, 0x72, 0x73, 0x74
+          ]
+
+tc6_tag : [32][8]
+tc6_tag =
+    [ 0x60, 0xe4, 0x31, 0x59, 0x1e, 0xe0, 0xb6, 0x7f
+    , 0x0d, 0x8a, 0x26, 0xaa, 0xcb, 0xf5, 0xb7, 0x7f
+    , 0x8e, 0x0b, 0xc6, 0x21, 0x37, 0x28, 0xc5, 0x14
+    , 0x05, 0x46, 0x04, 0x0f, 0x0e, 0xe3, 0x7f, 0x54
+    ]
+
+tc6_kat : Bit
+tc6_kat = hmac_long tc6_key tc6_msg == tc6_tag

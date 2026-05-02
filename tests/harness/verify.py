@@ -48,9 +48,19 @@ import parse_spec  # noqa: E402
 
 
 def _proof_env() -> dict[str, str]:
-    """Subprocess env for proof scripts: prepend toolchain/local/bin to PATH."""
+    """Subprocess env for proof scripts: prepend toolchain/local/bin to PATH
+    and set CRYPTOLPATH so cross-module Cryptol imports resolve regardless
+    of which proofs/<module>/ subdirectory the verifier lives in."""
     env = os.environ.copy()
     env["PATH"] = f"{TOOLCHAIN_BIN}:{env.get('PATH', '')}"
+    proofs_root = REPO_ROOT / "proofs"
+    if proofs_root.is_dir():
+        cryptol_dirs = [str(p) for p in sorted(proofs_root.rglob("*"))
+                        if p.is_dir()
+                        and not p.name.startswith(".")
+                        and p.name != "__pycache__"]
+        existing = env.get("CRYPTOLPATH", "")
+        env["CRYPTOLPATH"] = ":".join(cryptol_dirs + ([existing] if existing else []))
     return env
 
 

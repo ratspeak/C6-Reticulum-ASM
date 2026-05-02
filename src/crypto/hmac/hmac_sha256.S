@@ -9,10 +9,10 @@
 # @cycles:      bounded (~2 × sha256(64 + msg_len) + 64-byte XOR + key prep)
 # @ct:          required
 # @spec:        RFC 2104 §2 (HMAC); RFC 4231 §4 (test vectors)
-# @verify:      kat-only; integration via the 'H'-marker path in _main, validated against RFC 4231 vectors in tests/crypto/hmac/test_hmac_kat.py
+# @verify:      proofs/crypto/hmac/HMACSHA256.cry, proofs/crypto/hmac/hmac_sha256.saw, proofs/crypto/hmac/hmac_sha256.py
 # @tests:       tests/crypto/hmac/test_hmac_sha256.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* HMAC-SHA-256 per RFC 2104:

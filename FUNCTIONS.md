@@ -42,8 +42,8 @@ Each function entry has:
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **39** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 29 (milestone 1 software side + complete SHA-256 family — `sha256_init`, `sha256_compress`, `sha256_update`, `sha256_final` — under ADR-0009)
-- Tested (KAT-only, formal verifier pending): 18 (HMAC + HKDF + complete AES-256-CBC stack — milestone 2; end-to-end KAT via 12 markers in `_main`)
+- Verified: 32 (milestone 1 software side + complete SHA-256 family + `hmac_sha256` + `hkdf_extract`/`hkdf_expand` under ADR-0009)
+- Tested (KAT-only, formal verifier pending): 15 (complete AES-256-CBC stack — milestone 2; end-to-end KAT via 12 markers in `_main`)
 - In progress: 0
 - Planned: 1 milestone-1 leaf (`uart_isr`, hw-only) + the milestone-2..9 chain (X25519, Ed25519, RNG)
 
@@ -145,7 +145,7 @@ HMAC-SHA-256 per RFC 2104. Used for IFAC, ratchets, message authentication.
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `hmac_sha256` | ◑ tested | `sha256_init`, `sha256_update`, `sha256_final` | 0001, 0002, 0006 | [milestone-2](docs/milestones/milestone-2.md#hmac) |
+| `hmac_sha256` | ◉ verified | `sha256_init`, `sha256_update`, `sha256_final` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#hmac) |
 
 ## Module: `crypto/hkdf`
 
@@ -153,8 +153,8 @@ HKDF per RFC 5869. Used for Reticulum key derivation.
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `hkdf_extract` | ◑ tested | `hmac_sha256` | 0001, 0002, 0006 | [milestone-2](docs/milestones/milestone-2.md#hkdf) |
-| `hkdf_expand` | ◑ tested | `hmac_sha256` | 0001, 0002, 0006 | [milestone-2](docs/milestones/milestone-2.md#hkdf) |
+| `hkdf_extract` | ◉ verified | `hmac_sha256` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#hkdf) |
+| `hkdf_expand` | ◉ verified | `hmac_sha256` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#hkdf) |
 
 ## Module: `crypto/aes`
 

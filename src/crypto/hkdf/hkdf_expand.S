@@ -9,10 +9,10 @@
 # @cycles:      bounded (ceil(okm_len/32) × HMAC over (32 + info_len + 1) bytes)
 # @ct:          required
 # @spec:        RFC 5869 §2.3 (Expand)
-# @verify:      kat-only; integration via the 'X' marker in _main, validated against RFC 5869 Appendix A in tests/crypto/hkdf/test_hkdf_kat.py
+# @verify:      proofs/crypto/hkdf/HKDFSHA256.cry, proofs/crypto/hkdf/hkdf_expand.saw, proofs/crypto/hkdf/hkdf_expand.py
 # @tests:       tests/crypto/hkdf/test_hkdf_expand.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* HKDF-Expand per RFC 5869 §2.3:

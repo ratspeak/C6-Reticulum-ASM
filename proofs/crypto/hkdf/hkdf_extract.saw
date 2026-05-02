@@ -1,0 +1,28 @@
+// proofs/crypto/hkdf/hkdf_extract.saw
+//
+// SAW driver for hkdf_extract algorithmic verification (Tier A per
+// ADR-0009).
+//
+// HKDF-Extract per RFC 5869 §2.2 is the trivial composition
+// PRK = HMAC-SHA-256(salt, IKM). The Cryptol model HKDFSHA256.extract_*
+// reduces to the verified HMACSHA256.hmac_short / hmac_long. SAW
+// discharges the RFC 5869 Appendix A vectors A.1 (13-byte salt, 22-byte
+// IKM), A.2 (80-byte salt — exercises the long-key HMAC path), and
+// A.3 (zero-length salt substituted by 32 zero bytes per the asm's
+// contract).
+
+import "HKDFSHA256.cry";
+
+print "[hkdf_extract.saw] proving RFC 5869 A.1 PRK (13-byte salt, 22-byte IKM) ...";
+prove_print z3 {{ a1_extract_kat }};
+print "[hkdf_extract.saw] A.1: PASS.";
+
+print "[hkdf_extract.saw] proving RFC 5869 A.2 PRK (80-byte salt — long-key HMAC path) ...";
+prove_print z3 {{ a2_extract_kat }};
+print "[hkdf_extract.saw] A.2: PASS.";
+
+print "[hkdf_extract.saw] proving RFC 5869 A.3 PRK (zero-salt substituted by 32 zeros) ...";
+prove_print z3 {{ a3_extract_kat }};
+print "[hkdf_extract.saw] A.3: PASS.";
+
+print "[hkdf_extract.saw] PASS";

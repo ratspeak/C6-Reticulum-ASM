@@ -1,0 +1,24 @@
+// proofs/crypto/hkdf/hkdf_expand.saw
+//
+// SAW driver for hkdf_expand algorithmic verification (Tier A per
+// ADR-0009).
+//
+// HKDF-Expand per RFC 5869 §2.3 is the iterated HMAC chain:
+//   T(i) = HMAC(PRK, T(i-1) || info || [i])
+//   OKM  = T(1) || T(2) || ... || T(N)  (truncated to L bytes)
+//
+// The Cryptol model HKDFSHA256.expand reduces to a chain of the
+// verified HMACSHA256.hmac_short. SAW discharges the RFC 5869
+// Appendix A.1 and A.3 OKM vectors (both produce 42 bytes = 2 T-blocks).
+
+import "HKDFSHA256.cry";
+
+print "[hkdf_expand.saw] proving RFC 5869 A.1 OKM (42 bytes from 32-byte PRK + 10-byte info) ...";
+prove_print z3 {{ a1_expand_kat }};
+print "[hkdf_expand.saw] A.1: PASS.";
+
+print "[hkdf_expand.saw] proving RFC 5869 A.3 OKM (42 bytes, empty info) ...";
+prove_print z3 {{ a3_expand_kat }};
+print "[hkdf_expand.saw] A.3: PASS.";
+
+print "[hkdf_expand.saw] PASS";

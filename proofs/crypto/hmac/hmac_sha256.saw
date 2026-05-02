@@ -1,0 +1,46 @@
+// proofs/crypto/hmac/hmac_sha256.saw
+//
+// SAW driver for hmac_sha256 algorithmic verification (Tier A per
+// ADR-0009). Composes the verified SHA256Final.sha256_oneshot from the
+// SHA-256 family into RFC 2104 HMAC and discharges:
+//
+//   * Algebraic identities the asm exploits:
+//     - ipad XOR opad == 0x6a (the byte the asm uses to flip the
+//       key-prep buffer in place between inner and outer hashes)
+//     - xor_with c is involutive (xor twice == identity)
+//     - (kp ^ ipad) ^ (ipad^opad) == kp ^ opad (the in-place flip)
+//
+//   * RFC 4231 known-answer vectors:
+//     - TC1: 20-byte 0x0b key, "Hi There"
+//     - TC2: "Jefe", "what do ya want for nothing?"
+//     - TC3: 20-byte 0xaa key, 50-byte 0xdd msg
+//     - TC6: 131-byte 0xaa key (forces the long-key path: K' = SHA-256(K)
+//       then zero-padded), 54-byte "Test Using Larger Than ..." msg
+//
+// Each KAT is a Cryptol-level identity proved by z3 (~100-150 ms).
+
+import "HMACSHA256.cry";
+
+print "[hmac_sha256.saw] proving algebraic identities ...";
+prove_print z3 {{ ipad_xor_opad_constant }};
+prove_print z3 {{ \(c : [8]) (kp : [64][8]) -> xor_with_involutive c kp }};
+prove_print z3 {{ \(kp : [64][8]) -> key_flip_identity kp }};
+print "[hmac_sha256.saw] algebraic identities: PASS.";
+
+print "[hmac_sha256.saw] proving RFC 4231 TC1 ...";
+prove_print z3 {{ tc1_kat }};
+print "[hmac_sha256.saw] TC1 (20-byte 0x0b key, \"Hi There\"): PASS.";
+
+print "[hmac_sha256.saw] proving RFC 4231 TC2 ...";
+prove_print z3 {{ tc2_kat }};
+print "[hmac_sha256.saw] TC2 (\"Jefe\", \"what do ya want for nothing?\"): PASS.";
+
+print "[hmac_sha256.saw] proving RFC 4231 TC3 ...";
+prove_print z3 {{ tc3_kat }};
+print "[hmac_sha256.saw] TC3 (20*0xaa key, 50*0xdd msg): PASS.";
+
+print "[hmac_sha256.saw] proving RFC 4231 TC6 (long-key hashed-down path) ...";
+prove_print z3 {{ tc6_kat }};
+print "[hmac_sha256.saw] TC6 (131-byte key, exercises K'=SHA-256(K) path): PASS.";
+
+print "[hmac_sha256.saw] PASS";

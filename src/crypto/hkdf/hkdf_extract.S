@@ -9,10 +9,10 @@
 # @cycles:      bounded (one HMAC-SHA-256 over ikm_len bytes)
 # @ct:          required
 # @spec:        RFC 5869 §2.2 (Extract)
-# @verify:      kat-only; integration via the 'E' marker in _main, validated against RFC 5869 Appendix A vectors in tests/crypto/hkdf/test_hkdf_kat.py
+# @verify:      proofs/crypto/hkdf/HKDFSHA256.cry, proofs/crypto/hkdf/hkdf_extract.saw, proofs/crypto/hkdf/hkdf_extract.py
 # @tests:       tests/crypto/hkdf/test_hkdf_extract.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* HKDF-Extract per RFC 5869 §2.2:
