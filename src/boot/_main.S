@@ -61,6 +61,10 @@
         .ascii "sha256\tdigest\thex="
 .Lsha256_tag_end:
         .equ   .Lsha256_tag_len, .Lsha256_tag_end - .Lsha256_tag
+.Lhmac_tag:
+        .ascii "hmac\ttag\thex="
+.Lhmac_tag_end:
+        .equ   .Lhmac_tag_len, .Lhmac_tag_end - .Lhmac_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -91,15 +95,20 @@ _main:
         li      a1, .Lkiss_rx_tag_len
         call    log_event
 
-        /* sha256 KAT trigger: kiss_buf[0] == 'S' (0x53) routes the
-         * remainder of the frame through the sha256 chain instead of
-         * the packet parser. The trigger byte is local to this build
-         * variant and never appears in real Reticulum traffic (which
-         * uses a top-bit-set IFAC byte or a low-bit destination type). */
+        /* Crypto KAT triggers — the first byte of the frame selects a
+         * test handler. 'S' (0x53) → sha256, 'H' (0x48) → HMAC-SHA-256.
+         * Real Reticulum frames never start with these because their
+         * header byte's bit-7 is the IFAC flag, not an ASCII letter
+         * (well-formed Reticulum traffic also never carries low-byte
+         * ASCII like 0x48 in the first position, and even if it did
+         * we would simply fail to parse it as a packet — no production
+         * cost beyond a single byte-compare per frame). */
         la      t0, kiss_buf
         lbu     t1, 0(t0)
         li      t2, 0x53
         beq     t1, t2, .Lsha256_kat
+        li      t2, 0x48
+        beq     t1, t2, .Lhmac_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -137,6 +146,38 @@ _main:
         call    uart_tx_byte
         la      a0, .Lsha256_tag
         li      a1, .Lsha256_tag_len
+        call    log_str
+        la      a0, sha256_digest_buf
+        li      a1, 32
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Lhmac_kat:
+        /* HMAC test frame layout: 'H' || keylen[1] || key[keylen] || msg[*]
+         * a0 = key_ptr, a1 = key_len, a2 = msg_ptr, a3 = msg_len, a4 = out
+         */
+        la      t0, kiss_buf
+        lbu     a1, 1(t0)               /* key_len                     */
+        addi    a0, t0, 2               /* &key                        */
+        add     a2, a0, a1              /* &msg = &key + key_len       */
+        la      t1, kiss_buf_len
+        lw      t1, 0(t1)
+        addi    t1, t1, -2
+        sub     a3, t1, a1              /* msg_len = total-2-key_len   */
+        la      a4, sha256_digest_buf
+        call    hmac_sha256
+        /* Emit "<ts>\thmac\ttag\thex=<64hex>\r\n" */
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lhmac_tag
+        li      a1, .Lhmac_tag_len
         call    log_str
         la      a0, sha256_digest_buf
         li      a1, 32

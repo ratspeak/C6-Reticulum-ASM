@@ -104,9 +104,11 @@ sha256_update:
         li      s3, 0
 
 .Lwhole_blocks:
-        /* ---- 3. Compress whole 64-byte blocks straight from data ---- */
-        li      t0, SHA256_BLOCK_SIZE
+        /* ---- 3. Compress whole 64-byte blocks straight from data ----
+         * The block-size constant must be re-loaded each iteration: t0
+         * is caller-saved, so sha256_compress is free to clobber it. */
 .Lwblk:
+        li      t0, SHA256_BLOCK_SIZE
         bltu    s2, t0, .Lbuffer_tail
         mv      a0, s0
         mv      a1, s1
