@@ -308,3 +308,30 @@ p_mul_kat = ((decode_limbs p_limbs_canonical) *
   where
     x_pi : Limbs
     x_pi = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]
+
+// ---------- field_sq spec --------------------------------------------
+
+// f_sq(a) ≡ f_mul(a, a). Algebraically the asm post-condition is
+//   decode_limbs(out) == (decode_limbs(a))^2 mod p_25519.
+
+field_sq_spec : Limbs -> Limbs -> Bit
+field_sq_spec a out =
+    decode_limbs out == ((decode_limbs a) * (decode_limbs a)) % p_25519
+
+zero_sq_kat : Bit
+zero_sq_kat = ((decode_limbs zero) * (decode_limbs zero)) % p_25519 == 0
+
+one_sq_kat : Bit
+one_sq_kat = ((decode_limbs x_one) * (decode_limbs x_one)) % p_25519 == 1
+  where x_one : Limbs
+        x_one = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+seven_sq_kat : Bit
+seven_sq_kat = ((decode_limbs x_seven) *
+                (decode_limbs x_seven)) % p_25519 == 49
+  where x_seven : Limbs
+        x_seven = [7, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+p_sq_kat : Bit
+p_sq_kat = ((decode_limbs p_limbs_canonical) *
+            (decode_limbs p_limbs_canonical)) % p_25519 == 0

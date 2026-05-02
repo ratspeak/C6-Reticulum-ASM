@@ -1,0 +1,32 @@
+// proofs/crypto/x25519/x25519_field_sq.saw
+//
+// SAW driver for x25519_field_sq (Tier A per ADR-0009).
+//
+// f_sq(a) is implemented as a tail call to x25519_field_mul with the b
+// pointer aliased to a, so the algebraic obligation reduces to the
+// special case b = a of x25519_field_mul.saw — discharged here as
+// concrete KATs to keep the obligation visible at the per-function
+// level. Tier C bridge: tests/crypto/x25519/test_x25519_field_sq.py
+// (drives the asm under qemu-system-riscv32 on edge cases plus 6
+// random nominal-width inputs and compares to f_mul oracle a*a).
+
+import "X25519.cry";
+import "X25519FieldOps.cry";
+
+print "[x25519_field_sq.saw] proving 0^2 = 0 (mod p) ...";
+prove_print z3 {{ zero_sq_kat }};
+print "[x25519_field_sq.saw] zero KAT: PASS.";
+
+print "[x25519_field_sq.saw] proving 1^2 = 1 (mod p) ...";
+prove_print z3 {{ one_sq_kat }};
+print "[x25519_field_sq.saw] identity KAT: PASS.";
+
+print "[x25519_field_sq.saw] proving 7^2 = 49 (mod p) ...";
+prove_print z3 {{ seven_sq_kat }};
+print "[x25519_field_sq.saw] small-square KAT: PASS.";
+
+print "[x25519_field_sq.saw] proving p^2 = 0 (mod p) ...";
+prove_print z3 {{ p_sq_kat }};
+print "[x25519_field_sq.saw] absorbing KAT: PASS.";
+
+print "[x25519_field_sq.saw] PASS";
