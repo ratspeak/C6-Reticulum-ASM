@@ -55,10 +55,10 @@ System startup, before any other code runs. Lives at the reset vector.
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `_reset` | ☐ planned | — | 0001, 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_init_bss` | ☐ planned | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_init_data` | ☐ planned | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_main` | ☐ planned | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init` | — | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_reset` | ◉ verified | — | 0001, 0002, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_init_bss` | ◐ in-progress | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_init_data` | ◐ in-progress | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_main` | ◐ in-progress | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init` | — | [milestone-1](docs/milestones/milestone-1.md#boot) |
 
 ## Module: `clock`
 
