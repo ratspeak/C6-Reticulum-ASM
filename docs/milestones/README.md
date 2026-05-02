@@ -10,8 +10,8 @@ spec for each milestone.
 
 | # | Title | Status | Spec |
 |---|-------|--------|------|
-| 1 | Foundation stack + verifier infrastructure | Active | [milestone-1.md](milestone-1.md) |
-| 2 | Cryptographic primitives | Planned | (spec written when activated) |
+| 1 | Foundation stack + verifier infrastructure | Active (sw complete; hw demo pending) | [milestone-1.md](milestone-1.md) |
+| 2 | Cryptographic primitives | Active (parallel to ms1 hw demo) | [milestone-2.md](milestone-2.md) |
 | 3 | Identity + announce TX | Planned | (spec written when activated) |
 | 4 | Flash persistence | Planned | (spec written when activated) |
 | 5 | Transport RX | Planned | (spec written when activated) |

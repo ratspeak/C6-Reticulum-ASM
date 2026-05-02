@@ -1,0 +1,290 @@
+# Milestone 2: Cryptographic primitives
+
+- **Status:** Active
+- **Started:** 2026-05-02
+- **Estimate:** 4–6 months
+
+## Goal
+
+Implement every cryptographic primitive Reticulum requires, in pure RV32IMAC
+assembly, with per-function constant-time and equivalence proofs (per
+[ADR-0006](../adr/0006-formal-verification.md)). By the end of this
+milestone the project owns SHA-256, HMAC-SHA-256, HKDF, AES-256-CBC,
+X25519, Ed25519, and a hardware-RNG-backed `rng_bytes`. Each primitive
+ships with NIST or RFC test vectors, an equivalence proof against a
+Cryptol or fiat-crypto reference, and a constant-time proof.
+
+This is the longest single milestone in the roadmap. The crypto primitives
+are the trust base for every milestone above it; haste here trades
+debuggable failure later for invisible failure forever. Each primitive's
+spec block is reviewed before its asm is written. Each primitive reaches
+`verified` only after all three obligations (KAT, equivalence, ct) pass.
+
+## Relationship to milestone 1
+
+Milestone 1 is software-complete (24/25 functions verified; `uart_isr`
+deferred to hw target) but its hardware-demo Definition-of-Done item is
+gated on the user's bring-up of the Adafruit Feather. Milestone 2 work
+proceeds in parallel with that bring-up — none of the crypto primitives
+depend on UART ISR or the C6 register file. When the hw demo lands,
+milestone 1 transitions to `Complete` independently of milestone 2's
+state.
+
+## Deliverables
+
+| Component | Spec section | Permanence |
+|-----------|--------------|-----------|
+| SHA-256 (init/compress/update/final) | [§sha256](#sha256) | Forever |
+| HMAC-SHA-256 | [§hmac](#hmac) | Forever |
+| HKDF (extract/expand) | [§hkdf](#hkdf) | Forever |
+| AES-256-CBC (key-expand/encrypt/decrypt; CBC mode) | [§aes](#aes) | Forever |
+| X25519 (field arith + scalar-mult + keypair) | [§x25519](#x25519) | Forever |
+| Ed25519 (keypair, sign, verify) | [§ed25519](#ed25519) | Forever |
+| Hardware RNG wrapper | [§rng](#rng) | Forever |
+| Verifier toolchain (SAW, Cryptol, fiat-crypto, ct-verif) | [§verifier-toolchain](#verifier-toolchain) | Forever |
+| KAT vector pack (NIST + RFC) | [§kat-vectors](#kat-vectors) | Forever |
+
+## Definition of done
+
+Every condition is objectively verifiable.
+
+- [ ] Verifier toolchain installed and passing self-tests on the dev box;
+      `proofs/README.md` lists the version of each tool that produced a
+      passing run for at least one function.
+- [ ] Every function listed in [FUNCTIONS.md](../../FUNCTIONS.md) under
+      `crypto/*` has status `verified` (status `tested` is insufficient
+      for crypto per ADR-0006).
+- [ ] Each function has KAT cases drawn from a published source (NIST,
+      RFC) and the source is recorded in the function's spec block under
+      `@spec`.
+- [ ] Each function has a Cryptol or fiat-crypto reference under
+      `proofs/<module>/<function>.cry` (or `.saw` driver) with an
+      equivalence proof discharged by SAW.
+- [ ] Each function has a constant-time proof produced by `ct-verif`
+      (or equivalent) and recorded under `proofs/<module>/<function>.ct.txt`.
+- [ ] `make ci` runs `tools/parse_spec.py`, `tools/check_registry.py`,
+      `tools/check_stack.py`, and the pytest harness; all green.
+- [ ] `./verify --all` passes for every milestone-1 + milestone-2 entry.
+- [ ] Worst-case stack depth (per `tools/check_stack.py`) remains
+      within `STACK_SIZE`. The crypto primitives are the largest stack
+      consumers in the project; if any pushes us over, the function is
+      restructured rather than the limit raised.
+- [ ] No new dynamic memory allocations introduced (per ADR-0002). All
+      crypto state lives in `src/state/<module>.S` `.bss` sections.
+
+## verifier-toolchain
+
+These tools must be installed before any milestone-2 function can reach
+status `verified`:
+
+- **SAW (Software Analysis Workbench)** — discharges equivalence proofs
+  between asm and Cryptol specs. Install: build from source, or use
+  `cabal install saw` (Haskell). Pin in `toolchain/versions.lock`.
+- **Cryptol** — the spec language for cryptographic primitives. Install:
+  Galois binary release, or build from source. Pin.
+- **fiat-crypto** — Coq-verified field arithmetic. Reference for X25519
+  field ops; we may either hand-write asm and prove equivalent to
+  fiat-crypto's Cryptol output, or generate the asm directly from
+  fiat-crypto. Decision deferred to the X25519 implementation phase.
+- **ct-verif** — constant-time analyzer for x86-style asm. RV32 support
+  is not native; we may need to bridge via a translation layer or use
+  an alternative (e.g., `pitchfork-rs` or a hand-written ct prover for
+  our small surface). The first milestone-2 function (`sha256_init`,
+  trivially constant-time) tests the ct path end-to-end.
+
+The first sub-task of milestone 2 is to install the toolchain and prove
+the trivial case (a 32-byte memset) end-to-end — KAT, equivalence,
+constant-time. Until that succeeds, no crypto asm is written.
+
+## sha256
+
+Module: `crypto/sha256`. Implements SHA-256 per FIPS 180-4. Four
+functions form the streaming API:
+
+- `sha256_init(ctx_ptr)` — initialize the 32-byte H state and 8-byte
+  length counter.
+- `sha256_compress(ctx_ptr, block_ptr)` — process one 64-byte block.
+  The arithmetic core: 64 rounds, message schedule expansion, K[64]
+  round constants. Largest single function in this module.
+- `sha256_update(ctx_ptr, data_ptr, len)` — append `len` bytes; flush
+  full blocks through `sha256_compress`; buffer the tail.
+- `sha256_final(ctx_ptr, out_ptr)` — append the FIPS 180-4 padding,
+  the 64-bit length, run one or two trailing compress calls, and copy
+  the 32-byte digest out.
+
+Context layout (`src/state/sha256.S`):
+
+```
+struct sha256_ctx {        // 112 bytes total
+    uint32_t H[8];         // intermediate hash state (offset 0)
+    uint64_t length_bits;  // total bytes hashed × 8 (offset 32)
+    uint8_t  block[64];    // partial block buffer (offset 40)
+    uint32_t block_len;    // bytes currently in `block` (offset 104)
+    uint32_t _pad;         // align to 16 bytes (offset 108)
+};
+```
+
+KAT sources: FIPS 180-4 Appendix B.1 (one-block "abc"), B.2 (two-block),
+plus NIST CAVP byte-test vectors at `references/nist-cavp/sha256/`.
+
+Equivalence: against the Cryptol primitive `SHA256` (Galois-distributed)
+with byte-level I/O wrappers.
+
+Constant-time: SHA-256 is data-oblivious by construction; the ct prover
+should pass trivially. Any failure indicates a real bug (e.g., a
+data-dependent branch in the message schedule).
+
+## hmac
+
+Module: `crypto/hmac`. RFC 2104 `HMAC-SHA-256`. One function:
+
+- `hmac_sha256(key_ptr, key_len, msg_ptr, msg_len, out_ptr)` — emits
+  a 32-byte tag.
+
+Implementation: ipad/opad XOR + two SHA-256 calls. State borrowed from
+`sha256_ctx` (no new state).
+
+KAT: RFC 4231 §4.
+
+## hkdf
+
+Module: `crypto/hkdf`. RFC 5869.
+
+- `hkdf_extract(salt_ptr, salt_len, ikm_ptr, ikm_len, prk_out)` — wraps
+  one HMAC-SHA-256.
+- `hkdf_expand(prk_ptr, info_ptr, info_len, out_ptr, out_len)` — iterates
+  HMAC-SHA-256 to produce up to 255×32 bytes.
+
+KAT: RFC 5869 Appendix A.
+
+## aes
+
+Module: `crypto/aes`. AES-256 per FIPS 197 plus CBC mode per NIST
+SP 800-38A.
+
+- `aes256_key_expand(key_ptr, round_keys_out)` — 240-byte schedule.
+- `aes256_encrypt_block(round_keys_ptr, in_ptr, out_ptr)` — single 16-byte
+  block, 14 rounds.
+- `aes256_decrypt_block(round_keys_ptr, in_ptr, out_ptr)` — inverse.
+- `aes256_cbc_encrypt(round_keys_ptr, iv_ptr, in_ptr, in_len, out_ptr)`.
+- `aes256_cbc_decrypt(round_keys_ptr, iv_ptr, in_ptr, in_len, out_ptr)`.
+
+Constant-time is the central concern. Table-based AES (S-box lookups)
+leaks via cache timing. We will use a bit-sliced implementation or a
+constant-time S-box (per BearSSL `aes_ct.c`), evaluated against ct-verif.
+
+KAT: FIPS 197 Appendix C.3 (single-block); NIST SP 800-38A §F.2 (CBC).
+
+## x25519
+
+Module: `crypto/x25519`. RFC 7748.
+
+Field-arithmetic primitives (collectively `x25519_field_*`) implement
+`Fp` operations modulo `2^255 - 19`: add, sub, mul, square, invert,
+mul121665. These are the largest stack consumers and the most subtle
+to make constant-time; expect to lean on fiat-crypto for the field
+ops and prove equivalence against the asm.
+
+Higher-level functions:
+
+- `x25519_scalar_mult(scalar_ptr, point_ptr, out_ptr)` — Montgomery
+  ladder.
+- `x25519_keypair(rng_ctx_ptr, sk_out, pk_out)` — combines `rng_bytes`
+  with `x25519_scalar_mult` over the base point `9`.
+
+KAT: RFC 7748 §5.2 (test vectors), §6.1 (Diffie-Hellman test).
+
+## ed25519
+
+Module: `crypto/ed25519`. RFC 8032.
+
+- `ed25519_keypair(rng_ctx_ptr, sk_out, pk_out)`.
+- `ed25519_sign(sk_ptr, msg_ptr, msg_len, sig_out)`.
+- `ed25519_verify(pk_ptr, msg_ptr, msg_len, sig_ptr) -> int` — 0 = valid,
+  1 = invalid.
+
+Reuses SHA-512 (via two-round SHA-256? — no; Ed25519 needs SHA-512
+proper). Adding `sha512_*` may be required as a sub-deliverable; decision
+made when the implementation phase begins. Alternative: Ed25519ph with
+SHA-256 only (Reticulum may already use this — TBD against
+upstream).
+
+KAT: RFC 8032 §7.1.
+
+## rng
+
+Module: `crypto/rng`. Wrapper around the ESP32-C6 hardware RNG.
+
+- `rng_init()` — enable the entropy source.
+- `rng_bytes(out_ptr, len)` — pull `len` bytes of entropy.
+
+The C6's RNG requires WiFi/BLE clocks for full entropy quality (per
+ESP32-C6 TRM Ch 38). On qemu-virt the hardware RNG is not modeled; tests
+fake it via a deterministic source that is clearly marked unsafe in
+the disassembly (e.g., a bright "DETERMINISTIC_FAKE_RNG" symbol that
+must NOT survive into a release build).
+
+KAT: not applicable (RNG output is unpredictable). Verification is
+distributional (NIST SP 800-22 statistical tests on a sampled stream)
+plus a smoke test that two consecutive calls produce different bytes.
+
+## kat-vectors
+
+Vendored in `references/kat/` once milestone 2 starts:
+
+- `references/kat/sha256/` — FIPS 180-4 + NIST CAVP byte-tests.
+- `references/kat/hmac-sha256/` — RFC 4231.
+- `references/kat/hkdf/` — RFC 5869.
+- `references/kat/aes-256/` — FIPS 197 + NIST SP 800-38A.
+- `references/kat/x25519/` — RFC 7748.
+- `references/kat/ed25519/` — RFC 8032.
+
+Each subdirectory has a `README.md` recording the source URL, retrieval
+date, and SHA-256 of the original file. Test files load from these
+vectors; if a vector file is updated, the change is committed atomically
+with the test changes.
+
+## Risks specific to milestone 2
+
+| Risk | Mitigation |
+|------|-----------|
+| ct-verif lacks RV32 support | Front-load: prove the ct path on `sha256_init` (a memset) before writing any other function. If it fails, file an ADR for the alternative (manual ct review with a documented checklist; pitchfork; bit-sliced from BearSSL with the ct argument inherited from BearSSL's analysis). |
+| Hand-written field arithmetic for X25519 takes longer than estimated | Fall back to fiat-crypto's generated asm; equivalence-prove the generated form against the asm we hand-write (or vice versa). |
+| Ed25519 needs SHA-512 we did not budget for | Decide early whether Reticulum uses Ed25519 or Ed25519ph (SHA-256 variant). If SHA-512 is required, scope it as a sub-milestone before Ed25519 sign/verify. |
+| AES bitslicing is too slow on RV32IMAC for our throughput | Profile early; document trade-off. We are not targeting line-rate AES; correctness and ct trump speed. |
+| KAT vector files drift from upstream sources | Vendor copies in `references/kat/`; record URL + retrieval date + SHA-256. Re-fetch is a deliberate (committed) action, never silent. |
+| Verifier install proves too brittle to keep across machines | Document a Dockerfile or `nix-shell` recipe that pins every dependency. Acceptable to require `docker run` for the proof step; the hot loop is `make ci` (KAT only) and that stays native. |
+
+## Current frontier
+
+> Maintained in-place. Whoever finishes a chunk updates this section in the
+> same commit that flips a function's status.
+
+**Last updated:** 2026-05-02 (spec creation; no functions implemented yet).
+
+**State:** Spec written. Verifier toolchain not yet installed. Zero
+milestone-2 functions implemented. The first chunk is the verifier-
+toolchain self-test described in [§verifier-toolchain](#verifier-toolchain).
+
+**Eligible next chunks:**
+
+1. **Install verifier toolchain.** SAW + Cryptol + ct-verif (or
+   equivalent for RV32). Self-test on a trivial program. Pin versions
+   in `toolchain/versions.lock`. Block: every other chunk that needs
+   `verified` status.
+
+2. **`sha256_init` + KAT-only path.** Smallest possible function. Tests
+   it with NIST KAT for the H state. Status reaches `tested` (not
+   `verified`) until the toolchain is installed. Demonstrates the
+   pattern subsequent functions follow.
+
+3. **`sha256_compress` + KAT.** The big one. ~200 lines of asm; 64
+   rounds with message schedule. Same `tested`-pending-toolchain caveat.
+
+4. **Vendor KAT vectors.** Populate `references/kat/sha256/`,
+   `references/kat/hmac-sha256/`, etc. Reusable across all
+   milestone-2 functions.
+
+## Retrospective
+
+(To be added when the milestone reaches `Complete`.)

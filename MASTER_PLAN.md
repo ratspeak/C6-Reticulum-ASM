@@ -98,8 +98,8 @@ developer working full-time, with verification overhead included.
 
 | # | Title | Status | Estimate | Verification milestone |
 |---|-------|--------|----------|------------------------|
-| 1 | Foundation stack + verifier infrastructure | Active | 8–12 wk | Harness + Sail differential running; KISS codec verified |
-| 2 | Cryptographic primitives | Planned | 4–6 mo | Each primitive: KAT + formal equivalence + constant-time |
+| 1 | Foundation stack + verifier infrastructure | Active (sw complete) | 8–12 wk | Harness + Sail differential running; KISS codec verified |
+| 2 | Cryptographic primitives | Active (parallel) | 4–6 mo | Each primitive: KAT + formal equivalence + constant-time |
 | 3 | Identity + announce TX | Planned | 3–4 wk | TLA+ for announce state machine; signature verified end-to-end |
 | 4 | Flash persistence | Planned | 2–3 wk | Symbolic execution on flash driver; identity round-trip proven |
 | 5 | Transport RX (announce processing, paths) | Planned | 4–6 wk | TLA+ for transport state; signature verify on inbound |

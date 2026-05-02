@@ -157,10 +157,15 @@ When the active milestone reaches `Complete`:
 
 ## Currently active milestone
 
-**Milestone 1 — Foundation stack + verifier infrastructure.**
+**Milestone 1 — Foundation stack + verifier infrastructure**
+(software complete; hardware demo gated on bring-up).
 See [docs/milestones/milestone-1.md](docs/milestones/milestone-1.md).
 
-Update this line whenever a new milestone becomes active.
+**Milestone 2 — Cryptographic primitives** (running in parallel; the
+crypto work has no hardware dependency).
+See [docs/milestones/milestone-2.md](docs/milestones/milestone-2.md).
+
+Update this section whenever a milestone becomes active or completes.
 
 ## Toolchain assumptions
 

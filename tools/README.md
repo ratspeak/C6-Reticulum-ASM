@@ -8,8 +8,10 @@ gate); none of them ship in the production binary.
 
 | Script | Purpose | Invoked by |
 |--------|---------|-----------|
-| [`parse_spec.py`](parse_spec.py) | Parse + validate the `;; @field:` spec block at the top of every `.S` file (per [ADR-0007](../docs/adr/0007-project-structure.md)). | `make spec FILE=…`; the verify dispatcher; CI |
+| [`parse_spec.py`](parse_spec.py) | Parse + validate the `# @field:` spec block at the top of every `.S` file (per [ADR-0007](../docs/adr/0007-project-structure.md), prefix updated by [ADR-0008](../docs/adr/0008-naming-toolchain-format.md)). | `make spec FILE=…`; the verify dispatcher; CI |
 | [`check_registry.py`](check_registry.py) | Cross-check `FUNCTIONS.md` against `src/`: every registered non-planned function has a source file, every source-defined global is registered, every depends-on points at a real entry. | `make registry`; CI |
+| [`check_stack.py`](check_stack.py) | Worst-case stack-depth analyzer. Walks the call graph from `_reset`, sums `@stack` annotations, asserts the deepest path fits `STACK_SIZE` from `src/include/config.S`. | `make stack`; CI |
+| [`git-hooks/pre-commit`](git-hooks/pre-commit) | Pre-commit guard that runs `make ci` and blocks the commit on failure. Install via the symlink one-liner inside the script. | `git commit` (after install) |
 
 ## Conventions
 
