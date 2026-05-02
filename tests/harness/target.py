@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+import os
 import shutil
 import subprocess
 import threading
@@ -194,44 +195,123 @@ class NullTarget(Target):
 
 
 class EmuTarget(Target):
+    """qemu-system-riscv32 wrapper. Launch model:
+
+        qemu-system-riscv32 -machine virt -cpu rv32 -bios none
+            -kernel <elf> -display none -serial stdio
+            -monitor none -no-reboot
+
+    UART0 (NS16550A in qemu's virt model) is multiplexed with qemu's
+    stdio, so the host can write bytes to qemu's UART RX by writing
+    proc.stdin, and read bytes from qemu's UART TX by reading proc.stdout.
+
+    A daemon thread drains stdout into an internal buffer; `read()`
+    serves from that buffer with a timeout. This avoids blocking the
+    main thread on a slow guest while still presenting a synchronous
+    API.
+    """
+
     name = "emu"
 
     def __init__(self, config: TargetConfig | None = None) -> None:
         super().__init__(config)
         self._proc: subprocess.Popen | None = None
+        self._rx_buf: bytearray = bytearray()
+        self._lock = threading.Lock()
+        self._reader: threading.Thread | None = None
 
     def is_available(self) -> bool:
-        return shutil.which(self.config.qemu_binary) is not None
+        return shutil.which(self.config.qemu_binary) is not None and \
+               self.config.binary is not None and self.config.binary.exists()
 
     def start(self) -> None:
-        if not self.is_available():
+        if shutil.which(self.config.qemu_binary) is None:
             raise TargetUnavailable(
                 f"{self.config.qemu_binary} not on PATH; "
                 "install qemu (brew install qemu) to use EmuTarget"
             )
-        # The full launch (machine model, kernel arg, semihosting,
-        # serial routing) depends on the boot/clock/uart binary that does not
-        # exist yet. We deliberately stop here rather than half-wire it; this
-        # raises a clear error if a test reaches EmuTarget too early.
-        raise TargetUnavailable(
-            "EmuTarget.start: qemu launch wiring is not implemented yet "
-            "(blocked on first bootable .bin from boot/_reset)"
+        if self.config.binary is None:
+            raise TargetUnavailable(
+                "EmuTarget needs config.binary set to a built .elf"
+            )
+        if not self.config.binary.exists():
+            raise TargetUnavailable(
+                f"EmuTarget binary {self.config.binary} does not exist"
+            )
+
+        cmd = [
+            self.config.qemu_binary,
+            "-machine", self.config.qemu_machine,
+            "-cpu", "rv32",
+            "-bios", "none",
+            "-kernel", str(self.config.binary),
+            "-display", "none",
+            "-serial", "stdio",
+            "-monitor", "none",
+            "-no-reboot",
+            *self.config.qemu_extra_args,
+        ]
+        self._proc = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            bufsize=0,
         )
+        self._reader = threading.Thread(target=self._drain, daemon=True)
+        self._reader.start()
+
+    def _drain(self) -> None:
+        assert self._proc is not None and self._proc.stdout is not None
+        fd = self._proc.stdout.fileno()
+        while True:
+            try:
+                chunk = os.read(fd, 4096)
+            except (OSError, ValueError):
+                return
+            if not chunk:
+                return
+            with self._lock:
+                self._rx_buf.extend(chunk)
 
     def stop(self) -> None:
-        if self._proc is not None:
+        if self._proc is None:
+            return
+        try:
             self._proc.terminate()
             try:
                 self._proc.wait(timeout=2.0)
             except subprocess.TimeoutExpired:
                 self._proc.kill()
+                self._proc.wait(timeout=2.0)
+        finally:
+            if self._proc.stdin:
+                self._proc.stdin.close()
+            if self._proc.stdout:
+                self._proc.stdout.close()
             self._proc = None
+            self._reader = None
 
     def write(self, data: bytes) -> None:
-        raise TargetUnavailable("EmuTarget I/O not implemented yet")
+        if self._proc is None or self._proc.stdin is None:
+            raise RuntimeError("EmuTarget.write before start")
+        self._proc.stdin.write(data)
+        self._proc.stdin.flush()
 
     def read(self, max_bytes: int, timeout: float) -> bytes:
-        raise TargetUnavailable("EmuTarget I/O not implemented yet")
+        if self._proc is None:
+            raise RuntimeError("EmuTarget.read before start")
+        deadline = time.monotonic() + timeout
+        while True:
+            with self._lock:
+                if self._rx_buf:
+                    chunk = bytes(self._rx_buf[:max_bytes])
+                    del self._rx_buf[:max_bytes]
+                    return chunk
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return b""
+            time.sleep(min(remaining, 0.01))
 
 
 # -------------------------------------------------------------------------

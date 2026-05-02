@@ -1,22 +1,65 @@
-"""Tests for src/boot/_main.S — placeholder while the function is a stub.
+"""Integration test for src/boot/_main.S.
 
-The implementation will:
+Boots the firmware in qemu via EmuTarget, reads UART output, asserts
+the banner emitted by _main appears in well-formed log-line shape.
 
-1. Call clock_init.
-2. Call uart_init.
-3. Call log_init.
-4. Emit the `boot.ready` log event.
-5. Enter the main event loop (poll uart_rx_byte → kiss_decode_byte →
-   packet_parse_header, log per-frame events).
-
-This test file currently asserts only that the asm assembles — the body is
-`unimp` and behavioral tests are skipped until the real bring-up sequence
-is wired.
+This is the end-to-end check for the bring-up chain assembled in
+milestone 1: _reset → _init_bss → _init_data → clock_init → uart_init →
+uart_tx_bytes → observable bytes on UART. If any link breaks, this
+test fails.
 """
+
+from __future__ import annotations
 
 import pytest
 
+from harness import build, log_parser, target
 
-@pytest.mark.skip(reason="_main is a stub (unimp); behavior tests land with implementation")
-def test_emits_boot_ready_event() -> None:
-    raise NotImplementedError
+
+@pytest.fixture(scope="module")
+def artifacts() -> build.BuildArtifacts:
+    return build.build("qemu-virt")
+
+
+def test_emits_boot_banner(artifacts: build.BuildArtifacts) -> None:
+    cfg = target.TargetConfig(binary=artifacts.elf)
+    t = target.EmuTarget(cfg)
+    if not t.is_available():
+        pytest.skip("qemu-system-riscv32 not available")
+
+    with t:
+        lines = t.read_lines(timeout=2.0)
+
+    banner = next(
+        (line for line in lines if "boot" in line and "ready" in line), None
+    )
+    assert banner is not None, f"banner not found; got: {lines!r}"
+
+    ev = log_parser.parse_line(banner + "\r\n")
+    assert ev is not None, f"banner did not parse as a log line: {banner!r}"
+    assert ev.module == "boot"
+    assert ev.event == "ready"
+
+
+def test_banner_has_canonical_timestamp_field(
+    artifacts: build.BuildArtifacts,
+) -> None:
+    """The hard-coded boot banner uses ts=00000000 (8 hex digits per
+    ADR-0008). Once log_event lands the value will be a real cycle count;
+    until then the placeholder must still be parseable."""
+    cfg = target.TargetConfig(binary=artifacts.elf)
+    t = target.EmuTarget(cfg)
+    if not t.is_available():
+        pytest.skip("qemu-system-riscv32 not available")
+
+    with t:
+        lines = t.read_lines(timeout=2.0)
+
+    banner = next(
+        (line for line in lines if "boot" in line and "ready" in line), None
+    )
+    assert banner is not None
+    ev = log_parser.parse_line(banner + "\r\n")
+    assert ev is not None
+    assert ev.ts_raw == "00000000"
+    assert ev.ts_ms == 0

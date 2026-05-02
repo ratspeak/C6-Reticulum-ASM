@@ -46,18 +46,13 @@ def test_null_target_use_before_start_raises() -> None:
         t.read(1, 0.0)
 
 
-def test_emu_target_unavailable_until_qemu_installed() -> None:
-    # qemu-system-riscv32 is not installed in this environment yet.
-    # Once it is, this test should still pass: is_available may be True
-    # but start() will raise TargetUnavailable until the qemu launch
-    # wiring is implemented (post-first-bootable .bin).
-    t = target.EmuTarget()
-    if t.is_available():
-        with pytest.raises(target.TargetUnavailable):
-            t.start()
-    else:
-        with pytest.raises(target.TargetUnavailable):
-            t.start()
+def test_emu_target_requires_a_binary() -> None:
+    """Without a `binary` in the config, EmuTarget can't run anything;
+    is_available is False even when qemu is installed."""
+    t = target.EmuTarget(target.TargetConfig(binary=None))
+    assert not t.is_available()
+    with pytest.raises(target.TargetUnavailable):
+        t.start()
 
 
 def test_hw_target_unavailable_without_port() -> None:
