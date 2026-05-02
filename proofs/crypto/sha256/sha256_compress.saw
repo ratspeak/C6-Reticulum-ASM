@@ -2,7 +2,7 @@
 //
 // SAW driver for sha256_compress algorithmic verification (Tier A per
 // ADR-0009). Proves three orthogonal properties of the Cryptol model in
-// sha256_compress.cry:
+// SHA256Compress.cry:
 //
 //   1. K-table spot checks against FIPS 180-4 §4.2.2 — catches any
 //      transcription bug in the 64 round constants (5 boundary samples).
@@ -28,7 +28,7 @@
 // Tier C remains bounded angr exploration rather than full SAW
 // equivalence.
 
-import "sha256_compress.cry";
+import "SHA256Compress.cry";
 
 print "[sha256_compress.saw] checking K-table boundary constants ...";
 prove_print z3 {{ k_first }};

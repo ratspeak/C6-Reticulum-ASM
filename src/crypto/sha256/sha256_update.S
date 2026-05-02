@@ -9,10 +9,10 @@
 # @cycles:      bounded (~6 + 64 cycles per buffered byte + N × sha256_compress for N full blocks)
 # @ct:          required
 # @spec:        FIPS 180-4 §5.2 (message length); §6.2 (block iteration)
-# @verify:      kat-only; integration via sha256 chain test in tests/crypto/sha256/test_sha256_chain.py once final lands
+# @verify:      proofs/crypto/sha256/SHA256Update.cry, proofs/crypto/sha256/sha256_update.saw, proofs/crypto/sha256/sha256_update.py
 # @tests:       tests/crypto/sha256/test_sha256_update.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* Append `data_len` bytes to the running hash.

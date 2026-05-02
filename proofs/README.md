@@ -52,13 +52,25 @@ crypto primitives carry both Tier A (algorithmic equivalence) and Tier C
 a full equivalence proof in the SAW sense, and that distinction is honest in
 each spec block.
 
+## File naming convention
+
+Cryptol's `import M` requires the imported module to live in a file named
+exactly `M.cry`. Modules in this project use `CamelCase` (matches the
+upstream Cryptol stdlib style — `SuiteB`, `Primitive::Symmetric::*`),
+so the corresponding `.cry` files are CamelCase too: `SHA256Init.cry`,
+`SHA256Compress.cry`. Other verifier files (`.saw`, `.py`, `.bsc`,
+`.tla`) follow the project's snake_case convention and match the asm
+function name (e.g. `sha256_compress.saw`, `sha256_compress.py`). The
+`@verify` field in the spec block lists each path explicitly, so the
+two conventions coexist without ambiguity.
+
 ## Invocation
 
 `./verify <function_name>` from the repository root dispatches to every verifier in
 the function's `@verify` field. The field is a comma-separated list of paths
 (per ADR-0009); each suffix selects its backend.
 
-- `@verify: proofs/crypto/sha256/sha256_init.cry, proofs/crypto/sha256/sha256_init.saw, proofs/crypto/sha256/sha256_init.py`
+- `@verify: proofs/crypto/sha256/SHA256Init.cry, proofs/crypto/sha256/sha256_init.saw, proofs/crypto/sha256/sha256_init.py`
   — Tier A (Cryptol typecheck + SAW driver) plus Tier C (angr binary
   equivalence). All three must pass.
 - `@verify: proofs/transport/transport_state.tla` — Tier D, runs TLC with that spec.

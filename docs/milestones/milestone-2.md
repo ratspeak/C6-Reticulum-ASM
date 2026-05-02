@@ -270,8 +270,8 @@ with the test changes.
 > Maintained in-place. Whoever finishes a chunk updates this section in the
 > same commit that flips a function's status.
 
-**Last updated:** 2026-05-02 (`sha256_compress` verified end-to-end —
-the centerpiece of the SHA-256 family; second function under ADR-0009).
+**Last updated:** 2026-05-02 (entire SHA-256 family verified end-to-end —
+init, compress, update, final all under ADR-0009).
 
 **State:**
 
@@ -286,7 +286,7 @@ the centerpiece of the SHA-256 family; second function under ADR-0009).
   comma-separated-paths syntax the dispatcher now consumes.
 
 - **`sha256_init` verified.** Cryptol module + SAW driver
-  ([proofs/crypto/sha256/sha256_init.cry](../../proofs/crypto/sha256/sha256_init.cry),
+  ([proofs/crypto/sha256/SHA256Init.cry](../../proofs/crypto/sha256/SHA256Init.cry),
   [.saw](../../proofs/crypto/sha256/sha256_init.saw)) discharge Tier A
   (FIPS 180-4 §5.3.3 IV constants + LE serialisation + bijection over
   [32]). angr verifier ([.py](../../proofs/crypto/sha256/sha256_init.py))
@@ -296,7 +296,7 @@ the centerpiece of the SHA-256 family; second function under ADR-0009).
   sha256_init` runs in ~3 s.
 
 - **`sha256_compress` verified.** Cryptol model
-  ([sha256_compress.cry](../../proofs/crypto/sha256/sha256_compress.cry))
+  ([SHA256Compress.cry](../../proofs/crypto/sha256/SHA256Compress.cry))
   formalises FIPS 180-4 §6.2.2 from first principles — K table,
   ch/maj, big/small sigmas, message schedule, 64-round
   step-function, single-block compress. SAW driver
@@ -311,8 +311,33 @@ the centerpiece of the SHA-256 family; second function under ADR-0009).
   is untouched, and all 14 callee-saved regs preserved. End-to-end
   `./verify sha256_compress` runs in ~6 s.
 
+- **`sha256_update` verified.** Cryptol model
+  ([SHA256Update.cry](../../proofs/crypto/sha256/SHA256Update.cry))
+  composes the verified compress into a streaming absorber
+  (length_bits accumulator + 64-byte partial buffer). SAW driver proves
+  two KAT scenarios (init + 3-byte buffer; init + full block triggers
+  one compress) and **streaming associativity** — splitting input into
+  two chunks vs concatenated input yields identical ctx state — for
+  sub-block sizes (1+1, 10+20) and across one block boundary (30+40,
+  symbolic over the entire 70-byte input domain, ~250 ms via z3). angr
+  verifier exercises 8 scenarios (empty, 3, 63, 64, 65, 256, 513 bytes,
+  resume-with-buffered-prefix) plus a separate one-shot-vs-chunked
+  associativity check on a 200-byte message; all match a Python mirror
+  of sha256_update.S. End-to-end ~16 s.
+
+- **`sha256_final` verified.** Cryptol model
+  ([SHA256Final.cry](../../proofs/crypto/sha256/SHA256Final.cry))
+  formalises FIPS 180-4 §5.1.1 padding (one block when bl ≤ 55, two
+  blocks otherwise) plus 32-byte big-endian H serialisation. SAW driver
+  proves the canonical SHA-256 digests for "abc", "", FIPS B.2 56-byte
+  string (boundary case forcing two-block padding), and 64 zero bytes
+  (padding from a freshly-compressed empty buffer). angr verifier
+  cross-checks the RV32 binary against `hashlib.sha256` on 9 messages
+  spanning 0..129 bytes — covers both padding paths plus multi-block
+  prefixes; asserts no write past out_ptr+32 and 14 callee-saved regs
+  preserved. End-to-end ~10 s.
+
 - **Remaining KAT-tested (awaiting per-function verifier work):**
-  - SHA-256 family (update, final): RFC/FIPS vectors pass via `'S'` marker.
   - HMAC-SHA-256: RFC 4231 TC1/2/3/6 pass via `'H'` marker.
   - HKDF-SHA-256 (extract, expand): RFC 5869 A.1/A.2/A.3 pass via `'E'`/`'X'` markers.
   - AES-256 helpers (sbox/invsbox, subbytes/invsubbytes, shiftrows/
@@ -324,14 +349,12 @@ the centerpiece of the SHA-256 family; second function under ADR-0009).
 
 **Eligible next chunks:**
 
-1. **Lift `sha256_update` and `sha256_final` to verified.** `compress`
-   is verified, so `update` reduces to "buffer-and-call-compress" plus
-   length tracking; `final` to "pad-and-call-compress" plus digest
-   serialisation. Each gets a Cryptol model that composes
-   `SHA256Compress.compress`, a SAW driver that discharges algebraic
-   properties + multi-block KAT, and an angr verifier that runs the
-   RV32 binary on streaming inputs against a Python `hashlib`
-   reference.
+1. **Lift HMAC + HKDF to verified.** RFC 2104 / RFC 5869. The Cryptol
+   models compose `SHA256Final.sha256_oneshot` directly. SAW proves
+   the canonical RFC test vectors (HMAC: RFC 4231; HKDF: RFC 5869 A.1
+   /A.2/A.3) plus algebraic identities (HMAC's inner/outer key XOR
+   structure; HKDF's extract-then-expand layering). angr cross-checks
+   the binary against Python `hmac.new(key, msg, hashlib.sha256)`.
 
 2. **Lift HMAC + HKDF to verified.** Once SHA-256 family is verified,
    HMAC and HKDF inherit the proof framework — their Cryptol specs

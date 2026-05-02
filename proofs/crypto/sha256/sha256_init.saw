@@ -1,7 +1,7 @@
 // proofs/crypto/sha256/sha256_init.saw
 //
 // SAW driver for sha256_init algorithmic verification (Tier A per
-// ADR-0009): proves the Cryptol model in sha256_init.cry is algebraically
+// ADR-0009): proves the Cryptol model in SHA256Init.cry is algebraically
 // consistent with FIPS 180-4 §5.3.3 and that its byte-serialization is a
 // well-formed bijection.
 //
@@ -17,7 +17,7 @@
 // or via dispatcher:
 //   ./verify sha256_init
 
-import "sha256_init.cry";
+import "SHA256Init.cry";
 
 print "[sha256_init.saw] proving FIPS 180-4 §5.3.3 IV constants ...";
 prove_print z3 {{ iv_word_0 }};

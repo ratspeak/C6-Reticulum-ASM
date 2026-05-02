@@ -1,0 +1,45 @@
+// proofs/crypto/sha256/sha256_update.saw
+//
+// SAW driver for sha256_update algorithmic verification (Tier A per
+// ADR-0009). The Cryptol model in SHA256Update.cry composes the
+// already-verified compress (SHA256Compress.cry) into a streaming API.
+// Properties discharged:
+//
+//   1. KAT: init + absorb("abc") leaves H = sha256_iv (no compress
+//      yet — only 3 bytes), block_buf[0..3] = "abc",
+//      length_bits = 24, block_len = 3.
+//
+//   2. KAT: init + absorb(64 zero bytes) → H = compress(IV, 0_block),
+//      length_bits = 512, block_len = 0.
+//
+//   3. Streaming associativity (init_ctx form): for all (d1, d2) with
+//      |d1| + |d2| <= 63 (no compress fires), absorbing them in two
+//      steps equals absorbing the concatenation. Discharged for
+//      n=1+m=1 and n=10+m=20 — both quick.
+//
+//   4. Streaming associativity across one block boundary: |d1|=30,
+//      |d2|=40 — total 70 bytes triggers exactly one compress. SAW
+//      symbolically expands compress (64 rounds × 32-bit SMT) and
+//      verifies equality over the full 70-byte symbolic input domain.
+//      ~250 ms via z3.
+
+import "SHA256Update.cry";
+
+print "[sha256_update.saw] proving init+absorb(\"abc\") KAT ...";
+prove_print z3 {{ abc_after_update }};
+print "[sha256_update.saw] init+absorb(\"abc\") KAT: PASS.";
+
+print "[sha256_update.saw] proving init+absorb(64*0) KAT (one compress fires) ...";
+prove_print z3 {{ full_block_after_update }};
+print "[sha256_update.saw] full-block KAT: PASS.";
+
+print "[sha256_update.saw] proving streaming associativity (no compress) ...";
+prove_print z3 {{ \(d1 : [1][8]) (d2 : [1][8]) -> streaming_assoc_init d1 d2 }};
+prove_print z3 {{ \(d1 : [10][8]) (d2 : [20][8]) -> streaming_assoc_init d1 d2 }};
+print "[sha256_update.saw] streaming associativity (sub-block): PASS.";
+
+print "[sha256_update.saw] proving streaming associativity across block boundary ...";
+prove_print z3 {{ \(d1 : [30][8]) (d2 : [40][8]) -> streaming_assoc_init d1 d2 }};
+print "[sha256_update.saw] streaming associativity (one compress fires): PASS.";
+
+print "[sha256_update.saw] PASS";

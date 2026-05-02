@@ -1,0 +1,33 @@
+// proofs/crypto/sha256/sha256_final.saw
+//
+// SAW driver for sha256_final algorithmic verification (Tier A per
+// ADR-0009). Verifies the Cryptol model SHA256Final.cry against
+// canonical SHA-256 KATs that exercise both padding paths:
+//
+//   * one-block padding (bl <= 55 after absorb): "abc" (3 bytes), ""
+//     (0 bytes).
+//   * two-block padding (bl > 55 after absorb): the FIPS 180-4 §B.2
+//     56-byte string, and a 64-byte all-zero block (bl=0 after final
+//     compress, then padding+length goes into a fresh block).
+//
+// All four KATs reduce symbolically (via z3) in tens of milliseconds.
+
+import "SHA256Final.cry";
+
+print "[sha256_final.saw] proving SHA-256(\"abc\") canonical digest (one-block padding) ...";
+prove_print z3 {{ abc_kat }};
+print "[sha256_final.saw] abc KAT: PASS.";
+
+print "[sha256_final.saw] proving SHA-256(\"\") canonical digest (empty input) ...";
+prove_print z3 {{ empty_kat }};
+print "[sha256_final.saw] empty KAT: PASS.";
+
+print "[sha256_final.saw] proving FIPS 180-4 §B.2 56-byte digest (two-block padding) ...";
+prove_print z3 {{ abcdbcde_kat }};
+print "[sha256_final.saw] FIPS B.2 KAT: PASS.";
+
+print "[sha256_final.saw] proving SHA-256(64 zero bytes) (two-block padding from full buffer) ...";
+prove_print z3 {{ zero64_kat }};
+print "[sha256_final.saw] 64-zero KAT: PASS.";
+
+print "[sha256_final.saw] PASS";

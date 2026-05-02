@@ -5,7 +5,7 @@ angr binary-equivalence verifier for sha256_init (Tier C per ADR-0009).
 Loads the firmware ELF, symbolically executes sha256_init at its symbol
 address with a chosen ctx pointer, and checks that the post-state of
 memory and callee-saved registers matches the Cryptol spec in
-sha256_init.cry. The angr engine is the pcode-based RV32IMC lifter from
+SHA256Init.cry. The angr engine is the pcode-based RV32IMC lifter from
 Ghidra (pypcode), since stock pyvex has no RV32 frontend.
 
 Post-conditions checked:
@@ -44,7 +44,7 @@ ELF_PATH = REPO_ROOT / "build" / "qemu-virt" / "firmware.elf"
 
 # FIPS 180-4 §5.3.3 IV — kept here as the source-of-truth reference; the
 # angr verifier compares the post-state H region against these literals
-# (and sha256_init.cry / sha256_init.saw cross-check the same values).
+# (and SHA256Init.cry / sha256_init.saw cross-check the same values).
 SHA256_IV = [
     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
     0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,

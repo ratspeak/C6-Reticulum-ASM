@@ -1,0 +1,175 @@
+// proofs/crypto/sha256/SHA256Final.cry
+//
+// Cryptol algorithmic specification for sha256_final.
+//
+// FIPS 180-4 §5.1.1 specifies the padding rule:
+//   * Append a single 0x80 byte (a 1 bit followed by seven 0 bits).
+//   * Append k zero bytes such that the message length fits the form
+//     56 (mod 64) bytes.
+//   * Append the original message length in bits as a 64-bit big-endian
+//     integer.
+//
+// sha256_final emits the FIPS-canonical 32-byte big-endian digest of
+// the message absorbed via sha256_init / sha256_update so far. This
+// module formalises the operation in two stages:
+//
+//   1. `pad_into_blocks` : turn a partial-block-state into one or two
+//      additional 64-byte blocks of padding (one if 0x80+zeros fits at
+//      or before byte 56, otherwise two).
+//   2. `final`          : compress those blocks into the running H,
+//      then serialise H as 32 BE bytes.
+//
+// The headline correctness property is `sha256_oneshot M == fips
+// digest of M` for arbitrary message M, discharged by SAW for several
+// concrete sizes that exercise both the one-block and two-block
+// padding paths.
+
+module SHA256Final where
+
+import SHA256Compress
+import SHA256Update
+
+// ---------- BE serialise / deserialise --------------------------------
+
+// 32-bit word -> 4 big-endian bytes.
+word_to_be : W -> [4][8]
+word_to_be w = split w
+
+// 64-bit value -> 8 big-endian bytes.
+qword_to_be : [64] -> [8][8]
+qword_to_be q = split q
+
+// 8 32-bit words -> 32 big-endian bytes (the digest format).
+h_to_be_bytes : [8]W -> [32][8]
+h_to_be_bytes h = join [ word_to_be w | w <- h ]
+
+// ---------- padding-aware finalisation -------------------------------
+
+// Build the padded block(s) from a partial buffer and length_bits.
+//
+// If the partial block has bl bytes (bl < 64), we append:
+//   * 0x80
+//   * zeros until exactly 56 bytes from a block boundary
+//   * 8 BE-bytes of length_bits
+// If bl > 55, the 0x80 + zeros doesn't fit before byte 56 — we extend
+// to a full 64-byte block and emit a second all-zero-prefixed block
+// containing only the length suffix.
+
+// One-block padding (bl <= 55): single trailing block.
+final_block_one : SHA256Ctx -> [16]W
+final_block_one ctx = block_to_words full_block
+  where
+    bl_int = ctx.block_len
+    // bytes [0..bl_int) come from ctx.block_buf
+    // bytes [bl_int..56) are 0x80 then zeros
+    // bytes [56..64) are length_bits BE
+    full_block = [ if i < bl_int then ctx.block_buf @ i
+                   else if i == bl_int then 0x80
+                   else if i < 56 then 0
+                   else qword_to_be ctx.length_bits @ (i - 56)
+                 | i <- [0..63] : [64][32]
+                 ]
+
+// Two-block padding (bl > 55): emit two trailing blocks. The first
+// fills with (live bytes ++ 0x80 ++ zeros) to 64; the second is
+// (zeros ++ length BE) of 64 bytes.
+final_block_two_a : SHA256Ctx -> [16]W
+final_block_two_a ctx = block_to_words full_block
+  where
+    bl_int = ctx.block_len
+    full_block = [ if i < bl_int then ctx.block_buf @ i
+                   else if i == bl_int then 0x80
+                   else 0
+                 | i <- [0..63] : [64][32]
+                 ]
+
+final_block_two_b : SHA256Ctx -> [16]W
+final_block_two_b ctx = block_to_words full_block
+  where
+    full_block = [ if i < 56 then 0 else qword_to_be ctx.length_bits @ (i - 56)
+                 | i <- [0..63] : [64][32]
+                 ]
+
+// Final H state after running compress on all padded blocks.
+final_h : SHA256Ctx -> [8]W
+final_h ctx = if ctx.block_len <= 55
+              then compress ctx.h (final_block_one ctx)
+              else compress
+                       (compress ctx.h (final_block_two_a ctx))
+                       (final_block_two_b ctx)
+
+// FIPS-canonical 32-byte big-endian digest.
+final : SHA256Ctx -> [32][8]
+final ctx = h_to_be_bytes (final_h ctx)
+
+// ---------- one-shot SHA-256 ------------------------------------------
+
+// Convenience: sha256(M) = final (absorb init_ctx M). This is the
+// natural correctness statement against which SAW discharges KATs.
+sha256_oneshot : {n} (fin n) => [n][8] -> [32][8]
+sha256_oneshot m = final (absorb init_ctx m)
+
+// ---------- KAT properties --------------------------------------------
+
+// SHA-256("abc") FIPS 180-4 §B.1 canonical digest.
+abc_digest_bytes : [32][8]
+abc_digest_bytes =
+    [ 0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea
+    , 0x41, 0x41, 0x40, 0xde, 0x5d, 0xae, 0x22, 0x23
+    , 0xb0, 0x03, 0x61, 0xa3, 0x96, 0x17, 0x7a, 0x9c
+    , 0xb4, 0x10, 0xff, 0x61, 0xf2, 0x00, 0x15, 0xad
+    ]
+
+abc_kat : Bit
+abc_kat = sha256_oneshot [0x61, 0x62, 0x63] == abc_digest_bytes
+
+// SHA-256("") canonical digest.
+empty_digest_bytes : [32][8]
+empty_digest_bytes =
+    [ 0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14
+    , 0x9a, 0xfb, 0xf4, 0xc8, 0x99, 0x6f, 0xb9, 0x24
+    , 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c
+    , 0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55
+    ]
+
+empty_kat : Bit
+empty_kat = sha256_oneshot ([] : [0][8]) == empty_digest_bytes
+
+// SHA-256 of FIPS 180-4 §B.2 (448 bits = 56 bytes,
+// "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq").
+abcdbcde_digest_bytes : [32][8]
+abcdbcde_digest_bytes =
+    [ 0x24, 0x8d, 0x6a, 0x61, 0xd2, 0x06, 0x38, 0xb8
+    , 0xe5, 0xc0, 0x26, 0x93, 0x0c, 0x3e, 0x60, 0x39
+    , 0xa3, 0x3c, 0xe4, 0x59, 0x64, 0xff, 0x21, 0x67
+    , 0xf6, 0xec, 0xed, 0xd4, 0x19, 0xdb, 0x06, 0xc1
+    ]
+
+abcdbcde_msg : [56][8]
+abcdbcde_msg = [ 0x61, 0x62, 0x63, 0x64, 0x62, 0x63, 0x64, 0x65
+               , 0x63, 0x64, 0x65, 0x66, 0x64, 0x65, 0x66, 0x67
+               , 0x65, 0x66, 0x67, 0x68, 0x66, 0x67, 0x68, 0x69
+               , 0x67, 0x68, 0x69, 0x6a, 0x68, 0x69, 0x6a, 0x6b
+               , 0x69, 0x6a, 0x6b, 0x6c, 0x6a, 0x6b, 0x6c, 0x6d
+               , 0x6b, 0x6c, 0x6d, 0x6e, 0x6c, 0x6d, 0x6e, 0x6f
+               , 0x6d, 0x6e, 0x6f, 0x70, 0x6e, 0x6f, 0x70, 0x71
+               ]
+
+// 56 bytes is exactly the boundary case: bl=56 after absorb means
+// padding goes into a SECOND block (since 56 + 0x80 doesn't fit
+// before byte 56 of the same block).
+abcdbcde_kat : Bit
+abcdbcde_kat = sha256_oneshot abcdbcde_msg == abcdbcde_digest_bytes
+
+// SHA-256 of 64-byte all-zero message — ensures the >=56 path with a
+// fresh second block.
+zero64_digest_bytes : [32][8]
+zero64_digest_bytes =
+    [ 0xf5, 0xa5, 0xfd, 0x42, 0xd1, 0x6a, 0x20, 0x30
+    , 0x27, 0x98, 0xef, 0x6e, 0xd3, 0x09, 0x97, 0x9b
+    , 0x43, 0x00, 0x3d, 0x23, 0x20, 0xd9, 0xf0, 0xe8
+    , 0xea, 0x98, 0x31, 0xa9, 0x27, 0x59, 0xfb, 0x4b
+    ]
+
+zero64_kat : Bit
+zero64_kat = sha256_oneshot (zero : [64][8]) == zero64_digest_bytes

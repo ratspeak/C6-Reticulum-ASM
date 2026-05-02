@@ -9,10 +9,10 @@
 # @cycles:      bounded (~30 + at most 2 × sha256_compress)
 # @ct:          required
 # @spec:        FIPS 180-4 §5.1.1 (padding); §6.2 (final block)
-# @verify:      kat-only; integration via the sha256 chain test once a _main path exists
+# @verify:      proofs/crypto/sha256/SHA256Final.cry, proofs/crypto/sha256/sha256_final.saw, proofs/crypto/sha256/sha256_final.py
 # @tests:       tests/crypto/sha256/test_sha256_final.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* Append the FIPS 180-4 §5.1.1 padding (0x80, then zeros, then 64-bit

@@ -9,7 +9,7 @@
 # @cycles:      bounded (~30: 8-element copy + 3 zero stores)
 # @ct:          required
 # @spec:        FIPS 180-4 §5.3.3 (initial hash value)
-# @verify:      proofs/crypto/sha256/sha256_init.cry, proofs/crypto/sha256/sha256_init.saw, proofs/crypto/sha256/sha256_init.py
+# @verify:      proofs/crypto/sha256/SHA256Init.cry, proofs/crypto/sha256/sha256_init.saw, proofs/crypto/sha256/sha256_init.py
 # @tests:       tests/crypto/sha256/test_sha256_init.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

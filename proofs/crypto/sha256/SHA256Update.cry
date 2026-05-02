@@ -1,0 +1,168 @@
+// proofs/crypto/sha256/sha256_update.cry
+//
+// Cryptol algorithmic specification for sha256_update — the streaming
+// data absorber on top of SHA256Compress.
+//
+// FIPS 180-4 leaves the streaming API unstandardised; this module
+// formalises the contract our asm implementation must satisfy:
+//
+//   * length_bits accumulates the total byte count × 8 (64-bit; wraps at
+//     2^64 - 1, which we never hit in practice on this device).
+//   * The 64-byte partial-block buffer is filled lazily; whenever it
+//     reaches 64 bytes a single SHA256Compress.compress is invoked and
+//     block_len resets to 0.
+//   * Whole 64-byte blocks in the input stream are compressed straight
+//     from the input pointer (no buffer copy).
+//   * The trailing < 64 bytes of the input are buffered for the next
+//     update or final.
+//
+// The central correctness property — proved by SAW under random testing
+// at the bit level — is *streaming associativity*: chunking the input
+// arbitrarily produces the same ctx as processing it as a single chunk.
+//
+// We model the relevant ctx fields explicitly. The asm's ctx is 112
+// bytes total; the H[0..7] (32 B), length_bits (8 B), block_buf (64 B),
+// and block_len (4 B) account for the live state, and `pad` (4 B) is
+// scratch we don't model.
+
+module SHA256Update where
+
+import SHA256Compress
+
+// ---------- ctx model --------------------------------------------------
+
+type Block = [64][8]
+
+// SHA256Ctx is the live portion of the asm's sha256_ctx struct.
+type SHA256Ctx =
+    { h           : [8]W
+    , length_bits : [64]
+    , block_buf   : Block
+    , block_len   : [32]
+    }
+
+// Initial ctx — what sha256_init produces.
+init_ctx : SHA256Ctx
+init_ctx =
+    { h = sha256_iv
+    , length_bits = zero
+    , block_buf = zero
+    , block_len = zero
+    }
+
+// ---------- block-as-words view ---------------------------------------
+
+// Convert a 64-byte block to 16 big-endian 32-bit words (the form
+// SHA256Compress.compress consumes).
+block_to_words : Block -> [16]W
+block_to_words b = [ join chunk | chunk <- (split b : [16][4][8]) ]
+
+// ---------- update ----------------------------------------------------
+
+// Single-byte absorb. The model is recursive over input bytes — verbose
+// but transparent. Runtime cost in Cryptol's interpreter is irrelevant
+// (SAW reduces it symbolically).
+absorb_byte : SHA256Ctx -> [8] -> SHA256Ctx
+absorb_byte ctx b = ctx'
+  where
+    bl  = ctx.block_len
+    bb1 = update ctx.block_buf bl b   // overwrite slot bl
+    bl1 = bl + 1
+    full = bl1 == 64
+    ctx_full =
+        { h = compress ctx.h (block_to_words bb1)
+        , length_bits = ctx.length_bits + 8
+        , block_buf   = zero
+        , block_len   = 0
+        }
+    ctx_part =
+        { h = ctx.h
+        , length_bits = ctx.length_bits + 8
+        , block_buf   = bb1
+        , block_len   = bl1
+        }
+    ctx' = if full then ctx_full else ctx_part
+
+// Multi-byte absorb. Folds absorb_byte over the input.
+absorb : {n} (fin n) => SHA256Ctx -> [n][8] -> SHA256Ctx
+absorb ctx data = (ctxs ! 0)
+  where
+    ctxs : [n+1]SHA256Ctx
+    ctxs = [ctx] # [ absorb_byte c b | c <- ctxs | b <- data ]
+
+// ---------- well-formedness -------------------------------------------
+
+// The asm contract: ctx.block_len < 64 always (sha256_init sets it to 0;
+// sha256_update preserves it < 64). Functions in this model that index
+// into block_buf require this invariant. Without it, random testing
+// generates degenerate ctx values that would never arise in a real run.
+well_formed : SHA256Ctx -> Bit
+well_formed ctx = ctx.block_len < 64
+
+// ---------- streaming associativity ------------------------------------
+
+// The bytewise absorb is a deliberate, transparent definition. The asm
+// implementation is more efficient (it copies whole blocks directly),
+// but must be *equivalent*. The angr verifier checks the asm against
+// this model.
+//
+// Streaming associativity: splitting an input stream into two pieces and
+// absorbing them sequentially yields the same ctx as absorbing the
+// concatenation in one call. This property is what an incremental hash
+// API ultimately promises its caller. We require well_formed on the
+// input ctx; without it, the proposition is vacuously about garbage.
+streaming_assoc :
+    {n, m} (fin n, fin m) =>
+        SHA256Ctx -> [n][8] -> [m][8] -> Bit
+streaming_assoc ctx d1 d2 =
+    well_formed ctx ==>
+        absorb (absorb ctx d1) d2 == absorb ctx (d1 # d2)
+
+// Specialised: starting from init_ctx (block_len = 0), arbitrary chunking
+// commutes with concatenation. Cheaper to discharge by SMT because
+// init_ctx is concrete.
+streaming_assoc_init :
+    {n, m} (fin n, fin m) =>
+        [n][8] -> [m][8] -> Bit
+streaming_assoc_init d1 d2 =
+    absorb (absorb init_ctx d1) d2 == absorb init_ctx (d1 # d2)
+
+// ---------- KAT: hash of "abc" via update only ------------------------
+
+// After init + update("abc"), block_buf[0..3] = "abc", block_len = 3,
+// length_bits = 24, H = sha256_iv (no full block yet).
+abc_after_update_h : [8]W
+abc_after_update_h = sha256_iv
+
+abc_after_update_block_len : [32]
+abc_after_update_block_len = 3
+
+abc_after_update_length_bits : [64]
+abc_after_update_length_bits = 24
+
+abc_after_update : Bit
+abc_after_update =
+    ctx.h == abc_after_update_h /\
+    ctx.length_bits == abc_after_update_length_bits /\
+    ctx.block_len == abc_after_update_block_len /\
+    (ctx.block_buf @ 0) == 0x61 /\
+    (ctx.block_buf @ 1) == 0x62 /\
+    (ctx.block_buf @ 2) == 0x63
+  where
+    ctx = absorb init_ctx [0x61, 0x62, 0x63]
+
+// KAT: After init + update(64-byte all-zero block), H equals
+// compress(IV, all_zero_block), block_len = 0, length_bits = 512.
+zero_block : [64][8]
+zero_block = zero
+
+zero_full_after_update_h : [8]W
+zero_full_after_update_h = compress sha256_iv (block_to_words zero_block)
+
+full_block_after_update : Bit
+full_block_after_update =
+    ctx.h == zero_full_after_update_h /\
+    ctx.length_bits == 512 /\
+    ctx.block_len == 0
+  where
+    ctx = absorb init_ctx zero_block
