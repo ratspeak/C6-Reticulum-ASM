@@ -2,35 +2,46 @@
 # @function:    _main
 # @module:      boot
 # @inputs:      (none; entered from _reset)
-# @outputs:     (does not return; emits the boot.ready log event over UART0)
+# @outputs:     (does not return; emits boot.ready then runs the KISS bridge)
 # @clobbers:    a0, a1, t0..t6, ra
 # @preserves:   sp, gp, s0..s11
 # @stack:       16
 # @cycles:      unbounded
 # @ct:          not-required
 # @spec:        milestone-1 §boot
-# @verify:      kat-only; top-level event loop, integration via tests/boot/test__main.py
+# @verify:      kat-only; integration via tests/boot/test__main.py
 # @tests:       tests/boot/test__main.py
 # @adrs:        0001, 0004, 0008
 # @status:      verified
 # ============================================================================
 
 /* Bring-up sequence:
- *   1. _init_bss  — zero .bss
- *   2. _init_data — populate .data from its load image (no-op on qemu-virt)
- *   3. clock_init — bring CPU clock to spec (no-op on qemu-virt)
- *   4. uart_init  — set up UART0 (no-op on qemu-virt)
- *   5. log_init   — set up log subsystem (placeholder until clock_get_freq)
- *   6. log_event(boot.ready) — first structured log line on UART0
- *   7. wfi loop forever (the polling main-loop replacement lands when
- *      kiss + packet are wired and there is real work to do).
+ *   1. _init_bss / _init_data / clock_init / uart_init / log_init
+ *   2. log_event("boot\\tready") — first observable line
+ *   3. KISS bridge loop:
+ *        byte   = uart_rx_byte();
+ *        status = kiss_decode_byte(byte);
+ *        if (status > 0) log_event("kiss\\trx_frame");
+ *        else if (status < 0) log_event("kiss\\trx_error");
+ *
+ * Field-bearing log lines (e.g. len=N, dest=…) require log_event API
+ * extension; they land when packet_parse_header arrives and there is
+ * structured data to report.
  */
 
-        .section .rodata.boot_event_tag, "a"
+        .section .rodata.boot_event_tags, "a"
 .Lboot_ready_tag:
         .ascii "boot\tready"
 .Lboot_ready_tag_end:
         .equ   .Lboot_ready_tag_len, .Lboot_ready_tag_end - .Lboot_ready_tag
+.Lkiss_rx_tag:
+        .ascii "kiss\trx_frame"
+.Lkiss_rx_tag_end:
+        .equ   .Lkiss_rx_tag_len, .Lkiss_rx_tag_end - .Lkiss_rx_tag
+.Lkiss_err_tag:
+        .ascii "kiss\trx_error"
+.Lkiss_err_tag_end:
+        .equ   .Lkiss_err_tag_len, .Lkiss_err_tag_end - .Lkiss_err_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -49,7 +60,22 @@ _main:
         li      a1, .Lboot_ready_tag_len
         call    log_event
 
-1:      wfi
-        j       1b
+        /* KISS bridge loop. */
+.Lloop:
+        call    uart_rx_byte            /* a0 = next byte                */
+        call    kiss_decode_byte        /* a0 = 0 | 1 | -1               */
+        bgtz    a0, .Lframe
+        bltz    a0, .Lerror
+        j       .Lloop
+.Lframe:
+        la      a0, .Lkiss_rx_tag
+        li      a1, .Lkiss_rx_tag_len
+        call    log_event
+        j       .Lloop
+.Lerror:
+        la      a0, .Lkiss_err_tag
+        li      a1, .Lkiss_err_tag_len
+        call    log_event
+        j       .Lloop
 
         .size   _main, . - _main

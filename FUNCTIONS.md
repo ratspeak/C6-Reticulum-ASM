@@ -58,7 +58,7 @@ System startup, before any other code runs. Lives at the reset vector.
 | `_reset` | ◉ verified | — | 0001, 0002, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 | `_init_bss` | ◉ verified | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 | `_init_data` | ◉ verified | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_main` | ◉ verified | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event` | 0001, 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_main` | ◉ verified | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event`, `uart_rx_byte`, `kiss_decode_byte` | 0001, 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 
 ## Module: `clock`
 
@@ -103,9 +103,9 @@ Used by every interface (USB-serial in dev, LoRa in milestone 8).
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `kiss_decode_byte` | ☐ planned | — | — | [milestone-1](docs/milestones/milestone-1.md#kiss) |
-| `kiss_decode_reset` | ☐ planned | — | — | [milestone-1](docs/milestones/milestone-1.md#kiss) |
-| `kiss_encode_frame` | ☐ planned | — | — | [milestone-1](docs/milestones/milestone-1.md#kiss) |
+| `kiss_decode_byte` | ◉ verified | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#kiss) |
+| `kiss_decode_reset` | ◉ verified | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#kiss) |
+| `kiss_encode_frame` | ◉ verified | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#kiss) |
 
 ## Module: `packet`
 

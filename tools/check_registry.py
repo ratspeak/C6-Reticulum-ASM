@@ -160,11 +160,13 @@ def parse_registry(path: Path) -> list[FuncEntry]:
 
 
 def _collect_src_globals(repo_root: Path) -> dict[str, Path]:
-    """Map global symbol → source file path, scanning every src/**/*.S.
+    """Map global *function* symbol → source file path, scanning every
+    src/**/*.S.
 
-    A "global symbol" is any symbol declared with `.global` or `.globl`. The
-    one-function-per-file rule (ADR-0007) means each .S in a module directory
-    declares one global; state and include files do not declare functions.
+    A symbol is a function only if it is BOTH declared `.global <sym>` and
+    typed `.type <sym>, @function`. Data symbols in `src/state/<module>.S`
+    (per ADR-0002) declare globals but not @function, so they are excluded
+    from the function registry cross-check.
     """
     src = repo_root / "src"
     if not src.is_dir():
@@ -174,8 +176,20 @@ def _collect_src_globals(repo_root: Path) -> dict[str, Path]:
         if "include" in path.parts:
             continue
         text = path.read_text(encoding="utf-8")
-        for m in re.finditer(r"^\s*\.global?\s+([A-Za-z_]\w*)", text, re.MULTILINE):
-            globals_[m.group(1)] = path
+        declared_global = {
+            m.group(1)
+            for m in re.finditer(r"^\s*\.global?\s+([A-Za-z_]\w*)", text, re.MULTILINE)
+        }
+        function_typed = {
+            m.group(1)
+            for m in re.finditer(
+                r"^\s*\.type\s+([A-Za-z_]\w*)\s*,\s*@function",
+                text,
+                re.MULTILINE,
+            )
+        }
+        for name in declared_global & function_typed:
+            globals_[name] = path
     return globals_
 
 

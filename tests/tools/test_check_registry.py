@@ -121,6 +121,7 @@ SPEC_BODY = """\
 ;; @status:      {status}
 ;; ============================================================================
         .global {name}
+        .type   {name}, @function
 {name}: ret
 """
 
