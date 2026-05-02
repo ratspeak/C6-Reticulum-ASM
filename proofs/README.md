@@ -7,7 +7,7 @@ practical companion.
 ## Layout
 
 ```
-verify/
+proofs/                     (renamed from verify/, see ADR-0008)
 ├── README.md               (this file)
 ├── boot/                   register-state contracts for boot functions
 ├── clock/                  contracts for clock setup
@@ -38,9 +38,9 @@ verify/
 `./verify <function_name>` from the repository root dispatches to the correct verifier(s)
 based on the function's `@verify` field in its spec block. Examples:
 
-- `@verify: verify/kiss/kiss_decode_byte.saw` — runs SAW with that script.
-- `@verify: verify/transport/transport_state.tla` — runs TLA+ TLC with that spec.
-- `@verify: verify/uart/uart_init.contracts.md` + corresponding angr script — runs the angr
+- `@verify: proofs/kiss/kiss_decode_byte.saw` — runs SAW with that script.
+- `@verify: proofs/transport/transport_state.tla` — runs TLA+ TLC with that spec.
+- `@verify: proofs/uart/uart_init.contracts.md` + corresponding angr script — runs the angr
   script that checks against the contracts.
 - `@verify: kat-only` — only KAT (known-answer-test) vectors are required (typical for
   glue/control-flow functions). The reason for this reduced obligation must be stated in a

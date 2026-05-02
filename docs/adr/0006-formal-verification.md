@@ -1,6 +1,6 @@
 # ADR-0006: Per-function formal verification, tooling per category
 
-- **Status:** Accepted
+- **Status:** Accepted (partially superseded by [ADR-0008](0008-naming-toolchain-format.md) — directory `verify/` renamed to `proofs/`; references to `references/` and `verify/` directory paths in this body should be read as `proofs/`)
 - **Date:** 2026-05-01
 
 ## Context

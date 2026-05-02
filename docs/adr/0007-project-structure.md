@@ -1,6 +1,6 @@
 # ADR-0007: One-function-per-file with machine-readable specs
 
-- **Status:** Accepted
+- **Status:** Accepted (partially superseded by [ADR-0008](0008-naming-toolchain-format.md) — directory `verify/` renamed to `proofs/`; spec-block prefix is `#`, not `;;`)
 - **Date:** 2026-05-01
 
 ## Context

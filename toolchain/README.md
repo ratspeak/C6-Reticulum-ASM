@@ -10,19 +10,22 @@ re-running `./verify --all` and committing only if green.
 
 ### Assembly + linking
 
-- **`riscv32-esp-elf-as`** — assembler. Espressif's fork of binutils, configured for the
-  C6's RV32IMAC variant. We use it as an assembler only; no C compiler is invoked on our
-  sources.
-- **`riscv32-esp-elf-ld`** — linker. Same toolchain.
-- **`riscv32-esp-elf-objcopy`** — for producing flashable `.bin` from linked `.elf`.
-- **`riscv32-esp-elf-objdump`** — for disassembly during debugging and verifier input.
+Per [ADR-0008](../docs/adr/0008-naming-toolchain-format.md) we use vanilla
+`riscv64-elf-binutils` (multilib) and target RV32IMAC explicitly via
+`-march=rv32imac -mabi=ilp32`. The Espressif crosstool-NG fork remains a supported
+substitution but is not the default.
 
-Install: from Espressif's `crosstool-NG` build, or distribution package
-(`riscv32-esp-elf-gcc-x.x.x-...tar.gz` from `github.com/espressif/crosstool-NG/releases`).
+- **`riscv64-elf-as`** — assembler. Vanilla GNU binutils.
+- **`riscv64-elf-ld`** — linker. Same toolchain.
+- **`riscv64-elf-objcopy`** — for producing flashable `.bin` from linked `.elf`.
+- **`riscv64-elf-objdump`** — for disassembly during debugging and verifier input.
 
-A future ADR may replace this with a pure binutils build if we want to eliminate the
-Espressif fork dependency. For now the fork is convenient because its linker scripts and
-boot ROM image format support are pre-configured.
+Install (macOS): `brew install riscv64-elf-binutils`. Linux: distribution
+binutils (`riscv64-linux-gnu-binutils-elf` etc.) or build from source.
+
+The Espressif boot ROM image format is independent of the assembler choice; we document and
+emit it ourselves at link time (see [docs/hardware/image-header.md](../docs/hardware/image-header.md),
+to be written during milestone 1).
 
 ### Flashing
 

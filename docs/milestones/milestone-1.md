@@ -95,9 +95,10 @@ Specified in detail in [toolchain/README.md](../../toolchain/README.md). Summary
 - **Emulator:** `qemu-system-riscv32` with C6-compatible machine model. Sail-derived where
   available; otherwise vanilla qemu with a custom device tree.
 - **Harness:** Python 3.11+, `pyserial`, `pytest`, `rns` (the upstream Python Reticulum).
-- **Verifiers:** see [verify/README.md](../../verify/README.md). Initial install: `angr`,
+- **Verifiers:** see [proofs/README.md](../../proofs/README.md). Initial install: `angr`,
   `python-tla` for TLA+ tooling. SAW + Cryptol install deferred to milestone 2 when crypto
-  arrives.
+  arrives. Per [ADR-0008](../adr/0008-naming-toolchain-format.md), the directory was renamed
+  from `verify/`.
 
 Versions are pinned in `toolchain/versions.lock`. Bumping a version requires re-running
 `./verify --all` and committing only if green.
@@ -296,16 +297,16 @@ This milestone implements the harness skeleton:
 
 ## verifier
 
-Lives in `verify/`. See [verify/README.md](../../verify/README.md) for the per-category
-tooling.
+Lives in `proofs/` (renamed from `verify/` per [ADR-0008](../adr/0008-naming-toolchain-format.md)).
+See [proofs/README.md](../../proofs/README.md) for the per-category tooling.
 
 This milestone implements:
 
-1. `verify/README.md` — the policy and tool index.
-2. `verify/kiss/kiss_decode_byte.saw` — SAW spec for the KISS decoder. The first formally
+1. `proofs/README.md` — the policy and tool index.
+2. `proofs/kiss/kiss_decode_byte.saw` — SAW spec for the KISS decoder. The first formally
    verified function in the project.
-3. `verify/packet/packet_parse_header.saw` — SAW spec for the packet header parser.
-4. `verify/boot/contracts.md` — register-state contracts for the boot functions (since they
+3. `proofs/packet/packet_parse_header.saw` — SAW spec for the packet header parser.
+4. `proofs/boot/contracts.md` — register-state contracts for the boot functions (since they
    have no functional spec, contracts are the verifier).
 5. The `./verify` dispatcher knows how to invoke SAW for `.saw` files; future milestones add
    TLA+ and constant-time support.

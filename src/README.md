@@ -64,7 +64,7 @@ See the workflow in [../CLAUDE.md](../CLAUDE.md). Summary:
 2. Create the `.S` file with the spec block filled in and `unimp` as the body.
 3. Update FUNCTIONS.md status to `in-progress`.
 4. Write the test file in `tests/<module>/test_<function>.py`.
-5. Write the verifier spec in `verify/<module>/<function>.<ext>`.
+5. Write the verifier spec in `proofs/<module>/<function>.<ext>`.
 6. Implement the asm.
 7. Run `./verify <function>` until green.
 8. Update FUNCTIONS.md status to `verified`.

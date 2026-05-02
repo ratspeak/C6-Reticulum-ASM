@@ -1,18 +1,28 @@
 # Pinned tool versions. Updated only when ./verify --all is green with the new versions.
 # Format: <tool> = <version> [# notes]
+#
+# Toolchain choice locked in by ADR-0008: vanilla riscv64-elf-binutils + qemu, no
+# Espressif fork. Vanilla binutils is multilib and targets RV32IMAC via
+# -march=rv32imac -mabi=ilp32.
 
-# Populated during milestone 1 setup. Entries below are placeholders; replace with the
-# actual versions installed during bring-up.
+# --- assembler / linker / objcopy / objdump ---
+riscv64-elf-binutils = 2.46.0          # macOS: brew install riscv64-elf-binutils
 
-riscv32-esp-elf-binutils = TBD  # set during milestone 1 setup
-esptool = TBD                   # set during milestone 1 setup
-qemu-system-riscv32 = TBD       # set during milestone 1 setup
-python = TBD                    # set during milestone 1 setup; minimum 3.11
-pyserial = TBD                  # set during milestone 1 setup
-pytest = TBD                    # set during milestone 1 setup
-rns = TBD                       # set during milestone 1 setup; pin to a specific upstream commit
-angr = TBD                      # set during milestone 1 setup
-tla2tools = TBD                 # set during milestone 1 setup
+# --- emulation ---
+qemu-system-riscv32 = 11.0.0           # macOS: brew install qemu
+
+# --- flashing ---
+esptool = TBD                          # `esptool version` once first flash is attempted
+
+# --- harness ---
+python = 3.12.4                        # min 3.11
+pyserial = 3.5
+pytest = 9.0.2
+rns = 1.2.0                            # upstream Python Reticulum (oracle)
+
+# --- formal verification (deferred-install per category) ---
+angr = TBD                             # not installed yet (milestone 2 / hardware drivers)
+tla2tools = TBD                        # not installed yet (milestone 5+ state machines)
 
 # Milestone 2 additions (do not install until milestone 2 activates):
 # saw = TBD

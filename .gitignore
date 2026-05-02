@@ -11,8 +11,8 @@ build/
 out/
 
 # Verification outputs (regenerated, not committed)
-verify/output/
-verify/cache/
+proofs/output/
+proofs/cache/
 *.smt2
 *.cnf
 

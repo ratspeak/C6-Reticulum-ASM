@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# `./verify <function>` — dispatcher entry point per ADR-0005.
+# Forwards to tests/harness/verify.py via verify_cli.py.
+set -euo pipefail
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 "${script_dir}/verify_cli.py" "$@"

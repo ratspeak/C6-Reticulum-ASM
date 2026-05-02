@@ -1,0 +1,12 @@
+# Host-side test harness dependencies (per ADR-0005).
+#
+# Install with:  pip install -r tests/requirements.txt
+#
+# Versions intentionally unpinned in this file; pinned snapshots live in
+# toolchain/versions.lock once `./verify --all` is green with a given set.
+
+pytest>=8.0
+pyserial>=3.5
+rns>=1.0          # upstream Reticulum, used by oracle.py
+# angr            # uncomment when symbolic-execution verifiers are added
+# (saw, cryptol, fiat-crypto, ct-verif: not pip-installable; see verify/README.md)

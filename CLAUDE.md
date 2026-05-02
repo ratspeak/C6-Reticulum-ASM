@@ -65,25 +65,26 @@ needs to change, propose a new ADR and supersede the old one.
 ### Assembly source files (`src/**/*.S`)
 
 Every `.S` file begins with this block. Fill in every field. The harness parses this block;
-malformed blocks fail the build.
+malformed blocks fail the build. Per [ADR-0008](docs/adr/0008-naming-toolchain-format.md)
+the line prefix is `#` (RISC-V GAS line comment), not `;;` as earlier drafts showed.
 
 ```
-;; ============================================================================
-;; @function:    <symbol_name>
-;; @module:      <module name from FUNCTIONS.md, e.g. uart, kiss, sha256>
-;; @inputs:      <register = description, ...>
-;; @outputs:     <register or memory location = description, ...>
-;; @clobbers:    <caller-saved registers modified, comma-separated>
-;; @preserves:   <callee-saved registers used and restored>
-;; @stack:       <bytes of stack used; 0 if leaf and no spill>
-;; @cycles:      <target upper bound; "unbounded" if data-dependent and not ct>
-;; @ct:          <required | not-required>   (constant-time wrt secret inputs)
-;; @spec:        <reference to authoritative spec, e.g. fips180-4 §6.2.2>
-;; @verify:      <relative path to verifier script, e.g. verify/sha256_compress.saw>
-;; @tests:       <relative path to test cases, e.g. tests/sha256_compress.py>
-;; @adrs:        <comma-separated ADR numbers this code implements>
-;; @status:      <draft | review | tested | verified>
-;; ============================================================================
+# ============================================================================
+# @function:    <symbol_name>
+# @module:      <module name from FUNCTIONS.md, e.g. uart, kiss, sha256>
+# @inputs:      <register = description, ...>
+# @outputs:     <register or memory location = description, ...>
+# @clobbers:    <caller-saved registers modified, comma-separated>
+# @preserves:   <callee-saved registers used and restored>
+# @stack:       <bytes of stack used; 0 if leaf and no spill>
+# @cycles:      <target upper bound; "unbounded" if data-dependent and not ct>
+# @ct:          <required | not-required>   (constant-time wrt secret inputs)
+# @spec:        <reference to authoritative spec, e.g. fips180-4 §6.2.2>
+# @verify:      <relative path to verifier script, e.g. proofs/sha256_compress.saw>
+# @tests:       <relative path to test cases, e.g. tests/sha256_compress.py>
+# @adrs:        <comma-separated ADR numbers this code implements>
+# @status:      <draft | review | tested | verified>
+# ============================================================================
 ```
 
 After the spec block, the file contains exactly one global symbol matching `@function`. Helper
@@ -121,7 +122,7 @@ This is the canonical loop. Follow it for every function.
    vectors, boundary cases, expected error returns. Tests must pass against an oracle (the
    Python reference, the FIPS test vectors, etc.) before any asm is written.
 5. **Write the verifier spec.** For functions that require formal verification (see ADR-006),
-   create `verify/<module>/<function>.<ext>` (SAW, Cryptol, TLA+, depending on category).
+   create `proofs/<module>/<function>.<ext>` (SAW, Cryptol, TLA+, depending on category).
 6. **Implement.** Write the asm. Run `./verify <function>` repeatedly until green. Set
    `@status: tested` once tests pass, `@status: verified` once the formal verifier passes.
 7. **Update the registry.** Set the function's status in FUNCTIONS.md. If this function unblocks
@@ -164,16 +165,20 @@ Update this line whenever a new milestone becomes active.
 ## Toolchain assumptions
 
 Toolchain versions and install instructions live in [toolchain/README.md](toolchain/README.md).
-The short version: `riscv32-esp-elf-gcc` (assembler + linker only, no C), `esptool.py` for flashing,
-`qemu-system-riscv32` (Sail-derived where possible) for emulation, Python 3.11+ for the harness.
+The short version (per [ADR-0008](docs/adr/0008-naming-toolchain-format.md)): vanilla
+`riscv64-elf-binutils` (`as` and `ld` only — no compiler) targeting RV32IMAC via
+`-march=rv32imac -mabi=ilp32`, `esptool.py` for flashing, `qemu-system-riscv32` for emulation,
+Python 3.11+ for the harness.
 Do not pin specific versions in this file; pin in `toolchain/versions.lock` so the lock can move
 without churning every doc.
 
 ## Verification tools
 
-See ADR-006 for the policy. Tooling and per-category mappings live in [verify/README.md](verify/README.md)
-and `verify/<category>/`. The single command an agent needs to run is `./verify <function_name>`,
+See ADR-006 for the policy. Tooling and per-category mappings live in [proofs/README.md](proofs/README.md)
+and `proofs/<category>/`. The single command an agent needs to run is `./verify <function_name>`,
 which dispatches to the correct verifier(s) based on the function's `@verify` field and category.
+The directory was renamed from `verify/` to free that name for the dispatcher script — see
+[ADR-0008](docs/adr/0008-naming-toolchain-format.md).
 
 ## Escalation: when to ask the user
 

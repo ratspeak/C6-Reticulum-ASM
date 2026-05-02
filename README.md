@@ -29,7 +29,7 @@ RISC-V-C6/
 │   └── milestones/        Per-milestone specifications
 ├── src/                   Assembly sources (one function per file)
 ├── tests/                 Test harness (Python, host-side)
-├── verify/                Formal verification scripts and specs
+├── proofs/                Formal verification scripts and specs (renamed from verify/, see ADR-0008)
 ├── references/            Vendored reference specs (RFCs, FIPS, papers, upstream Python)
 └── toolchain/             Toolchain configuration, linker scripts, board configs
 ```

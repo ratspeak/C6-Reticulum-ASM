@@ -1,6 +1,6 @@
 # ADR-0004: Structured UART logging as the permanent diagnostic channel
 
-- **Status:** Accepted
+- **Status:** Accepted (refined by [ADR-0008](0008-naming-toolchain-format.md) — `<ts_ms>` is 8 hex digits, e.g. example `00012345` is `0x12345 ms` ≈ 74.5 s)
 - **Date:** 2026-05-01
 
 ## Context
