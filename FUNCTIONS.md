@@ -79,8 +79,8 @@ UART0 driver. Interrupt-driven RX and TX with ring buffers. Permanent diagnostic
 | `uart_init` | ◉ verified | `clock_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
 | `uart_tx_byte` | ◉ verified | `uart_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
 | `uart_tx_bytes` | ◉ verified | `uart_tx_byte` | 0001, 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
-| `uart_rx_byte` | ☐ planned | `uart_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
-| `uart_rx_available` | ☐ planned | `uart_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_rx_byte` | ◉ verified | `uart_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_rx_available` | ◉ verified | `uart_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
 | `uart_isr` | ☐ planned | `uart_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
 
 ## Module: `log`
