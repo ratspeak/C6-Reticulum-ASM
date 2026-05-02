@@ -9,10 +9,10 @@
 # @cycles:      bounded (~30: 8-element copy + 3 zero stores)
 # @ct:          required
 # @spec:        FIPS 180-4 §5.3.3 (initial hash value)
-# @verify:      kat-only; FIPS 180-4 §5.3.3 IVs verified by static disassembly + integration once sha256_compress lands
+# @verify:      proofs/crypto/sha256/sha256_init.cry, proofs/crypto/sha256/sha256_init.saw, proofs/crypto/sha256/sha256_init.py
 # @tests:       tests/crypto/sha256/test_sha256_init.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* Initialise an sha256_ctx in caller-provided memory.

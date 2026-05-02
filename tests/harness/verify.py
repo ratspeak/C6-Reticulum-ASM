@@ -1,23 +1,29 @@
-"""`./verify` dispatcher (ADR-0005).
+"""`./verify` dispatcher (ADR-0005, extended by ADR-0009).
 
 Looks up a function in FUNCTIONS.md, finds its source file, parses the spec
 block, and runs:
 
 * the function's tests (the @tests pytest module),
-* the function's formal verifier (per the @verify field), and
-* a constant-time check (when @ct: required is implemented; deferred).
+* every formal verifier listed in @verify (comma-separated paths), and
+* a constant-time check via Binsec/Rel (when @ct: required; ADR-0009).
 
-Reports structured pass/fail. Designed for both human and agent consumption.
+The @verify field is a comma-separated list of paths. Each path's suffix
+selects its backend per ADR-0009:
 
-Status today (early milestone 1):
+  *.cry   Cryptol module — typecheck via `cryptol -c ':l <path>'`
+  *.saw   SAW driver — proves Cryptol-Cryptol equivalence (Tier A)
+  *.py    angr verifier — proves binary equivalence (Tier C)
+  *.tla   TLA+ spec — TLC model-checks state machines (Tier D)
+  *.cfg   TLA+ config — runs alongside *.tla
+  *.bsc   Binsec/Rel constant-time script (Tier B)
 
-* Test dispatch is wired through pytest.
-* Verifier dispatch knows the @verify schema (kat-only, .saw, .tla, .py)
-  and reports `not-implemented` for tools we have not installed yet,
-  rather than silently returning success.
+A single 'kat-only; <rationale>' entry is permitted and treated as a pass
+with the rationale recorded.
 
-The wrapper script `./verify` at the repo root forwards to this module so
-agents can run `./verify <function>`.
+All proof scripts run with toolchain/local/bin prepended to PATH so the
+project-local SAW, Cryptol, Binsec, Sail, and TLC binaries are found
+without polluting the user's shell. Python verifiers run under
+toolchain/venv/bin/python so angr is on sys.path.
 """
 
 from __future__ import annotations
@@ -25,6 +31,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -32,10 +39,19 @@ import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+TOOLCHAIN_BIN = REPO_ROOT / "toolchain" / "local" / "bin"
+VENV_PYTHON = REPO_ROOT / "toolchain" / "venv" / "bin" / "python"
 
 sys.path.insert(0, str(REPO_ROOT / "tools"))
 import check_registry  # noqa: E402
 import parse_spec  # noqa: E402
+
+
+def _proof_env() -> dict[str, str]:
+    """Subprocess env for proof scripts: prepend toolchain/local/bin to PATH."""
+    env = os.environ.copy()
+    env["PATH"] = f"{TOOLCHAIN_BIN}:{env.get('PATH', '')}"
+    return env
 
 
 @dataclasses.dataclass
@@ -103,90 +119,181 @@ def _run_tests(spec: parse_spec.SpecBlock, repo_root: Path) -> StepResult:
 
 
 def _run_verifier(spec: parse_spec.SpecBlock, repo_root: Path) -> StepResult:
+    """Dispatch every backend listed in @verify, aggregate into one StepResult.
+
+    The @verify field is a comma-separated list per ADR-0009. A single
+    "kat-only; <rationale>" entry shortcircuits to pass.
+    """
     verify_field = spec.fields["verify"].strip()
 
     if parse_spec.KAT_ONLY_RE.match(verify_field):
         return StepResult("verify", "pass", f"kat-only: {verify_field}")
 
-    verify_path = (repo_root / verify_field).resolve()
-    if not verify_path.exists():
-        return StepResult("verify", "fail", f"@verify path missing: {verify_path}")
+    sub_results: list[StepResult] = []
+    overall = "pass"
+    for raw in (p.strip() for p in verify_field.split(",")):
+        if not raw:
+            continue
+        path = (repo_root / raw).resolve()
+        if not path.exists():
+            sub_results.append(StepResult(raw, "fail", f"@verify path missing: {path}"))
+            overall = "fail"
+            continue
+        sub = _run_one_backend(path, repo_root)
+        sub_results.append(sub)
+        if sub.status == "fail":
+            overall = "fail"
+        elif sub.status == "not-implemented" and overall == "pass":
+            overall = "not-implemented"
 
-    suffix = verify_path.suffix.lower()
+    detail_lines: list[str] = []
+    total_ms = 0
+    for s in sub_results:
+        suffix = " ({}ms)".format(s.duration_ms) if s.duration_ms else ""
+        detail_lines.append(f"  [{s.status}] {s.name}{suffix}")
+        if s.detail and s.status in {"fail", "not-implemented"}:
+            for line in s.detail.splitlines():
+                detail_lines.append(f"    {line}")
+        total_ms += s.duration_ms
+
+    return StepResult(
+        "verify",
+        overall,
+        "\n".join(detail_lines),
+        total_ms,
+    )
+
+
+def _run_one_backend(path: Path, repo_root: Path) -> StepResult:
+    rel = path.relative_to(repo_root) if path.is_absolute() else path
+    suffix = path.suffix.lower()
+    if suffix == ".cry":
+        return _run_cryptol(path, str(rel))
     if suffix == ".saw":
-        return _run_saw(verify_path)
+        return _run_saw(path, str(rel))
     if suffix in {".tla", ".cfg"}:
-        return _run_tlc(verify_path)
+        return _run_tlc(path, str(rel))
     if suffix == ".py":
-        return _run_python_verifier(verify_path, repo_root)
+        return _run_python_verifier(path, repo_root, str(rel))
+    if suffix == ".bsc":
+        return _run_binsec_ct(path, str(rel))
     if suffix == ".md":
-        # Contracts-only file (e.g., verify/boot/contracts.md). The actual
-        # verifier is the .py / .saw next to it; the .md is documentation.
         return StepResult(
-            "verify",
+            str(rel),
             "not-implemented",
-            f"@verify points at a contracts-only .md: {verify_field}; "
-            "expected a runnable verifier alongside",
+            "contracts-only .md; expected a runnable verifier alongside",
         )
     return StepResult(
-        "verify",
+        str(rel),
         "not-implemented",
-        f"unknown verifier extension: {verify_path.suffix}",
+        f"unknown verifier extension: {suffix}",
     )
 
 
-def _run_saw(path: Path) -> StepResult:
-    if shutil.which("saw") is None:
-        return StepResult("verify", "not-implemented", "saw not installed")
+def _have(tool: str) -> bool:
+    if (TOOLCHAIN_BIN / tool).exists():
+        return True
+    return shutil.which(tool) is not None
+
+
+def _run_cryptol(path: Path, name: str) -> StepResult:
+    if not _have("cryptol"):
+        return StepResult(name, "not-implemented", "cryptol not installed")
     started = time.monotonic()
     proc = subprocess.run(
-        ["saw", str(path)], capture_output=True, text=True
+        ["cryptol", "-e", "-c", f":l {path}", "-c", ":quit"],
+        env=_proof_env(),
+        capture_output=True,
+        text=True,
+    )
+    elapsed = int((time.monotonic() - started) * 1000)
+    out = (proc.stdout + proc.stderr).strip()
+    # Cryptol exits 0 on a clean module load; non-zero or "[error]" lines fail.
+    failed = proc.returncode != 0 or "[error]" in out.lower()
+    return StepResult(
+        name,
+        "fail" if failed else "pass",
+        out if failed else "module loaded clean",
+        elapsed,
+    )
+
+
+def _run_saw(path: Path, name: str) -> StepResult:
+    if not _have("saw"):
+        return StepResult(name, "not-implemented", "saw not installed")
+    started = time.monotonic()
+    proc = subprocess.run(
+        ["saw", str(path)],
+        env=_proof_env(),
+        capture_output=True,
+        text=True,
     )
     elapsed = int((time.monotonic() - started) * 1000)
     return StepResult(
-        "verify",
+        name,
         "pass" if proc.returncode == 0 else "fail",
         (proc.stdout + proc.stderr).strip(),
         elapsed,
     )
 
 
-def _run_tlc(path: Path) -> StepResult:
-    # TLC needs tla2tools.jar; the wrapper script "tlc" is convenient when
-    # present.
-    runner = shutil.which("tlc") or shutil.which("tlcrepl")
-    if runner is None:
-        return StepResult("verify", "not-implemented", "tlc not installed")
+def _run_tlc(path: Path, name: str) -> StepResult:
+    if not _have("tlc"):
+        return StepResult(name, "not-implemented", "tlc not installed")
     started = time.monotonic()
     proc = subprocess.run(
-        [runner, str(path)], capture_output=True, text=True
+        ["tlc", str(path)],
+        env=_proof_env(),
+        capture_output=True,
+        text=True,
     )
     elapsed = int((time.monotonic() - started) * 1000)
     return StepResult(
-        "verify",
+        name,
         "pass" if proc.returncode == 0 else "fail",
         (proc.stdout + proc.stderr).strip(),
         elapsed,
     )
 
 
-def _run_python_verifier(path: Path, repo_root: Path) -> StepResult:
-    # angr scripts and other Python verifiers are run by their own __main__.
-    # angr being absent is a "not-implemented" outcome, not a failure.
+def _run_python_verifier(path: Path, repo_root: Path, name: str) -> StepResult:
+    """Run a .py verifier under the project venv (so angr is importable)."""
+    interpreter = str(VENV_PYTHON) if VENV_PYTHON.exists() else sys.executable
     started = time.monotonic()
     proc = subprocess.run(
-        [sys.executable, str(path)],
+        [interpreter, str(path)],
         cwd=repo_root,
+        env=_proof_env(),
         capture_output=True,
         text=True,
     )
     elapsed = int((time.monotonic() - started) * 1000)
     output = (proc.stdout + proc.stderr).strip()
     if proc.returncode == 0:
-        return StepResult("verify", "pass", output, elapsed)
+        return StepResult(name, "pass", output, elapsed)
     if "ModuleNotFoundError" in output and "angr" in output:
-        return StepResult("verify", "not-implemented", "angr not installed", elapsed)
-    return StepResult("verify", "fail", output, elapsed)
+        return StepResult(name, "not-implemented", "angr not installed", elapsed)
+    return StepResult(name, "fail", output, elapsed)
+
+
+def _run_binsec_ct(path: Path, name: str) -> StepResult:
+    """Constant-time check via Binsec/Rel (relational symbolic execution)."""
+    if not _have("binsec"):
+        return StepResult(name, "not-implemented", "binsec not installed")
+    started = time.monotonic()
+    proc = subprocess.run(
+        ["binsec", "-config", str(path)],
+        env=_proof_env(),
+        capture_output=True,
+        text=True,
+    )
+    elapsed = int((time.monotonic() - started) * 1000)
+    return StepResult(
+        name,
+        "pass" if proc.returncode == 0 else "fail",
+        (proc.stdout + proc.stderr).strip(),
+        elapsed,
+    )
 
 
 # -------------------------------------------------------------------------

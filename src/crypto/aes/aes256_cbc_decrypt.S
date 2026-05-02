@@ -14,7 +14,7 @@
 # @ct:          required
 # @spec:        NIST SP 800-38A §6.2 (CBC mode, decryption)
 # @verify:      kat-only; NIST SP 800-38A §F.2.6 + round trip with cbc_encrypt
-# @tests:       tests/crypto/aes/test_aes256_cbc_decrypt.py
+# @tests:       tests/crypto/aes/test_aes256_cbc.py
 # @adrs:        0001, 0002, 0006
 # @status:      tested
 # ============================================================================

@@ -42,8 +42,8 @@ Each function entry has:
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **39** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 25 (milestone 1 software side, including `log_hex_buf` added for sha256 KAT logging)
-- Tested (KAT-only, formal verifier pending): 22 (sha256 family + HMAC + HKDF + complete AES-256-CBC stack — milestone 2; end-to-end KAT via 12 markers in `_main`)
+- Verified: 26 (milestone 1 software side + `sha256_init` upgraded under ADR-0009 — first crypto function with full Cryptol/SAW/angr verification stack)
+- Tested (KAT-only, formal verifier pending): 21 (remaining sha256 family + HMAC + HKDF + complete AES-256-CBC stack — milestone 2; end-to-end KAT via 12 markers in `_main`)
 - In progress: 0
 - Planned: 1 milestone-1 leaf (`uart_isr`, hw-only) + the milestone-2..9 chain (X25519, Ed25519, RNG)
 
@@ -134,7 +134,7 @@ proof + KAT + constant-time required.
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `sha256_init` | ◑ tested | — | 0001, 0002, 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
+| `sha256_init` | ◉ verified | — | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
 | `sha256_compress` | ◑ tested | `sha256_init` | 0001, 0002, 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
 | `sha256_update` | ◑ tested | `sha256_init`, `sha256_compress` | 0001, 0002, 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
 | `sha256_final` | ◑ tested | `sha256_update` | 0001, 0002, 0006 | [milestone-2](docs/milestones/milestone-2.md#sha256) |

@@ -10,7 +10,7 @@
 # @ct:          required
 # @spec:        FIPS 197 §5.3.1 (InvShiftRows)
 # @verify:      kat-only; covered end-to-end by aes256_decrypt_block KAT
-# @tests:       tests/crypto/aes/test_aes_invshiftrows.py
+# @tests:       tests/crypto/aes/test_aes_shiftrows.py
 # @adrs:        0001, 0002, 0006
 # @status:      tested
 # ============================================================================

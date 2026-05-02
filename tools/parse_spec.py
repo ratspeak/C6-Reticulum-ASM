@@ -204,8 +204,10 @@ def validate_spec(
             f"{rel}: @status {f['status']!r} not in {sorted(VALID_STATUS)}"
         )
 
-    # 4. @ct is one of the legal values.
-    if f["ct"] not in VALID_CT:
+    # 4. @ct is one of the legal values, optionally followed by a parenthesized
+    # rationale (e.g., "required (xtime is branch-free; loop is data-independent)").
+    ct_word = f["ct"].strip().split(" ", 1)[0].split("(", 1)[0].strip()
+    if ct_word not in VALID_CT:
         errors.append(f"{rel}: @ct {f['ct']!r} not in {sorted(VALID_CT)}")
 
     # 5. @stack is a non-negative integer.
@@ -250,7 +252,8 @@ def validate_spec(
                     f"{rel}: @adrs references ADR-{num} which is not Accepted"
                 )
 
-    # 8. @verify either points at a real file or is "kat-only [rationale]".
+    # 8. @verify is either "kat-only [rationale]" or a comma-separated list of
+    # existing verifier files (per ADR-0009: .cry, .saw, .py, .tla, .cfg, .smt2).
     verify_field = f["verify"].strip()
     if KAT_ONLY_RE.match(verify_field):
         # Require a rationale after kat-only — bare "kat-only" is too easy to
@@ -261,9 +264,12 @@ def validate_spec(
                 f"(e.g. 'kat-only; entry-point semantics, no functional contract')"
             )
     else:
-        verify_path = repo_root / verify_field
-        if not verify_path.exists():
-            errors.append(f"{rel}: @verify path {verify_field!r} does not exist")
+        for raw in (p.strip() for p in verify_field.split(",")):
+            if not raw:
+                continue
+            verify_path = repo_root / raw
+            if not verify_path.exists():
+                errors.append(f"{rel}: @verify path {raw!r} does not exist")
 
     # 9. @tests points at a real file (or "none" with rationale, future).
     tests_field = f["tests"].strip()
@@ -297,11 +303,10 @@ def _iter_src_files(repo_root: Path) -> list[Path]:
         return []
     files: list[Path] = []
     for path in sorted(src.rglob("*.S")):
-        # State and include files do not host functions, but per the spec block
-        # convention every .S still carries a header. For now, skip include/
-        # (pure equates) and require state/ to have one. Revisit when state/
-        # files arrive.
-        if "include" in path.parts:
+        # include/ holds pure equates; state/ holds .bss data declarations and
+        # rodata constants (no callable functions). Neither hosts a verifiable
+        # function, so spec blocks are not required for them.
+        if "include" in path.parts or "state" in path.parts:
             continue
         files.append(path)
     return files

@@ -1,9 +1,10 @@
 # Pinned tool versions. Updated only when ./verify --all is green with the new versions.
 # Format: <tool> = <version> [# notes]
 #
-# Toolchain choice locked in by ADR-0008: vanilla riscv64-elf-binutils + qemu, no
-# Espressif fork. Vanilla binutils is multilib and targets RV32IMAC via
-# -march=rv32imac -mabi=ilp32.
+# Toolchain choice locked in by ADR-0008 (build) and ADR-0009 (verifier stack).
+# Build: vanilla riscv64-elf-binutils + qemu-system-riscv32, no Espressif fork.
+# Verify: full Galois stack (Cryptol+SAW) + Binsec/Rel + angr+pcode + Sail-RISCV.
+# All verifier binaries live under ~/opt and are symlinked into toolchain/local/bin.
 
 # --- assembler / linker / objcopy / objdump ---
 riscv64-elf-binutils = 2.46.0          # macOS: brew install riscv64-elf-binutils
@@ -20,12 +21,42 @@ pyserial = 3.5
 pytest = 9.0.2
 rns = 1.2.0                            # upstream Python Reticulum (oracle)
 
-# --- formal verification (deferred-install per category) ---
-angr = TBD                             # not installed yet (milestone 2 / hardware drivers)
-tla2tools = TBD                        # not installed yet (milestone 5+ state machines)
+# --- formal verification (per ADR-0009) ---
+# Galois stack: algorithmic spec + Cryptol-Cryptol equivalence proofs.
+saw = 1.5                              # GaloisInc/saw-script v1.5 (957290e), arm64-darwin with-solvers
+cryptol = 3.5.0                        # GaloisInc/cryptol v3.5.0, arm64-darwin with-solvers
+# SMT solvers bundled inside SAW + Cryptol with-solvers tarballs:
+z3 = 4.8.14
+cvc4 = bundled
+cvc5 = bundled
+yices = bundled
+boolector = bundled
+bitwuzla = bundled
+abc = bundled                          # SAW's AIG backend
 
-# Milestone 2 additions (do not install until milestone 2 activates):
-# saw = TBD
-# cryptol = TBD
-# fiat-crypto = TBD
-# ct-verif = TBD
+# RV32 binary symbolic execution (binary-equivalence tier until macaw-riscv lands in SAW).
+angr = 9.2.213
+pypcode = 3.3.3                        # provides RISCV:LE:32:RV32IMC lifter via Ghidra
+
+# Constant-time verification (relational symbolic execution).
+binsec = 0.11.1                        # opam install binsec; switch=binsec, OCaml 5.1.1
+ocaml = 5.1.1
+
+# RISC-V ISA formal model (reference).
+sail = 0.20.1                          # opam install sail; vendored ISA model under references/sail-riscv
+sail-riscv = 4d5530b                   # github.com/riscv/sail-riscv pinned commit
+
+# Verified field arithmetic (X25519 oracle for milestone 2 elliptic curves).
+fiat-crypto = 412e8af                  # github.com/mit-plv/fiat-crypto pinned commit
+coq = 9.1.1                            # opam install coq (renamed Rocq Prover; coqc still works)
+
+# State machines (added in milestone 5).
+tla2tools = 2.19                       # tlaplus/tlaplus v1.7.4 jar
+
+# Haskell toolchain (path to building macaw-riscv into SAW upstream; see ADR-0009).
+ghc = 9.6.7                            # via ghcup
+cabal = 3.10.3.0                       # via ghcup
+opam = 2.5.1                           # macOS: brew install opam
+
+# --- runtime / shell ---
+java = 17.0.18                         # for TLC; brew install openjdk@17 if missing

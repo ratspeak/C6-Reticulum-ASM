@@ -74,27 +74,37 @@ Every condition is objectively verifiable.
 
 ## verifier-toolchain
 
-These tools must be installed before any milestone-2 function can reach
-status `verified`:
+The toolchain decision is finalised in
+[ADR-0009](../adr/0009-verifier-toolchain.md). Concrete tools, pinned in
+`toolchain/versions.lock`:
 
-- **SAW (Software Analysis Workbench)** — discharges equivalence proofs
-  between asm and Cryptol specs. Install: build from source, or use
-  `cabal install saw` (Haskell). Pin in `toolchain/versions.lock`.
-- **Cryptol** — the spec language for cryptographic primitives. Install:
-  Galois binary release, or build from source. Pin.
-- **fiat-crypto** — Coq-verified field arithmetic. Reference for X25519
-  field ops; we may either hand-write asm and prove equivalent to
-  fiat-crypto's Cryptol output, or generate the asm directly from
-  fiat-crypto. Decision deferred to the X25519 implementation phase.
-- **ct-verif** — constant-time analyzer for x86-style asm. RV32 support
-  is not native; we may need to bridge via a translation layer or use
-  an alternative (e.g., `pitchfork-rs` or a hand-written ct prover for
-  our small surface). The first milestone-2 function (`sha256_init`,
-  trivially constant-time) tests the ct path end-to-end.
+| Tier | Tool | Version | Role |
+|------|------|---------|------|
+| A | Cryptol + SAW | 3.5.0 / 1.5 | Algorithmic spec + Cryptol-Cryptol equivalence |
+| B | Binsec/Rel | 0.11.1 | Constant-time on RV32 ELF (`-isa riscv32 -checkct`) |
+| C | angr + pypcode | 9.2.213 / 3.3.3 | Binary equivalence on RV32IMC |
+| D | TLA+ Tools | 2.19 | State-machine refinement (milestone 5+) |
+| E | Sail-RISCV | 0.20.1 + `4d5530b` | ISA reference |
 
-The first sub-task of milestone 2 is to install the toolchain and prove
-the trivial case (a 32-byte memset) end-to-end — KAT, equivalence,
-constant-time. Until that succeeds, no crypto asm is written.
+Supporting:
+
+- **fiat-crypto** (`412e8af`, requires Coq 9.1.1) — Coq-verified field
+  arithmetic. Reference for X25519 field ops; the prebuilt
+  `references/fiat-crypto/fiat-c/src/curve25519_32.c` is available as
+  the cross-check oracle. Generation-vs-handwrite decision deferred to
+  X25519 implementation phase.
+- **ct-verif is rejected** for this project (x86-only, see ADR-0009);
+  Binsec/Rel is the chosen replacement.
+- **macaw-riscv + custom `llvm_verify_riscv`** is the documented
+  Tier C-future path for true SAW-on-RV32 equivalence; GHC 9.6.7 +
+  cabal 3.10.3.0 are installed (`toolchain/local/bin/`) so this work
+  can be picked up whenever it becomes the bottleneck.
+
+The first sub-task of milestone 2 — install the toolchain and prove the
+trivial case (32-byte memset) end-to-end — is **complete** as of 2026-05-02:
+`sha256_init` discharges Tier A (Cryptol + SAW) and Tier C (angr binary
+equivalence); Tier B is vacuous (no secret inputs). See the Current
+frontier section below.
 
 ## sha256
 
@@ -260,47 +270,95 @@ with the test changes.
 > Maintained in-place. Whoever finishes a chunk updates this section in the
 > same commit that flips a function's status.
 
-**Last updated:** 2026-05-02 (AES-256-CBC complete, KAT-tested end-to-end).
+**Last updated:** 2026-05-02 (verifier toolchain installed; `sha256_init`
+verified end-to-end as the toolchain shakedown — first crypto function to
+flip from `tested` to `verified`).
 
-**State (KAT-tested; verifier toolchain still pending):**
+**State:**
 
-- SHA-256 family (init, compress, update, final): RFC/FIPS vectors pass
-  via `'S'` marker.
-- HMAC-SHA-256: RFC 4231 TC1/2/3/6 pass via `'H'` marker.
-- HKDF-SHA-256 (extract, expand): RFC 5869 A.1/A.2/A.3 pass via
-  `'E'`/`'X'` markers.
-- AES-256 helpers (sbox/invsbox, subbytes/invsubbytes, shiftrows/
-  invshiftrows, mixcolumns/invmixcolumns, addroundkey, subword): all
-  KAT-tested. S-box circuit is the Boyar-Peralta combinational
-  network (113 gates); inverse S-box is `A(S(A(x)))` per
-  Saarinen/BearSSL. MixColumns/InvMixColumns use branch-free xtime.
-- AES-256-CBC chain (key_expand, encrypt_block, decrypt_block,
-  cbc_encrypt, cbc_decrypt): FIPS 197 §A.3 + §C.3 + NIST SP 800-38A
-  §F.2.5/§F.2.6 vectors pass via `'K'`/`'C'`/`'D'`/`'V'`/`'v'` markers.
+- **Verifier toolchain green** under [ADR-0009](../adr/0009-verifier-toolchain.md):
+  Cryptol 3.5.0, SAW 1.5, Binsec 0.11.1, angr 9.2.213 + pypcode 3.3.3,
+  TLA+ Tools 2.19, Sail 0.20.1 + sail-riscv `4d5530b`, fiat-crypto
+  `412e8af`, GHC 9.6.7 + cabal 3.10.3.0 (Tier C-future path), Coq 9.1.1.
+  All binaries symlinked into `toolchain/local/bin/`; angr lives in
+  `toolchain/venv/`. Versions pinned in `toolchain/versions.lock`. ADR-0009
+  documents the per-tier responsibility (A=algorithmic, B=ct, C=binary
+  equivalence, D=state machines, E=ISA reference) and the `@verify`
+  comma-separated-paths syntax the dispatcher now consumes.
+
+- **`sha256_init` verified.** Cryptol module + SAW driver
+  ([proofs/crypto/sha256/sha256_init.cry](../../proofs/crypto/sha256/sha256_init.cry),
+  [.saw](../../proofs/crypto/sha256/sha256_init.saw)) discharge Tier A
+  (FIPS 180-4 §5.3.3 IV constants + LE serialisation + bijection over
+  [32]). angr verifier ([.py](../../proofs/crypto/sha256/sha256_init.py))
+  discharges Tier C (8 IV words written LE, length_bits=0, block_len=0,
+  partial-block buffer + pad untouched, all 14 callee-saved registers
+  preserved, ret within 200 basic blocks). End-to-end `./verify
+  sha256_init` runs in ~3 s.
+
+- **Remaining KAT-tested (awaiting per-function verifier work):**
+  - SHA-256 family (compress, update, final): RFC/FIPS vectors pass via `'S'` marker.
+  - HMAC-SHA-256: RFC 4231 TC1/2/3/6 pass via `'H'` marker.
+  - HKDF-SHA-256 (extract, expand): RFC 5869 A.1/A.2/A.3 pass via `'E'`/`'X'` markers.
+  - AES-256 helpers (sbox/invsbox, subbytes/invsubbytes, shiftrows/
+    invshiftrows, mixcolumns/invmixcolumns, addroundkey, subword): all
+    KAT-tested via per-primitive markers. Boyar-Peralta S-box, branch-free xtime.
+  - AES-256-CBC chain (key_expand, encrypt_block, decrypt_block,
+    cbc_encrypt, cbc_decrypt): FIPS 197 §A.3 + §C.3 + NIST SP 800-38A
+    §F.2.5/§F.2.6 vectors pass via `'K'`/`'C'`/`'D'`/`'V'`/`'v'` markers.
 
 **Eligible next chunks:**
 
-1. **Install verifier toolchain.** SAW + Cryptol + ct-verif (or
-   equivalent for RV32). Self-test on a trivial program. Pin versions
-   in `toolchain/versions.lock`. Block: every `tested` → `verified`
-   transition. The full SHA-256 + HMAC + HKDF + AES suite is sitting
-   at `tested`, awaiting this.
+1. **Lift the SHA-256 family to verified.** `sha256_compress` is the
+   centerpiece — write `proofs/crypto/sha256/sha256_compress.cry` (full
+   FIPS 180-4 §6.2.2 round function in Cryptol), `sha256_compress.saw`
+   (prove our Cryptol matches a reference Cryptol model — `Primitive::Symmetric::Hash::SHA2` in
+   Cryptol's stdlib is the canonical second model), and `sha256_compress.py`
+   (angr binary equivalence on a single block). Then `sha256_update` and
+   `sha256_final` follow the same pattern. The toolchain template is
+   established by `sha256_init`; these are the first non-trivial
+   applications.
 
-2. **X25519 field arithmetic + scalar mult.** The next big block of
+2. **Lift HMAC + HKDF to verified.** Once SHA-256 family is verified,
+   HMAC and HKDF inherit the proof framework — their Cryptol specs
+   compose `sha256_*` directly.
+
+3. **Lift the AES-256-CBC chain to verified.** `aes_sbox` is the most
+   interesting case: prove the Boyar-Peralta circuit equals the
+   algebraic definition `S(x) = A * x^{-1} + b` over GF(2^8). Cryptol
+   has the GF arithmetic primitives. `aes256_encrypt_block` then
+   composes the verified primitives.
+
+4. **Add Tier B (constant-time) for secret-handling crypto.** Write
+   `.smt2` Binsec/Rel drivers tagging key/IV bytes as secrets, run
+   `binsec -isa riscv32 -checkct` against the firmware ELF, prove no
+   secret-dependent control flow or memory access. Start with
+   `aes_sbox` (where Boyar-Peralta is the explicit constant-time
+   choice) — that proof is the canonical example for the rest.
+
+5. **X25519 field arithmetic + scalar mult.** The next big block of
    work. Field ops mod 2^255 - 19; Montgomery ladder. Likely 800–1500
    lines of asm. Decision still open: hand-write vs adopt fiat-crypto's
-   generated form (see Risks above).
+   generated form (now physically available under
+   `references/fiat-crypto/fiat-c/src/curve25519_32.c`).
 
-3. **Hardware RNG wrapper (`rng_init`, `rng_bytes`).** Small surface;
+6. **Hardware RNG wrapper (`rng_init`, `rng_bytes`).** Small surface;
    gates Ed25519/X25519 keypair generation. On qemu the deterministic-
    fake path needs to be wired (with a bright `DETERMINISTIC_FAKE_RNG`
    symbol that must not survive into a release build).
 
-4. **Vendor KAT vectors.** Populate `references/kat/sha256/`,
+7. **Vendor KAT vectors.** Populate `references/kat/sha256/`,
    `references/kat/hmac-sha256/`, `references/kat/hkdf/`,
    `references/kat/aes-256/`. Tests currently inline the canonical
    vectors; vendoring would consolidate and add the URL/SHA-256
    provenance the spec asks for.
+
+8. **Tier C-future: `llvm_verify_riscv` upstream contribution.** When
+   Tier C's bounded angr exploration becomes the limiting factor for a
+   composite primitive (likely AES round or X25519 field-mul), build
+   `macaw-riscv-symbolic` against GHC 9.6.7 and contribute an
+   `llvm_verify_riscv` builtin to `saw-script`. ADR-0009 §"Tier C path
+   forward" documents the plan.
 
 ## Retrospective
 

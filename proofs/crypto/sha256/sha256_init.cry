@@ -1,0 +1,90 @@
+// proofs/crypto/sha256/sha256_init.cry
+//
+// Cryptol algorithmic specification for sha256_init.
+//
+// FIPS 180-4 §5.3.3 fixes the SHA-256 initial hash value H(0) — eight
+// 32-bit words derived from the fractional parts of the square roots of
+// the first eight primes. The init function's only job is to install
+// these constants into ctx->H[0..7] and zero the running counters
+// (length_bits, block_len). The partial-block buffer (ctx->block) is
+// left undefined: sha256_update only reads bytes it has previously
+// written.
+//
+// This module exposes:
+//
+//   * sha256_iv : the 8 IV words as 32-bit big-endian bitvectors
+//                 (the FIPS-canonical view).
+//   * h_bytes_le : the H region as 32 little-endian bytes — the exact
+//                 byte sequence that must appear at ctx + 0 .. + 32 on
+//                 a little-endian target after sha256_init returns.
+//   * lenbits_bytes_zero : the 8 zero bytes that must appear at
+//                 ctx + 32 .. + 40.
+//   * blocklen_bytes_zero : the 4 zero bytes that must appear at
+//                 ctx + 104 .. + 108.
+//
+// Together, these constants are the post-condition the binary-level
+// verifier (proofs/crypto/sha256/sha256_init.py via angr) checks on the
+// emulated RV32IMC firmware. SAW discharges the algebraic properties
+// below via z3 in milliseconds.
+
+module SHA256Init where
+
+// FIPS 180-4 §5.3.3 — initial hash value H(0).
+sha256_iv : [8][32]
+sha256_iv =
+    [ 0x6a09e667
+    , 0xbb67ae85
+    , 0x3c6ef372
+    , 0xa54ff53a
+    , 0x510e527f
+    , 0x9b05688c
+    , 0x1f83d9ab
+    , 0x5be0cd19
+    ]
+
+// Serialise one 32-bit word into 4 little-endian bytes.
+//
+//   word_to_le_bytes 0x6a09e667 == [0x67, 0xe6, 0x09, 0x6a]
+//
+// Cryptol's `split` is big-endian (MSB first); reversing yields LE.
+word_to_le_bytes : [32] -> [4][8]
+word_to_le_bytes w = reverse (split w)
+
+// The 32-byte H region as it appears in memory after sha256_init.
+h_bytes_le : [32][8]
+h_bytes_le = join [ word_to_le_bytes w | w <- sha256_iv ]
+
+// length_bits field — 8 zero bytes at ctx + 32.
+lenbits_bytes_zero : [8][8]
+lenbits_bytes_zero = zero
+
+// block_len field — 4 zero bytes at ctx + 104.
+blocklen_bytes_zero : [4][8]
+blocklen_bytes_zero = zero
+
+// Algebraic properties (Bit-valued; SAW discharges with `prove_print z3 {{ p }}`).
+
+iv_word_0 = sha256_iv @ 0 == 0x6a09e667
+iv_word_1 = sha256_iv @ 1 == 0xbb67ae85
+iv_word_2 = sha256_iv @ 2 == 0x3c6ef372
+iv_word_3 = sha256_iv @ 3 == 0xa54ff53a
+iv_word_4 = sha256_iv @ 4 == 0x510e527f
+iv_word_5 = sha256_iv @ 5 == 0x9b05688c
+iv_word_6 = sha256_iv @ 6 == 0x1f83d9ab
+iv_word_7 = sha256_iv @ 7 == 0x5be0cd19
+
+// Little-endian serialisation has the LSB at offset 0 of each word.
+h_bytes_le_word0_lsb = h_bytes_le @ 0  == 0x67
+h_bytes_le_word0_msb = h_bytes_le @ 3  == 0x6a
+h_bytes_le_word7_lsb = h_bytes_le @ 28 == 0x19
+h_bytes_le_word7_msb = h_bytes_le @ 31 == 0x5b
+
+// Zero fields really are zero.
+lenbits_zero  = lenbits_bytes_zero == zero
+blocklen_zero = blocklen_bytes_zero == zero
+
+// word_to_le_bytes is a bijection on its 4-byte image — round trip back
+// to the original word reconstructs the input. (Catches any byte-order
+// confusion in the spec itself.) Universally quantified over [32].
+word_to_le_roundtrip : [32] -> Bit
+word_to_le_roundtrip w = join (reverse (word_to_le_bytes w)) == w

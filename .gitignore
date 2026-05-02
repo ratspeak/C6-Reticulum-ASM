@@ -13,8 +13,8 @@ out/
 # Verification outputs (regenerated, not committed)
 proofs/output/
 proofs/cache/
-*.smt2
-*.cnf
+proofs/**/*.smt2
+proofs/**/*.cnf
 
 # Toolchain caches
 .cache/
@@ -46,3 +46,13 @@ venv/
 *.smt
 *.cvc
 .sail_cache/
+
+# Verifier toolchain (per ADR-0009): symlinks into ~/opt and the project venv.
+# Re-created by toolchain/local/install.sh (which IS committed).
+toolchain/local/bin/
+toolchain/venv/
+
+# Vendored upstream references (cloned, not committed; see toolchain/README.md
+# for the install commands and pinned commits in toolchain/versions.lock).
+references/sail-riscv/
+references/fiat-crypto/

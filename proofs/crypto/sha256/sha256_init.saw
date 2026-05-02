@@ -1,0 +1,49 @@
+// proofs/crypto/sha256/sha256_init.saw
+//
+// SAW driver for sha256_init algorithmic verification (Tier A per
+// ADR-0009): proves the Cryptol model in sha256_init.cry is algebraically
+// consistent with FIPS 180-4 §5.3.3 and that its byte-serialization is a
+// well-formed bijection.
+//
+// Tier A is intentionally narrow at this stage: we are verifying that
+// the *spec* matches the standard. The binary-equivalence claim (the
+// RV32 ELF computes the spec's post-state on every execution) is
+// discharged by sha256_init.py via angr — not here. SAW will gain the
+// ability to verify our RV32 binary directly once the macaw-riscv
+// integration described in ADR-0009 §"Tier C path forward" lands.
+//
+// Run standalone:
+//   saw proofs/crypto/sha256/sha256_init.saw
+// or via dispatcher:
+//   ./verify sha256_init
+
+import "sha256_init.cry";
+
+print "[sha256_init.saw] proving FIPS 180-4 §5.3.3 IV constants ...";
+prove_print z3 {{ iv_word_0 }};
+prove_print z3 {{ iv_word_1 }};
+prove_print z3 {{ iv_word_2 }};
+prove_print z3 {{ iv_word_3 }};
+prove_print z3 {{ iv_word_4 }};
+prove_print z3 {{ iv_word_5 }};
+prove_print z3 {{ iv_word_6 }};
+prove_print z3 {{ iv_word_7 }};
+print "[sha256_init.saw] all 8 IV words match FIPS 180-4 §5.3.3.";
+
+print "[sha256_init.saw] proving little-endian byte serialization ...";
+prove_print z3 {{ h_bytes_le_word0_lsb }};
+prove_print z3 {{ h_bytes_le_word0_msb }};
+prove_print z3 {{ h_bytes_le_word7_lsb }};
+prove_print z3 {{ h_bytes_le_word7_msb }};
+print "[sha256_init.saw] LE byte order spot-checks pass.";
+
+print "[sha256_init.saw] proving counter fields are zero ...";
+prove_print z3 {{ lenbits_zero }};
+prove_print z3 {{ blocklen_zero }};
+print "[sha256_init.saw] counter fields zero.";
+
+print "[sha256_init.saw] proving word_to_le_bytes is a bijection on [32] ...";
+prove_print z3 {{ \(w : [32]) -> word_to_le_roundtrip w }};
+print "[sha256_init.saw] bijection holds for all 2^32 inputs.";
+
+print "[sha256_init.saw] PASS";

@@ -14,7 +14,7 @@
 # @ct:          required (length is structural; encrypt_block is CT)
 # @spec:        NIST SP 800-38A §6.2 (CBC mode)
 # @verify:      kat-only; NIST SP 800-38A §F.2.5
-# @tests:       tests/crypto/aes/test_aes256_cbc_encrypt.py
+# @tests:       tests/crypto/aes/test_aes256_cbc.py
 # @adrs:        0001, 0002, 0006
 # @status:      tested
 # ============================================================================

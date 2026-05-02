@@ -16,6 +16,7 @@ a single decision, the context that produced it, and its consequences. ADRs with
 | [0006](0006-formal-verification.md) | Per-function formal verification, tooling per category | Accepted (partially superseded by 0008) |
 | [0007](0007-project-structure.md) | One-function-per-file with machine-readable specs | Accepted (partially superseded by 0008) |
 | [0008](0008-naming-toolchain-format.md) | Verifier directory rename, vanilla binutils, hex log timestamps | Accepted |
+| [0009](0009-verifier-toolchain.md) | Verifier toolchain — Cryptol/SAW + Binsec/Rel + angr+pcode + Sail-RISCV | Accepted (refines 0006) |
 
 ## Template
 

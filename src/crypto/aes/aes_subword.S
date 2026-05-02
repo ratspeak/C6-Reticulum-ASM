@@ -10,7 +10,7 @@
 # @ct:          required (4 fixed aes_sbox calls; no data branches)
 # @spec:        FIPS 197 §5.2 (SubWord; helper used by key expansion)
 # @verify:      kat-only; covered end-to-end by aes256_key_expand KAT
-# @tests:       tests/crypto/aes/test_aes_subword.py
+# @tests:       tests/crypto/aes/test_aes256_key_expand.py
 # @adrs:        0001, 0002, 0006
 # @status:      tested
 # ============================================================================

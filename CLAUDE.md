@@ -80,7 +80,8 @@ the line prefix is `#` (RISC-V GAS line comment), not `;;` as earlier drafts sho
 # @cycles:      <target upper bound; "unbounded" if data-dependent and not ct>
 # @ct:          <required | not-required>   (constant-time wrt secret inputs)
 # @spec:        <reference to authoritative spec, e.g. fips180-4 §6.2.2>
-# @verify:      <relative path to verifier script, e.g. proofs/sha256_compress.saw>
+# @verify:      <comma-separated paths per ADR-0009, e.g. proofs/.../foo.cry, proofs/.../foo.saw, proofs/.../foo.py>
+# @verify:      kat-only; <rationale>   (only legal for entry-point glue)
 # @tests:       <relative path to test cases, e.g. tests/sha256_compress.py>
 # @adrs:        <comma-separated ADR numbers this code implements>
 # @status:      <draft | review | tested | verified>
@@ -179,11 +180,25 @@ without churning every doc.
 
 ## Verification tools
 
-See ADR-006 for the policy. Tooling and per-category mappings live in [proofs/README.md](proofs/README.md)
-and `proofs/<category>/`. The single command an agent needs to run is `./verify <function_name>`,
-which dispatches to the correct verifier(s) based on the function's `@verify` field and category.
-The directory was renamed from `verify/` to free that name for the dispatcher script — see
+See ADR-0006 for the policy and [ADR-0009](docs/adr/0009-verifier-toolchain.md)
+for the concrete tool stack: Cryptol 3.5.0 + SAW 1.5 (Tier A algorithmic),
+Binsec 0.11.1 (Tier B constant-time on RV32), angr 9.2.213 + pypcode 3.3.3
+(Tier C binary equivalence on RV32IMC), TLA+ Tools 2.19 (Tier D state
+machines), Sail 0.20.1 + the official sail-riscv model (Tier E ISA reference).
+
+Tooling and per-tier mappings live in [proofs/README.md](proofs/README.md).
+The single command an agent needs to run is `./verify <function_name>`, which
+dispatches to **every** verifier listed in the function's comma-separated
+`@verify` field (e.g., `proofs/.../foo.cry, proofs/.../foo.saw, proofs/.../foo.py`).
+All must pass for `@status: verified`. The directory was renamed from `verify/`
+to free that name for the dispatcher script — see
 [ADR-0008](docs/adr/0008-naming-toolchain-format.md).
+
+Verifier binaries live under `toolchain/local/bin/` (project-local symlinks
+into `~/opt/galois/`, `~/.opam/binsec/`, `~/.ghcup/`, etc.) and the dispatcher
+prepends that directory to `PATH` for proof scripts; Python verifiers run
+under `toolchain/venv/bin/python` so `angr` is importable. No shell dotfile
+changes required.
 
 ## Escalation: when to ask the user
 
