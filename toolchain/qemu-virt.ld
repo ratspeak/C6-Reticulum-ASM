@@ -47,6 +47,13 @@ SECTIONS
         __data_end = .;
     } > DRAM
 
+    /* On qemu-virt the load and run addresses coincide (qemu loads the
+       kernel straight into DRAM), so __data_load_start == __data_start.
+       The C6 linker script will diverge here: .data > SRAM AT > FLASH,
+       and __data_load_start = LOADADDR(.data). _init_data treats both
+       cases uniformly — copy from load → run, which on qemu is a no-op. */
+    __data_load_start = LOADADDR(.data);
+
     /* GP convention: gp points 0x800 above the start of small data so
        gp-relative loads can reach ±2 KiB on either side. We have no .sdata
        yet, so anchor it at the .data start; the value is consumed by the
