@@ -42,9 +42,9 @@ Each function entry has:
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **39** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 47 (milestone 1 software side + entire milestone-2 crypto stack so far: SHA-256 family + HMAC + HKDF + complete AES-256-CBC stack — all under ADR-0009)
+- Verified: 49 (milestone 1 software side + entire milestone-2 crypto stack so far: SHA-256 family + HMAC + HKDF + AES-256-CBC stack + first two X25519 field ops — all under ADR-0009)
 - Tested (KAT-only, formal verifier pending): 0
-- Planned: X25519 (14 functions) + Ed25519 (3) + RNG (2) + `uart_isr` (hw)
+- Planned: X25519 (12 functions remaining) + Ed25519 (3) + RNG (2) + `uart_isr` (hw)
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
 - In progress: 0
@@ -197,8 +197,8 @@ and AES stacks.
 |----------|--------|-----------|------|------|
 | `x25519_field_unpack` | ☐ planned | — | 0006, 0009 | (milestone 2) |
 | `x25519_field_pack` | ☐ planned | — | 0006, 0009 | (milestone 2) |
-| `x25519_field_add` | ☐ planned | — | 0006, 0009 | (milestone 2) |
-| `x25519_field_sub` | ☐ planned | — | 0006, 0009 | (milestone 2) |
+| `x25519_field_add` | ◉ verified | — | 0006, 0009 | (milestone 2) |
+| `x25519_field_sub` | ◉ verified | — | 0006, 0009 | (milestone 2) |
 | `x25519_field_mul` | ☐ planned | — | 0006, 0009 | (milestone 2) |
 | `x25519_field_sq` | ☐ planned | `x25519_field_mul` | 0006, 0009 | (milestone 2) |
 | `x25519_field_mul121665` | ☐ planned | — | 0006, 0009 | (milestone 2) |

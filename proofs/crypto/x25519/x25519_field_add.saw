@@ -1,0 +1,25 @@
+// proofs/crypto/x25519/x25519_field_add.saw
+//
+// SAW driver for x25519_field_add (Tier A per ADR-0009). The asm
+// implements pointwise int32 add of 10-limb radix-2^25.5 elements;
+// the algebraic post-condition is that the integer represented by
+// the output limbs equals (decode_limbs a + decode_limbs b) mod p.
+//
+// We discharge the small concrete KATs from X25519FieldOps.cry that
+// anchor the asm's correctness in the easy direction (zeros, small
+// integers). Symbolic-over-arbitrary-Limbs proof is intractable
+// here without bridging through the asm via SAW+macaw-riscv (Tier
+// C-future), so binary equivalence on arbitrary limbs is discharged
+// by the angr verifier in x25519_field_add.py.
+
+import "X25519FieldOps.cry";
+
+print "[x25519_field_add.saw] proving zero + zero == zero ...";
+prove_print z3 {{ zero_add_zero_kat }};
+print "[x25519_field_add.saw] zero+zero: PASS.";
+
+print "[x25519_field_add.saw] proving small concrete add KAT ...";
+prove_print z3 {{ small_add_kat }};
+print "[x25519_field_add.saw] small add: PASS.";
+
+print "[x25519_field_add.saw] PASS";

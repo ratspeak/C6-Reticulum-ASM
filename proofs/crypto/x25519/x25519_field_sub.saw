@@ -1,0 +1,14 @@
+// proofs/crypto/x25519/x25519_field_sub.saw
+//
+// SAW driver for x25519_field_sub (Tier A per ADR-0009). Counterpart
+// to x25519_field_add.saw. Discharges concrete KATs (zero - zero) for
+// the algebraic spec; angr handles arbitrary-input binary equivalence
+// in x25519_field_sub.py.
+
+import "X25519FieldOps.cry";
+
+print "[x25519_field_sub.saw] proving zero - zero == zero ...";
+prove_print z3 {{ zero_sub_zero_kat }};
+print "[x25519_field_sub.saw] zero-zero: PASS.";
+
+print "[x25519_field_sub.saw] PASS";

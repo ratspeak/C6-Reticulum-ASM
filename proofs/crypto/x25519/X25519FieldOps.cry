@@ -1,0 +1,106 @@
+// proofs/crypto/x25519/X25519FieldOps.cry
+//
+// Cryptol bridge between the asm's 10-limb radix-2^25.5 field
+// representation and the Integer-valued algebraic operations in
+// X25519.cry.
+//
+// Each asm field op (x25519_field_add, x25519_field_sub, ...) is
+// verified against this module: the integer represented by the asm's
+// output limbs must equal the corresponding pure-Integer operation
+// applied to the integers represented by the input limbs.
+//
+// See docs/design/x25519-field.md for the limb weights and rationale.
+
+module X25519FieldOps where
+
+import X25519
+
+// ---------- limb representation --------------------------------------
+
+// 10 signed 32-bit limbs.
+type Limbs = [10][32]   // bit-pattern; sign-interpret per limb
+
+// Per-limb bit weights for radix 2^25.5.
+//   limb 0: 2^0
+//   limb 1: 2^26
+//   limb 2: 2^51
+//   limb 3: 2^77
+//   limb 4: 2^102
+//   limb 5: 2^128
+//   limb 6: 2^153
+//   limb 7: 2^179
+//   limb 8: 2^204
+//   limb 9: 2^230
+limb_weight : Integer -> Integer
+limb_weight i = 2 ^^ ((25 * i) + ((i + 1) / 2))
+
+// Convert a limb's [32] bit-pattern to its signed Integer value (two's
+// complement). Cryptol's `toInteger` on `[32]` gives the unsigned
+// value; we sign-extend by checking the top bit.
+limb_to_signed : [32] -> Integer
+limb_to_signed l =
+    if (l && 0x80000000) != 0
+    then toInteger l - (2 ^^ 32)
+    else toInteger l
+
+// Decode a 10-limb array as the signed integer it represents (no
+// modular reduction — caller may want the raw integer for proofs that
+// inputs are within bounds).
+decode_limbs_signed : Limbs -> Integer
+decode_limbs_signed ls =
+    sum [ (limb_to_signed (ls @ i)) * (limb_weight i)
+        | i <- [0..9] : [10]Integer
+        ]
+
+// Decode a 10-limb array as a field element (mod p_25519).
+decode_limbs : Limbs -> Integer
+decode_limbs ls = decode_limbs_signed ls % p_25519
+
+// ---------- field op specs (the asm post-conditions) -----------------
+
+// x25519_field_add: out limbs encode (a + b) mod p.
+// The asm implements pointwise int32 add — the algebraic claim is that
+// the *integer represented* by the result is `a + b` mod p.
+field_add_spec : Limbs -> Limbs -> Limbs -> Bit
+field_add_spec a b out =
+    decode_limbs out == ((decode_limbs a) + (decode_limbs b)) % p_25519
+
+// x25519_field_sub: out limbs encode (a - b) mod p.
+field_sub_spec : Limbs -> Limbs -> Limbs -> Bit
+field_sub_spec a b out =
+    decode_limbs out == ((decode_limbs a) + p_25519 - (decode_limbs b)) % p_25519
+
+// ---------- algebraic sanity -----------------------------------------
+
+// Pointwise add of two 10-limb arrays gives the same integer as adding
+// their decoded forms (the asm post-state property). Discharged
+// symbolically — note that limb growth past 32 bits would wrap and
+// break this; the property therefore implicitly asserts the asm's
+// callers respect the limb-width budget.
+//
+// In practice angr executes the asm on concrete limbs (within budget),
+// reads back the limbs, and asks Cryptol to confirm field_add_spec
+// holds for that concrete (a, b, out) triple.
+
+pointwise_add : Limbs -> Limbs -> Limbs
+pointwise_add a b = [ (a @ i) + (b @ i) | i <- [0..9] : [10][4] ]
+
+pointwise_sub : Limbs -> Limbs -> Limbs
+pointwise_sub a b = [ (a @ i) - (b @ i) | i <- [0..9] : [10][4] ]
+
+// Specific KAT: zero + zero = zero.
+zero_add_zero_kat : Bit
+zero_add_zero_kat = field_add_spec zero zero (pointwise_add zero zero)
+
+// Specific KAT: zero - zero = zero.
+zero_sub_zero_kat : Bit
+zero_sub_zero_kat = field_sub_spec zero zero (pointwise_sub zero zero)
+
+// Specific KAT: a small concrete value preserved.
+//   Take a = canonical representation of 7, b = zero.
+//   Then a + b should decode to 7.
+small_add_kat : Bit
+small_add_kat = decode_limbs (pointwise_add a_seven zero) == 7
+  where
+    a_seven : Limbs
+    a_seven = [7, 0, 0, 0, 0, 0, 0, 0, 0, 0]
