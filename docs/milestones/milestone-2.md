@@ -260,30 +260,47 @@ with the test changes.
 > Maintained in-place. Whoever finishes a chunk updates this section in the
 > same commit that flips a function's status.
 
-**Last updated:** 2026-05-02 (spec creation; no functions implemented yet).
+**Last updated:** 2026-05-02 (AES-256-CBC complete, KAT-tested end-to-end).
 
-**State:** Spec written. Verifier toolchain not yet installed. Zero
-milestone-2 functions implemented. The first chunk is the verifier-
-toolchain self-test described in [§verifier-toolchain](#verifier-toolchain).
+**State (KAT-tested; verifier toolchain still pending):**
+
+- SHA-256 family (init, compress, update, final): RFC/FIPS vectors pass
+  via `'S'` marker.
+- HMAC-SHA-256: RFC 4231 TC1/2/3/6 pass via `'H'` marker.
+- HKDF-SHA-256 (extract, expand): RFC 5869 A.1/A.2/A.3 pass via
+  `'E'`/`'X'` markers.
+- AES-256 helpers (sbox/invsbox, subbytes/invsubbytes, shiftrows/
+  invshiftrows, mixcolumns/invmixcolumns, addroundkey, subword): all
+  KAT-tested. S-box circuit is the Boyar-Peralta combinational
+  network (113 gates); inverse S-box is `A(S(A(x)))` per
+  Saarinen/BearSSL. MixColumns/InvMixColumns use branch-free xtime.
+- AES-256-CBC chain (key_expand, encrypt_block, decrypt_block,
+  cbc_encrypt, cbc_decrypt): FIPS 197 §A.3 + §C.3 + NIST SP 800-38A
+  §F.2.5/§F.2.6 vectors pass via `'K'`/`'C'`/`'D'`/`'V'`/`'v'` markers.
 
 **Eligible next chunks:**
 
 1. **Install verifier toolchain.** SAW + Cryptol + ct-verif (or
    equivalent for RV32). Self-test on a trivial program. Pin versions
-   in `toolchain/versions.lock`. Block: every other chunk that needs
-   `verified` status.
+   in `toolchain/versions.lock`. Block: every `tested` → `verified`
+   transition. The full SHA-256 + HMAC + HKDF + AES suite is sitting
+   at `tested`, awaiting this.
 
-2. **`sha256_init` + KAT-only path.** Smallest possible function. Tests
-   it with NIST KAT for the H state. Status reaches `tested` (not
-   `verified`) until the toolchain is installed. Demonstrates the
-   pattern subsequent functions follow.
+2. **X25519 field arithmetic + scalar mult.** The next big block of
+   work. Field ops mod 2^255 - 19; Montgomery ladder. Likely 800–1500
+   lines of asm. Decision still open: hand-write vs adopt fiat-crypto's
+   generated form (see Risks above).
 
-3. **`sha256_compress` + KAT.** The big one. ~200 lines of asm; 64
-   rounds with message schedule. Same `tested`-pending-toolchain caveat.
+3. **Hardware RNG wrapper (`rng_init`, `rng_bytes`).** Small surface;
+   gates Ed25519/X25519 keypair generation. On qemu the deterministic-
+   fake path needs to be wired (with a bright `DETERMINISTIC_FAKE_RNG`
+   symbol that must not survive into a release build).
 
 4. **Vendor KAT vectors.** Populate `references/kat/sha256/`,
-   `references/kat/hmac-sha256/`, etc. Reusable across all
-   milestone-2 functions.
+   `references/kat/hmac-sha256/`, `references/kat/hkdf/`,
+   `references/kat/aes-256/`. Tests currently inline the canonical
+   vectors; vendoring would consolidate and add the URL/SHA-256
+   provenance the spec asks for.
 
 ## Retrospective
 
