@@ -77,6 +77,10 @@
         .ascii "aes\tsbox\thex="
 .Laes_sbox_tag_end:
         .equ   .Laes_sbox_tag_len, .Laes_sbox_tag_end - .Laes_sbox_tag
+.Laes_invsbox_tag:
+        .ascii "aes\tinvsbox\thex="
+.Laes_invsbox_tag_end:
+        .equ   .Laes_invsbox_tag_len, .Laes_invsbox_tag_end - .Laes_invsbox_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -129,6 +133,8 @@ _main:
         beq     t1, t2, .Lhkdf_expand_kat
         li      t2, 0x42
         beq     t1, t2, .Laes_sbox_kat
+        li      t2, 0x49
+        beq     t1, t2, .Laes_invsbox_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -307,6 +313,50 @@ _main:
         call    uart_tx_byte
         la      a0, .Laes_sbox_tag
         li      a1, .Laes_sbox_tag_len
+        call    log_str
+        lw      a0, 0(sp)
+        lw      a1, 4(sp)
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Laes_invsbox_kat:
+        /* AES-inverse-S-box: 'I' || byte_0 || ... || byte_(n-1). Same
+         * loop structure as the forward S-box handler above. */
+        la      t0, kiss_buf
+        addi    t0, t0, 1
+        sw      t0, 0(sp)
+        la      t0, kiss_buf_len
+        lw      t0, 0(t0)
+        addi    t0, t0, -1
+        sw      t0, 4(sp)
+        sw      zero, 8(sp)
+.Laes_invsbox_kat_loop:
+        lw      t0, 4(sp)
+        lw      t1, 8(sp)
+        bgeu    t1, t0, .Laes_invsbox_kat_done
+        lw      t2, 0(sp)
+        add     t2, t2, t1
+        lbu     a0, 0(t2)
+        call    aes_invsbox
+        lw      t2, 0(sp)
+        lw      t1, 8(sp)
+        add     t2, t2, t1
+        sb      a0, 0(t2)
+        addi    t1, t1, 1
+        sw      t1, 8(sp)
+        j       .Laes_invsbox_kat_loop
+.Laes_invsbox_kat_done:
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Laes_invsbox_tag
+        li      a1, .Laes_invsbox_tag_len
         call    log_str
         lw      a0, 0(sp)
         lw      a1, 4(sp)
