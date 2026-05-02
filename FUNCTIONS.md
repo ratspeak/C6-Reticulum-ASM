@@ -1,0 +1,280 @@
+# Function Registry
+
+The single source of truth for every function in this project. Every assembly function in
+the production binary appears here. Adding, modifying, or removing a function requires
+updating this file in the same commit.
+
+This file is consumed by both humans (orientation, work-picking) and tooling (CI checks
+that every `src/**/*.S` symbol is registered, every `verified` entry has a passing verifier).
+
+## How to read this file
+
+Functions are organized by module, in dependency order. Within a module, functions appear in
+the order an agent would naturally implement them (primitives before consumers).
+
+Each function entry has:
+
+- **Status:** one of:
+  - `planned` — not yet started.
+  - `in-progress` — actively being implemented; agent is responsible for completing or
+    relinquishing within a reasonable window.
+  - `tested` — asm written, tests pass, formal verifier not yet run or not yet passing.
+  - `verified` — asm written, tests pass, formal verifier passes (per ADR-0006 obligation).
+  - `superseded` — replaced by a different function; kept for history with a pointer.
+- **Depends-on:** functions that must reach `verified` before this function can be implemented.
+  Empty if the function has no dependencies within the project.
+- **ADRs:** ADR numbers this function implements or is constrained by.
+- **Spec:** link to the milestone spec entry that defines this function in detail.
+
+## Status legend
+
+| Symbol | Status |
+|--------|--------|
+| ☐ | planned |
+| ◐ | in-progress |
+| ◑ | tested |
+| ◉ | verified |
+| ⊘ | superseded |
+
+## Statistics
+
+(Updated manually at milestone boundaries; tooling to auto-generate this section is a
+post-milestone-1 task.)
+
+- Total functions registered: **0** (project initialized; milestone 1 will add the first batch)
+- Verified: 0
+- Tested: 0
+- In progress: 0
+- Planned: 0
+
+---
+
+## Module: `boot`
+
+System startup, before any other code runs. Lives at the reset vector.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `_reset` | ☐ planned | — | 0001, 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_init_bss` | ☐ planned | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_init_data` | ☐ planned | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_main` | ☐ planned | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init` | — | [milestone-1](docs/milestones/milestone-1.md#boot) |
+
+## Module: `clock`
+
+Clock and PLL configuration. Brings the chip to a known 160 MHz operating state.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `clock_init` | ☐ planned | — | — | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_get_freq` | ☐ planned | `clock_init` | — | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_delay_us` | ☐ planned | `clock_init` | — | [milestone-1](docs/milestones/milestone-1.md#clock) |
+
+## Module: `uart`
+
+UART0 driver. Interrupt-driven RX and TX with ring buffers. Permanent diagnostic + KISS interface I/O.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `uart_init` | ☐ planned | `clock_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_tx_byte` | ☐ planned | `uart_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_tx_bytes` | ☐ planned | `uart_tx_byte` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_rx_byte` | ☐ planned | `uart_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_rx_available` | ☐ planned | `uart_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_isr` | ☐ planned | `uart_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+
+## Module: `log`
+
+Structured logging primitives over UART0. See ADR-0004.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `log_init` | ☐ planned | `uart_init`, `clock_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_str` | ☐ planned | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_hex` | ☐ planned | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_u32` | ☐ planned | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_bytes` | ☐ planned | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_event` | ☐ planned | `log_str`, `clock_get_freq` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+
+## Module: `kiss`
+
+KISS framing layer. Both encode (frame → escaped byte stream) and decode (byte stream → frame).
+Used by every interface (USB-serial in dev, LoRa in milestone 8).
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `kiss_decode_byte` | ☐ planned | — | — | [milestone-1](docs/milestones/milestone-1.md#kiss) |
+| `kiss_decode_reset` | ☐ planned | — | — | [milestone-1](docs/milestones/milestone-1.md#kiss) |
+| `kiss_encode_frame` | ☐ planned | — | — | [milestone-1](docs/milestones/milestone-1.md#kiss) |
+
+## Module: `packet`
+
+Reticulum wire format. Header parser, header serializer, field accessors. Permanent — every
+later module reads packets through this.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `packet_parse_header` | ☐ planned | — | — | [milestone-1](docs/milestones/milestone-1.md#packet) |
+| `packet_get_dest_hash` | ☐ planned | `packet_parse_header` | — | [milestone-1](docs/milestones/milestone-1.md#packet) |
+| `packet_get_payload` | ☐ planned | `packet_parse_header` | — | [milestone-1](docs/milestones/milestone-1.md#packet) |
+| `packet_serialize_header` | ☐ planned | — | — | [milestone-1](docs/milestones/milestone-1.md#packet) |
+
+## Module: `crypto/sha256`
+
+SHA-256 implementation. Foundation for HMAC, HKDF, identity hashing. Per ADR-0006: equivalence
+proof + KAT + constant-time required.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `sha256_init` | ☐ planned | — | 0006 | (milestone 2) |
+| `sha256_compress` | ☐ planned | — | 0006 | (milestone 2) |
+| `sha256_update` | ☐ planned | `sha256_init`, `sha256_compress` | 0006 | (milestone 2) |
+| `sha256_final` | ☐ planned | `sha256_update` | 0006 | (milestone 2) |
+
+## Module: `crypto/hmac`
+
+HMAC-SHA-256 per RFC 2104. Used for IFAC, ratchets, message authentication.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `hmac_sha256` | ☐ planned | `sha256_*` | 0006 | (milestone 2) |
+
+## Module: `crypto/hkdf`
+
+HKDF per RFC 5869. Used for Reticulum key derivation.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `hkdf_extract` | ☐ planned | `hmac_sha256` | 0006 | (milestone 2) |
+| `hkdf_expand` | ☐ planned | `hmac_sha256` | 0006 | (milestone 2) |
+
+## Module: `crypto/aes`
+
+AES-256-CBC. Used for Reticulum link encryption.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `aes256_key_expand` | ☐ planned | — | 0006 | (milestone 2) |
+| `aes256_encrypt_block` | ☐ planned | `aes256_key_expand` | 0006 | (milestone 2) |
+| `aes256_decrypt_block` | ☐ planned | `aes256_key_expand` | 0006 | (milestone 2) |
+| `aes256_cbc_encrypt` | ☐ planned | `aes256_encrypt_block` | 0006 | (milestone 2) |
+| `aes256_cbc_decrypt` | ☐ planned | `aes256_decrypt_block` | 0006 | (milestone 2) |
+
+## Module: `crypto/x25519`
+
+X25519 ECDH per RFC 7748. The largest single primitive in the project.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `x25519_field_*` (multiple) | ☐ planned | — | 0006 | (milestone 2) |
+| `x25519_scalar_mult` | ☐ planned | `x25519_field_*` | 0006 | (milestone 2) |
+| `x25519_keypair` | ☐ planned | `x25519_scalar_mult` | 0006 | (milestone 2) |
+
+## Module: `crypto/ed25519`
+
+Ed25519 signing per RFC 8032. Used for announce signatures and identity proofs.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `ed25519_keypair` | ☐ planned | `sha256_*`, `x25519_field_*` | 0006 | (milestone 2) |
+| `ed25519_sign` | ☐ planned | `ed25519_keypair` | 0006 | (milestone 2) |
+| `ed25519_verify` | ☐ planned | `ed25519_keypair` | 0006 | (milestone 2) |
+
+## Module: `crypto/rng`
+
+Cryptographically secure random number generation. Source: ESP32-C6 hardware RNG.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `rng_init` | ☐ planned | `clock_init` | 0006 | (milestone 2) |
+| `rng_bytes` | ☐ planned | `rng_init` | 0006 | (milestone 2) |
+
+## Module: `identity`
+
+Reticulum identity: keypair generation, persistence, hash derivation.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `identity_create` | ☐ planned | `x25519_keypair`, `ed25519_keypair`, `rng_bytes` | — | (milestone 3) |
+| `identity_hash` | ☐ planned | `sha256_*` | — | (milestone 3) |
+| `identity_save` | ☐ planned | `flash_*`, `identity_create` | — | (milestone 4) |
+| `identity_load` | ☐ planned | `flash_*` | — | (milestone 4) |
+
+## Module: `transport`
+
+Announce processing, path table, destination cache. Reticulum's routing layer.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| (functions added when milestone 5 is activated) | ☐ planned | | | (milestone 5) |
+
+## Module: `link`
+
+Encrypted point-to-point link establishment. Curve25519 handshake + AES session.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| (functions added when milestone 6 is activated) | ☐ planned | | | (milestone 6) |
+
+## Module: `resource`
+
+Reliable resource transfer over a link. Fragmentation, channels.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| (functions added when milestone 7 is activated) | ☐ planned | | | (milestone 7) |
+
+## Module: `flash`
+
+Flash driver: page read/write/erase. Required for identity persistence, destination caches.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `flash_init` | ☐ planned | `clock_init` | — | (milestone 4) |
+| `flash_read` | ☐ planned | `flash_init` | — | (milestone 4) |
+| `flash_write_page` | ☐ planned | `flash_init` | — | (milestone 4) |
+| `flash_erase_sector` | ☐ planned | `flash_init` | — | (milestone 4) |
+
+## Module: `interface/lora`
+
+LoRa interface via SX1276/RFM95 over SPI. The first wireless interface.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| (functions added when milestone 8 is activated) | ☐ planned | | 0003 | (milestone 8) |
+
+## Module: `interface/spi`
+
+SPI driver. Used by the LoRa interface.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| (functions added when milestone 8 is activated) | ☐ planned | | | (milestone 8) |
+
+## Module: `lxmf`
+
+LXMF messaging on top of Reticulum.
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| (functions added when milestone 9 is activated) | ☐ planned | | | (milestone 9) |
+
+---
+
+## Maintenance
+
+- **Adding a function:** add the entry under its module with status `planned`. Same commit
+  introduces the milestone-spec entry for it.
+- **Starting work:** change status to `in-progress`. Commit the stub file simultaneously.
+- **Tests passing:** change status to `tested`. Commit when tests are committed.
+- **Verifier passing:** change status to `verified`. Commit when verifier spec is committed.
+- **Replacing a function:** mark old as `superseded` with a pointer; do not delete the entry.
+  History matters.
+- **Removing a planned function (no work done yet):** delete the row outright. Add a note in
+  the commit message explaining why it is no longer needed.
+
+The CI build fails if:
+
+- A `.S` file in `src/` defines a global symbol not registered here.
+- A function entry has `status: verified` but `./verify <function>` fails.
+- A function entry references a `depends-on` that does not exist.

@@ -1,0 +1,21 @@
+# Pinned tool versions. Updated only when ./verify --all is green with the new versions.
+# Format: <tool> = <version> [# notes]
+
+# Populated during milestone 1 setup. Entries below are placeholders; replace with the
+# actual versions installed during bring-up.
+
+riscv32-esp-elf-binutils = TBD  # set during milestone 1 setup
+esptool = TBD                   # set during milestone 1 setup
+qemu-system-riscv32 = TBD       # set during milestone 1 setup
+python = TBD                    # set during milestone 1 setup; minimum 3.11
+pyserial = TBD                  # set during milestone 1 setup
+pytest = TBD                    # set during milestone 1 setup
+rns = TBD                       # set during milestone 1 setup; pin to a specific upstream commit
+angr = TBD                      # set during milestone 1 setup
+tla2tools = TBD                 # set during milestone 1 setup
+
+# Milestone 2 additions (do not install until milestone 2 activates):
+# saw = TBD
+# cryptol = TBD
+# fiat-crypto = TBD
+# ct-verif = TBD

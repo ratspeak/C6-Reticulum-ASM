@@ -1,0 +1,48 @@
+# Build artifacts
+*.o
+*.a
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.dump
+build/
+out/
+
+# Verification outputs (regenerated, not committed)
+verify/output/
+verify/cache/
+*.smt2
+*.cnf
+
+# Toolchain caches
+.cache/
+.ccache/
+
+# Flash logs
+*.flashlog
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local-only overrides
+.env.local
+*.local
+
+# Python (test harness)
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Sail / formal-tool intermediate files
+*.smt
+*.cvc
+.sail_cache/
