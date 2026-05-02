@@ -17,6 +17,34 @@ The original entries are kept below for the audit trail.
 
 ---
 
+## OQ-5: LoRa chip choice — SX1262 (decided 2026-05-02)
+
+ADR-0003 and the references list pin SX1276/RFM95 as the milestone-8 LoRa
+chip. The hardware on hand is a Wio SX1262 module (Seeed). Same LoRa
+modulation, same RF math, different register map (SX1262 uses busy line
++ command opcodes; SX1276 is closer to a flat MMIO register file).
+
+**Decision:** milestone 8 targets SX1262, not SX1276.
+
+**Action items (deferred until milestone 8 activates):**
+
+* Write ADR-0009: "SX1262 supersedes SX1276 in ADR-0003" — references the
+  SX1262 datasheet (user will provide).
+* Mark ADR-0003 status as `Accepted (partially superseded by ADR-0009 —
+  chip choice)`.
+* Replace `references/sx1276-datasheet.pdf` line in `references/README.md`
+  with the SX1262 datasheet entry.
+* The SPI driver and the Reticulum protocol layer above are unchanged;
+  only the chip driver moves. Files become `src/interface/lora/sx1262_*`.
+
+Power / wiring (unchanged by the chip swap): C6 USB-C is power + USB
+Serial/JTAG dev only; the LoRa module talks SPI on the Feather header
+pins (MOSI/MISO/SCK + CS GPIO + RST GPIO + BUSY (SX1262-specific) +
+DIO1 IRQ). Bench power via USB-C, portable via the Feather's JST-2
+LiPo connector.
+
+---
+
 ## OQ-1: `verify/` directory and `./verify` command collide
 
 CLAUDE.md, ADR-0005, and milestone-1.md all describe `./verify <function>`
