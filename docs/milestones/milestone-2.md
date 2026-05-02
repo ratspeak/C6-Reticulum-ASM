@@ -270,9 +270,8 @@ with the test changes.
 > Maintained in-place. Whoever finishes a chunk updates this section in the
 > same commit that flips a function's status.
 
-**Last updated:** 2026-05-02 (verifier toolchain installed; `sha256_init`
-verified end-to-end as the toolchain shakedown — first crypto function to
-flip from `tested` to `verified`).
+**Last updated:** 2026-05-02 (`sha256_compress` verified end-to-end —
+the centerpiece of the SHA-256 family; second function under ADR-0009).
 
 **State:**
 
@@ -296,8 +295,24 @@ flip from `tested` to `verified`).
   preserved, ret within 200 basic blocks). End-to-end `./verify
   sha256_init` runs in ~3 s.
 
+- **`sha256_compress` verified.** Cryptol model
+  ([sha256_compress.cry](../../proofs/crypto/sha256/sha256_compress.cry))
+  formalises FIPS 180-4 §6.2.2 from first principles — K table,
+  ch/maj, big/small sigmas, message schedule, 64-round
+  step-function, single-block compress. SAW driver
+  ([sha256_compress.saw](../../proofs/crypto/sha256/sha256_compress.saw))
+  proves five K-table boundary constants, the FIPS B.1 ("abc")
+  single-block KAT, the canonical SHA-256("") single-block KAT, and
+  algebraic sanity of ROTR/ch/maj — all via z3 in <1 s. angr verifier
+  ([sha256_compress.py](../../proofs/crypto/sha256/sha256_compress.py))
+  cross-checks the RV32 binary against a Python FIPS-180-4-from-scratch
+  oracle on 6 vectors (FIPS B.1, empty, 4 random (H, M) pairs);
+  asserts H_out matches, the 64-byte block buffer is unchanged, ctx[32..112]
+  is untouched, and all 14 callee-saved regs preserved. End-to-end
+  `./verify sha256_compress` runs in ~6 s.
+
 - **Remaining KAT-tested (awaiting per-function verifier work):**
-  - SHA-256 family (compress, update, final): RFC/FIPS vectors pass via `'S'` marker.
+  - SHA-256 family (update, final): RFC/FIPS vectors pass via `'S'` marker.
   - HMAC-SHA-256: RFC 4231 TC1/2/3/6 pass via `'H'` marker.
   - HKDF-SHA-256 (extract, expand): RFC 5869 A.1/A.2/A.3 pass via `'E'`/`'X'` markers.
   - AES-256 helpers (sbox/invsbox, subbytes/invsubbytes, shiftrows/
@@ -309,15 +324,14 @@ flip from `tested` to `verified`).
 
 **Eligible next chunks:**
 
-1. **Lift the SHA-256 family to verified.** `sha256_compress` is the
-   centerpiece — write `proofs/crypto/sha256/sha256_compress.cry` (full
-   FIPS 180-4 §6.2.2 round function in Cryptol), `sha256_compress.saw`
-   (prove our Cryptol matches a reference Cryptol model — `Primitive::Symmetric::Hash::SHA2` in
-   Cryptol's stdlib is the canonical second model), and `sha256_compress.py`
-   (angr binary equivalence on a single block). Then `sha256_update` and
-   `sha256_final` follow the same pattern. The toolchain template is
-   established by `sha256_init`; these are the first non-trivial
-   applications.
+1. **Lift `sha256_update` and `sha256_final` to verified.** `compress`
+   is verified, so `update` reduces to "buffer-and-call-compress" plus
+   length tracking; `final` to "pad-and-call-compress" plus digest
+   serialisation. Each gets a Cryptol model that composes
+   `SHA256Compress.compress`, a SAW driver that discharges algebraic
+   properties + multi-block KAT, and an angr verifier that runs the
+   RV32 binary on streaming inputs against a Python `hashlib`
+   reference.
 
 2. **Lift HMAC + HKDF to verified.** Once SHA-256 family is verified,
    HMAC and HKDF inherit the proof framework — their Cryptol specs

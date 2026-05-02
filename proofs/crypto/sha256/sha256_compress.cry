@@ -1,0 +1,241 @@
+// proofs/crypto/sha256/sha256_compress.cry
+//
+// Cryptol algorithmic specification for sha256_compress.
+//
+// FIPS 180-4 §6.2.2 specifies the SHA-256 compression function as a
+// 64-round transformation that updates an 8-word hash state H using a
+// 16-word message block M. This module formalises the spec from first
+// principles and supplies KAT properties that SAW discharges.
+//
+// Constants:
+//   * sha256_iv : the [8][32] FIPS 180-4 §5.3.3 initial hash value.
+//   * sha256_k  : the [64][32] FIPS 180-4 §4.2.2 round constants
+//                 (cube-root fractional parts of the first 64 primes).
+// Operations:
+//   * ch, maj                                  : per FIPS 180-4 §4.1.2
+//   * big_sigma_{0,1}, small_sigma_{0,1}       : per FIPS 180-4 §4.1.2
+//   * schedule    : [16][32] -> [64][32]       : message schedule W
+//   * round_step  : one update of the 8-word working state (a..h)
+//   * compress    : [8][32] -> [16][32] -> [8][32]
+//                 : the FIPS 180-4 §6.2.2 single-block compression.
+//
+// Test vectors (from FIPS 180-4 §B.1, "abc" message):
+//   * abc_block_words : the 16-word big-endian view of the padded
+//                       single-block message "abc".
+//   * abc_digest_words : the 8-word post-compress hash state, which
+//                        equals the SHA-256 digest of "abc".
+
+module SHA256Compress where
+
+// ---------- types ------------------------------------------------------
+
+type W = [32]
+
+// ---------- constants --------------------------------------------------
+
+// FIPS 180-4 §5.3.3 — initial hash value H(0).
+sha256_iv : [8]W
+sha256_iv =
+    [ 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a
+    , 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    ]
+
+// FIPS 180-4 §4.2.2 — first 32 bits of the fractional parts of the
+// cube roots of the first 64 primes. Order matters.
+sha256_k : [64]W
+sha256_k =
+    [ 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5
+    , 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5
+    , 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3
+    , 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174
+    , 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc
+    , 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da
+    , 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7
+    , 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967
+    , 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13
+    , 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85
+    , 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3
+    , 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070
+    , 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5
+    , 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3
+    , 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208
+    , 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ]
+
+// ---------- bit/word ops -----------------------------------------------
+
+// Rotate-right and shift-right on 32-bit words. Cryptol's >> on a fixed-
+// width sequence is logical (zero-fill), so SHR is just `x >> n`. ROTR
+// uses the standard "two halves OR'd" identity.
+ROTR : [6] -> W -> W
+ROTR n x = (x >> n) || (x << (32 - n))
+
+SHR : [6] -> W -> W
+SHR n x = x >> n
+
+// FIPS 180-4 §4.1.2 — the six logical functions.
+ch : W -> W -> W -> W
+ch x y z = (x && y) ^ (~x && z)
+
+maj : W -> W -> W -> W
+maj x y z = (x && y) ^ (x && z) ^ (y && z)
+
+big_sigma_0 : W -> W
+big_sigma_0 x = (ROTR  2 x) ^ (ROTR 13 x) ^ (ROTR 22 x)
+
+big_sigma_1 : W -> W
+big_sigma_1 x = (ROTR  6 x) ^ (ROTR 11 x) ^ (ROTR 25 x)
+
+small_sigma_0 : W -> W
+small_sigma_0 x = (ROTR  7 x) ^ (ROTR 18 x) ^ (SHR 3  x)
+
+small_sigma_1 : W -> W
+small_sigma_1 x = (ROTR 17 x) ^ (ROTR 19 x) ^ (SHR 10 x)
+
+// ---------- message schedule ------------------------------------------
+
+// FIPS 180-4 §6.2.2 step 1:
+//   W[t] = M[t]                                             for t in 0..15
+//   W[t] = sigma1(W[t-2]) + W[t-7] + sigma0(W[t-15]) + W[t-16]
+//                                                            for t in 16..63
+schedule : [16]W -> [64]W
+schedule M = sched
+  where
+    sched : [64]W
+    sched = [ if t < 16
+              then M @ t
+              else (small_sigma_1 (sched @ (t - 2)))
+                 + (sched @ (t - 7))
+                 + (small_sigma_0 (sched @ (t - 15)))
+                 + (sched @ (t - 16))
+            | t <- [0..63] : [64][7] ]
+
+// ---------- one round step --------------------------------------------
+
+// FIPS 180-4 §6.2.2 step 3 (one iteration):
+//   T1 = h + Sigma1(e) + Ch(e,f,g) + K[t] + W[t]
+//   T2 = Sigma0(a) + Maj(a,b,c)
+//   h = g; g = f; f = e; e = d + T1; d = c; c = b; b = a; a = T1 + T2
+round_step : [8]W -> W -> W -> [8]W
+round_step state w_t k_t =
+    [ t1 + t2     // a' = T1 + T2
+    , state @ 0   // b' = a
+    , state @ 1   // c' = b
+    , state @ 2   // d' = c
+    , state @ 3 + t1   // e' = d + T1
+    , state @ 4   // f' = e
+    , state @ 5   // g' = f
+    , state @ 6   // h' = g
+    ]
+  where
+    a = state @ 0
+    b = state @ 1
+    c = state @ 2
+    e = state @ 4
+    f = state @ 5
+    g = state @ 6
+    h = state @ 7
+    t1 = h + (big_sigma_1 e) + (ch e f g) + k_t + w_t
+    t2 = (big_sigma_0 a) + (maj a b c)
+
+// ---------- single-block compress -------------------------------------
+
+// FIPS 180-4 §6.2.2 — compress a single 16-word message block under the
+// current 8-word hash state, returning the updated 8-word state.
+compress : [8]W -> [16]W -> [8]W
+compress h_in m = [ h_in @ i + final @ i | i <- [0..7] : [8][3] ]
+  where
+    w : [64]W
+    w = schedule m
+
+    states : [65][8]W
+    states = [h_in] # [ round_step s w_t k_t
+                      | s   <- states
+                      | w_t <- w
+                      | k_t <- sha256_k
+                      ]
+
+    final : [8]W
+    final = states @ (64 : [7])
+
+// ---------- KAT vectors (FIPS 180-4 §B.1: "abc") -----------------------
+
+// "abc" (24 bits) padded to 64 bytes per FIPS 180-4 §5.1.1:
+//   "abc" + 0x80 + (52 zero bytes) + 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x18
+// As 16 big-endian 32-bit words:
+abc_block_words : [16]W
+abc_block_words =
+    [ 0x61626380, 0x00000000, 0x00000000, 0x00000000
+    , 0x00000000, 0x00000000, 0x00000000, 0x00000000
+    , 0x00000000, 0x00000000, 0x00000000, 0x00000000
+    , 0x00000000, 0x00000000, 0x00000000, 0x00000018
+    ]
+
+// SHA-256("abc") — the post-compress state when starting from the FIPS
+// IV equals the canonical SHA-256 digest, by definition (single-block
+// message).
+abc_digest_words : [8]W
+abc_digest_words =
+    [ 0xba7816bf, 0x8f01cfea, 0x414140de, 0x5dae2223
+    , 0xb00361a3, 0x96177a9c, 0xb410ff61, 0xf20015ad
+    ]
+
+// Empty-string single-block padded message ("" → just 0x80 then 0 then length=0):
+//   0x80 + 63 bytes of which the last 8 are length=0 in BE.
+//   i.e. word[0]=0x80000000, words[1..14]=0, word[15]=0
+empty_block_words : [16]W
+empty_block_words =
+    [ 0x80000000, 0x00000000, 0x00000000, 0x00000000
+    , 0x00000000, 0x00000000, 0x00000000, 0x00000000
+    , 0x00000000, 0x00000000, 0x00000000, 0x00000000
+    , 0x00000000, 0x00000000, 0x00000000, 0x00000000
+    ]
+
+// SHA-256("") expected digest (canonical).
+empty_digest_words : [8]W
+empty_digest_words =
+    [ 0xe3b0c442, 0x98fc1c14, 0x9afbf4c8, 0x996fb924
+    , 0x27ae41e4, 0x649b934c, 0xa495991b, 0x7852b855
+    ]
+
+// ---------- properties -------------------------------------------------
+
+// FIPS 180-4 §4.2.2 — spot checks of the K table against the published
+// constants. Cheap to discharge; catches transcription bugs.
+k_first    = sha256_k @  0 == 0x428a2f98
+k_eight    = sha256_k @  8 == 0xd807aa98
+k_sixteen  = sha256_k @ 16 == 0xe49b69c1
+k_thirtytwo= sha256_k @ 32 == 0x27b70a85
+k_last     = sha256_k @ 63 == 0xc67178f2
+
+// FIPS 180-4 §B.1 — full round-by-round transform. SAW symbolically
+// reduces compress on the concrete inputs and discharges via z3.
+abc_kat : Bit
+abc_kat = compress sha256_iv abc_block_words == abc_digest_words
+
+// SHA-256("") canonical digest — orthogonal vector that exercises the
+// length=0 length-encoding edge case at word index 14..15.
+empty_kat : Bit
+empty_kat = compress sha256_iv empty_block_words == empty_digest_words
+
+// Algebraic sanity: ROTR n is inverse of itself rotated by 32-n.
+rotr_inverse : [6] -> W -> Bit
+rotr_inverse n x =
+    n != 0 ==> n != 32 ==>
+        ROTR (32 - n) (ROTR n x) == x
+
+// Algebraic sanity: ch(x, y, z) when x is all-ones gives y; when x is
+// all-zeros gives z. (Mirror of the FIPS pseudocode "if x then y else z".)
+ch_all_ones  : W -> W -> Bit
+ch_all_ones  y z = ch (~zero) y z == y
+
+ch_all_zeros : W -> W -> Bit
+ch_all_zeros y z = ch zero    y z == z
+
+// Algebraic sanity: maj is symmetric in its first two arguments.
+maj_symmetric_xy : W -> W -> W -> Bit
+maj_symmetric_xy x y z = maj x y z == maj y x z
+
+// Algebraic sanity: maj(x, x, x) == x (idempotent on equal inputs).
+maj_idempotent : W -> Bit
+maj_idempotent x = maj x x x == x

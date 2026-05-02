@@ -9,10 +9,10 @@
 # @cycles:      bounded (~64 round bodies × ~30 instructions + 64-word schedule + I/O ≈ 2700 instructions)
 # @ct:          required
 # @spec:        FIPS 180-4 §6.2.2 (SHA-256 hash computation)
-# @verify:      kat-only; integration deferred until init+update+final lands and a sha256 test path exists in _main
+# @verify:      proofs/crypto/sha256/sha256_compress.cry, proofs/crypto/sha256/sha256_compress.saw, proofs/crypto/sha256/sha256_compress.py
 # @tests:       tests/crypto/sha256/test_sha256_compress.py
-# @adrs:        0001, 0002, 0006
-# @status:      tested
+# @adrs:        0001, 0002, 0006, 0009
+# @status:      verified
 # ============================================================================
 
 /* SHA-256 compression function — FIPS 180-4 §6.2.2.

@@ -1,0 +1,65 @@
+// proofs/crypto/sha256/sha256_compress.saw
+//
+// SAW driver for sha256_compress algorithmic verification (Tier A per
+// ADR-0009). Proves three orthogonal properties of the Cryptol model in
+// sha256_compress.cry:
+//
+//   1. K-table spot checks against FIPS 180-4 §4.2.2 — catches any
+//      transcription bug in the 64 round constants (5 boundary samples).
+//   2. FIPS 180-4 §B.1 ("abc") full compression result — symbolically
+//      evaluates 64 rounds + 16-word schedule + 48 schedule recurrences
+//      under the FIPS IV, must equal the canonical SHA-256("abc")
+//      digest. Single-block edge.
+//   3. Empty-string compression (length-encoding edge case at word 14..15)
+//      — must equal the canonical SHA-256("") digest.
+//
+// Plus algebraic sanity over symbolic inputs:
+//
+//   4. ROTR is its own inverse (rotation of complementary distance).
+//   5. ch(0xff..ff, y, z) == y and ch(0, y, z) == z (matches the FIPS
+//      pseudocode "if x then y else z" interpretation).
+//   6. maj is symmetric in (x, y) and idempotent on equal inputs.
+//
+// The binary-equivalence claim (the RV32 ELF computes this Cryptol model
+// on every 16-word input from every 8-word state) is discharged
+// separately by sha256_compress.py via angr concrete cross-checking
+// against a hashlib oracle on multiple test vectors. Until the
+// macaw-riscv path described in ADR-0009 §"Tier C path forward" lands,
+// Tier C remains bounded angr exploration rather than full SAW
+// equivalence.
+
+import "sha256_compress.cry";
+
+print "[sha256_compress.saw] checking K-table boundary constants ...";
+prove_print z3 {{ k_first }};
+prove_print z3 {{ k_eight }};
+prove_print z3 {{ k_sixteen }};
+prove_print z3 {{ k_thirtytwo }};
+prove_print z3 {{ k_last }};
+print "[sha256_compress.saw] K-table boundary constants match FIPS 180-4 §4.2.2.";
+
+print "[sha256_compress.saw] proving FIPS 180-4 §B.1 (abc) single-block KAT ...";
+prove_print z3 {{ abc_kat }};
+print "[sha256_compress.saw] FIPS B.1 KAT: PASS (compress(IV, M_abc) == SHA-256(\"abc\") digest).";
+
+print "[sha256_compress.saw] proving canonical SHA-256(\"\") single-block KAT ...";
+prove_print z3 {{ empty_kat }};
+print "[sha256_compress.saw] empty-string KAT: PASS.";
+
+print "[sha256_compress.saw] proving algebraic sanity (ROTR self-inverse) ...";
+prove_print (do { unfolding ["ROTR"]; w4_unint_z3 []; })
+            {{ \(x : [32]) -> rotr_inverse 6  x }};
+prove_print (do { unfolding ["ROTR"]; w4_unint_z3 []; })
+            {{ \(x : [32]) -> rotr_inverse 13 x }};
+prove_print (do { unfolding ["ROTR"]; w4_unint_z3 []; })
+            {{ \(x : [32]) -> rotr_inverse 22 x }};
+print "[sha256_compress.saw] ROTR self-inverse: PASS for n in {6,13,22}.";
+
+print "[sha256_compress.saw] proving algebraic sanity (ch / maj) ...";
+prove_print z3 {{ \(y : [32]) (z : [32]) -> ch_all_ones  y z }};
+prove_print z3 {{ \(y : [32]) (z : [32]) -> ch_all_zeros y z }};
+prove_print z3 {{ \(x : [32]) (y : [32]) (z : [32]) -> maj_symmetric_xy x y z }};
+prove_print z3 {{ \(x : [32]) -> maj_idempotent x }};
+print "[sha256_compress.saw] ch + maj algebraic properties: PASS.";
+
+print "[sha256_compress.saw] PASS";
