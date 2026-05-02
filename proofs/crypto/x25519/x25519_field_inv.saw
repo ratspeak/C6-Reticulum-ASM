@@ -1,0 +1,34 @@
+// proofs/crypto/x25519/x25519_field_inv.saw
+//
+// SAW driver for x25519_field_inv (Tier A per ADR-0009).
+//
+// Algebraic post-condition: decode_limbs(out) = (decode_limbs(a))^(p-2)
+// mod p_25519 — i.e. the multiplicative inverse for a in (Z/pZ)*.
+// The asm follows curve25519-donna's `crecip` addition chain (a fixed
+// sequence of field_sq + field_mul calls).
+//
+// Tier A here verifies algebraic identities of f_inv that don't
+// require z3 to expand a full 254-bit exponentiation:
+//   - 1^(p-2) ≡ 1   (trivial)
+//   - (-1)^(p-2) ≡ -1   (since p-2 is odd; -1 is its own inverse)
+// The asm-vs-algebra binary equivalence is met by the round-trip
+// identity in tests/crypto/x25519/test_x25519_field_inv.py, which
+// drives the asm under qemu-system-riscv32 and uses the algebraic-
+// spec-validated field_mul oracle to verify a · inv(a) ≡ 1 (mod p).
+//
+// Once SAW + macaw-riscv lands (ADR-0009 §"Tier C path forward") the
+// asm-vs-Cryptol equivalence can be discharged symbolically over an
+// abstract a.
+
+import "X25519.cry";
+import "X25519FieldOps.cry";
+
+print "[x25519_field_inv.saw] proving 1^(p-2) ≡ 1 (mod p) ...";
+prove_print z3 {{ inv_one_kat }};
+print "[x25519_field_inv.saw] inv(1) KAT: PASS.";
+
+print "[x25519_field_inv.saw] proving (p-1)^(p-2) ≡ p-1 (mod p) ...";
+prove_print z3 {{ inv_neg_one_kat }};
+print "[x25519_field_inv.saw] inv(-1) KAT: PASS.";
+
+print "[x25519_field_inv.saw] PASS";

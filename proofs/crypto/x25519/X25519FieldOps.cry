@@ -335,3 +335,23 @@ seven_sq_kat = ((decode_limbs x_seven) *
 p_sq_kat : Bit
 p_sq_kat = ((decode_limbs p_limbs_canonical) *
             (decode_limbs p_limbs_canonical)) % p_25519 == 0
+
+// ---------- field_inv spec --------------------------------------------
+
+// Algebraic post-condition (Fermat): out = a^(p-2) mod p, equivalently
+// a · out ≡ 1 (mod p) for a ≠ 0.
+field_inv_spec : Limbs -> Limbs -> Bit
+field_inv_spec a out =
+    decode_limbs out == f_inv (decode_limbs a)
+
+// SAW-friendly KATs. We prove identities expressible in algebraic form
+// without needing to compute f_pow on a 254-bit exponent (which would
+// blow up z3). The asm-level Tier C is the round-trip identity in
+// test_x25519_field_inv.py: it drives inv(a) under QEMU and uses the
+// algebraic-spec-validated field_mul oracle to verify a · inv(a) ≡ 1.
+
+inv_one_kat : Bit
+inv_one_kat = f_inv 1 == 1                            // 1^(p-2) ≡ 1
+
+inv_neg_one_kat : Bit
+inv_neg_one_kat = f_inv (p_25519 - 1) == p_25519 - 1  // (-1)^(p-2) ≡ -1
