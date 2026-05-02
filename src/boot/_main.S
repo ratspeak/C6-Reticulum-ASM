@@ -65,6 +65,14 @@
         .ascii "hmac\ttag\thex="
 .Lhmac_tag_end:
         .equ   .Lhmac_tag_len, .Lhmac_tag_end - .Lhmac_tag
+.Lhkdf_extract_tag:
+        .ascii "hkdf\textract\thex="
+.Lhkdf_extract_tag_end:
+        .equ   .Lhkdf_extract_tag_len, .Lhkdf_extract_tag_end - .Lhkdf_extract_tag
+.Lhkdf_expand_tag:
+        .ascii "hkdf\texpand\thex="
+.Lhkdf_expand_tag_end:
+        .equ   .Lhkdf_expand_tag_len, .Lhkdf_expand_tag_end - .Lhkdf_expand_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -109,6 +117,10 @@ _main:
         beq     t1, t2, .Lsha256_kat
         li      t2, 0x48
         beq     t1, t2, .Lhmac_kat
+        li      t2, 0x45
+        beq     t1, t2, .Lhkdf_extract_kat
+        li      t2, 0x58
+        beq     t1, t2, .Lhkdf_expand_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -181,6 +193,69 @@ _main:
         call    log_str
         la      a0, sha256_digest_buf
         li      a1, 32
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Lhkdf_extract_kat:
+        /* HKDF-Extract test frame: 'E' || saltlen[1] || salt[saltlen] || ikm[*]
+         * a0=salt, a1=saltlen, a2=ikm, a3=ikm_len, a4=prk_out
+         */
+        la      t0, kiss_buf
+        lbu     a1, 1(t0)
+        addi    a0, t0, 2
+        add     a2, a0, a1
+        la      t1, kiss_buf_len
+        lw      t1, 0(t1)
+        addi    t1, t1, -2
+        sub     a3, t1, a1
+        la      a4, sha256_digest_buf
+        call    hkdf_extract
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lhkdf_extract_tag
+        li      a1, .Lhkdf_extract_tag_len
+        call    log_str
+        la      a0, sha256_digest_buf
+        li      a1, 32
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Lhkdf_expand_kat:
+        /* HKDF-Expand test frame: 'X' || prk[32] || okm_len[1] || info_len[1] || info[info_len]
+         * a0=prk, a1=32, a2=info, a3=info_len, a4=okm_out, a5=okm_len. */
+        la      t0, kiss_buf
+        addi    a0, t0, 1               /* &prk                        */
+        li      a1, 32                  /* prk_len                     */
+        addi    t1, t0, 33              /* &okm_len byte               */
+        lbu     a5, 0(t1)               /* okm_len                     */
+        addi    t1, t1, 1               /* &info_len byte              */
+        lbu     a3, 0(t1)               /* info_len                    */
+        addi    a2, t1, 1               /* &info                       */
+        la      a4, hkdf_okm_buf
+        call    hkdf_expand
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lhkdf_expand_tag
+        li      a1, .Lhkdf_expand_tag_len
+        call    log_str
+        /* Re-read okm_len from kiss_buf[33] for the digest length. */
+        la      t0, kiss_buf
+        lbu     a1, 33(t0)
+        la      a0, hkdf_okm_buf
         call    log_hex_buf
         li      a0, 13
         call    uart_tx_byte
