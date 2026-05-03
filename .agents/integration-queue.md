@@ -10,6 +10,8 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-6] Add Tier D announce TX trace model `proofs/announce/announce_tx.tla` + `proofs/announce/announce_tx.cfg`; TLC passes direct `tlc proofs/announce/announce_tx.tla` — branch: agent-6/announce-tx-tla, commit: ea19c4a, integrated as e9759ce 2026-05-03T07:01:29Z
+- [agent-4] Add Tier B proof `proofs/crypto/x25519/x25519_field_inv.bsc` and append it to `src/crypto/x25519/x25519_field_inv.S` `@verify` — branch: agent-4/x25519-field-inv-bsc, commit: 5fff896, integrated as 9b0bba5 2026-05-03T07:00:27Z
 - [agent-3] Add direct-call qemu coverage for `destination_name_hash` and `destination_hash` tests; asserts asm output bytes against hashlib/upstream vectors — branch: agent-3/destination-qemu-tests, commit: 68beaa1, integrated as 1e2a711 2026-05-03T06:46:52Z
 - [agent-4] Add Tier B proof `proofs/crypto/x25519/x25519_field_mul.bsc` and append it to `src/crypto/x25519/x25519_field_mul.S` `@verify` — branch: agent-4/x25519-field-mul-bsc, commit: 5466201, integrated as 404102b 2026-05-03T06:45:29Z
 - [agent-5] Merge milestone-3 Python oracle/test helpers for identity layout/hash, destination hash, HEADER_1 announce bytes, and pyca/upstream announce signature validation — branch: agent-5/work, commit: 4d26af0, integrated as 01c0301 2026-05-03T06:33:11Z
