@@ -10,6 +10,8 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-4] Add Tier B proof `proofs/crypto/x25519/x25519_field_pack.bsc` and append it to `src/crypto/x25519/x25519_field_pack.S` `@verify` — branch: agent-4/x25519-field-pack-bsc, commit: eceaf96, integrated as 918a7ee 2026-05-03T07:28:58Z
+- [agent-2] Merge verified `announce_send` KISS TX path; replaces stub with static raw/KISS buffers, direct `announce_build` -> `kiss_encode_frame` -> `uart_tx_bytes`, exact `len=<n>` trace lines, focused direct-QEMU KISS decode tests, and existing `proofs/announce/announce_tx.tla` verifier reference — branch: agent-2/announce-send, commit: d659dd5, integrated as dd8ead3 2026-05-03T07:18:20Z
 - [agent-4] Add Tier B proof `proofs/crypto/x25519/x25519_field_unpack.bsc` and append it to `src/crypto/x25519/x25519_field_unpack.S` `@verify` — branch: agent-4/x25519-field-unpack-bsc, commit: 88c026c, integrated as 49854ed 2026-05-03T07:17:26Z
 - [agent-4] Add Tier B proof `proofs/crypto/x25519/x25519_decode_scalar.bsc` and append it to `src/crypto/x25519/x25519_decode_scalar.S` `@verify` — branch: agent-4/x25519-decode-scalar-bsc, commit: a14ef2d, integrated as f6edd59 2026-05-03T07:09:50Z
 - [agent-2] Merge verified `announce_build` HEADER_1 builder; includes `src/announce`, announce scratch/constants, focused direct-QEMU/upstream tests, and `@verify` reference to existing `proofs/announce/announce_tx.tla` — branch: agent-2/announce-build, commit: b478aa6, integrated as 1e008e9 2026-05-03T07:09:15Z
