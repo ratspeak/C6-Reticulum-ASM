@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 7 is active through c766af7. Latest integrated slice: verified resource advertisement parser. Current gates passed: `./verify resource_advertisement_parse`, `make ci` (`696 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-7 claims: `resource_reassembly_update`, `resource_process_plaintext`.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 7 is active through 08f1c91. Latest integrated slice: verified resource reassembly update. Current gates passed: `./verify resource_reassembly_update`, `make ci` (`703 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-7 claim: `resource_process_plaintext`.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified `resource_reassembly_update`; installs parsed advertisements, computes per-resource map hashes for raw RESOURCE parts, tracks the fixed received bitmap/consecutive index, and returns deterministic advertised/accepted/duplicate/complete/invalid statuses with direct-QEMU state tests plus finite model/source proof — branch: main, integrated as 08f1c91 2026-05-03T18:55:31Z
 - [agent-1] Implement verified `resource_advertisement_parse`; accepts the strict upstream `ResourceAdvertisement.pack()` msgpack order for encrypted single-segment non-request resources, rejects unsupported flags/segments/hashmap inconsistencies, and covers malformed encodings with direct-QEMU tests plus source contract proof — branch: main, integrated as c766af7 2026-05-03T18:44:55Z
 - [agent-1] Implement verified `resource_part_parse`; parses raw RESOURCE part payloads without requiring an on-wire part index, computes upstream `SHA256(part || random_hash)[0:4]` map hashes, and covers valid/empty/max/null/overflow cases with direct-QEMU tests plus source contract proof — branch: main, integrated as e0e4b31 2026-05-03T18:36:58Z
 - [agent-1] Implement verified `resource_reassembly_init`; adds fixed resource receive-table constants/state, clears the 2-entry/64-part map-hash window table, corrects milestone docs to reflect upstream RESOURCE part index inference, and covers the initializer with direct-QEMU tests plus a source contract proof — branch: main, integrated as d034722 2026-05-03T18:32:55Z
