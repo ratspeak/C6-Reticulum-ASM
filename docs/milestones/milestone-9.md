@@ -111,6 +111,12 @@ Functions:
 - `lxmf_payload_build`
 - `lxmf_payload_parse`
 
+Implementation status:
+
+- [x] `lxmf_payload_build` emits upstream-compatible MessagePack for bounded
+      timestamp, title, content, and empty/custom fields.
+- [ ] `lxmf_payload_parse` is still open.
+
 Responsibilities:
 
 1. Build the strict milestone subset `msgpack([timestamp_f64, title_bin,
