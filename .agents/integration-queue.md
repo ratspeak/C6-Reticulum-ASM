@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through d560b0d. Latest integrated slice: SX1262 init sequence. Current gates passed: `./verify sx1262_init`, direct QEMU init tests (`3 passed`), `make ci` (`728 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claims: `sx1262_send_frame` and `sx1262_poll_receive`.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 7f37d5a. Latest integrated slice: SX1262 frame transmit. Current gates passed: `./verify sx1262_send_frame`, refreshed `./verify sx1262_init`, direct QEMU TX/init tests (`6 passed`), `make ci` (`731 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claim: `sx1262_poll_receive`.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified milestone-8 `sx1262_send_frame`; bounds raw frame TX to the static 254-byte profile, writes FIFO offset plus payload, starts TX, polls IRQ status for TX done/timeout, records TX model state, and adds finite/source proof plus direct-QEMU success/invalid/overflow/timeout tests — branch: main, integrated as 7f37d5a 2026-05-03T19:55:15Z
 - [agent-1] Implement verified milestone-8 `sx1262_init`; applies the static Reticulum-shaped LoRa bench profile, leaves the radio in standby, reads status into the qemu model, documents profile constants, and adds finite/source proof plus direct-QEMU success/default/busy-timeout tests — branch: main, integrated as d560b0d 2026-05-03T19:49:46Z
 - [agent-1] Implement verified milestone-8 `sx1262_command_write` and `sx1262_command_read`; adds bounded BUSY/NSS/SPI wrappers, shared command scratch buffers, invalid/BUSY/SPI timeout mapping, finite source proof, and direct-QEMU success/invalid/timeout/readback tests — branch: main, integrated as 7de6c5d 2026-05-03T19:42:52Z
 - [agent-1] Implement verified milestone-8 `sx1262_reset`; configures NRST/BUSY GPIOs, performs the reset pulse, waits for BUSY low with a bounded default poll budget, and adds a source contract proof plus direct-QEMU success/default/timeout tests — branch: main, integrated as 354a345 2026-05-03T19:36:10Z
