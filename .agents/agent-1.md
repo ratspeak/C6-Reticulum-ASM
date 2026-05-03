@@ -6,6 +6,7 @@
 milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- lora-gpio-helpers — claimed 2026-05-03T19:12:15Z, completed 2026-05-03T19:20:04Z, branch: main, integrated as e5488d6
 - lora-hardware-contract — claimed 2026-05-03T19:09:05Z, completed 2026-05-03T19:12:15Z, branch: main, integrated as 4515e82
 - milestone-7-closeout — claimed 2026-05-03T19:04:12Z, completed 2026-05-03T19:08:56Z, branch: main, integrated as eaecabf
 - resource-channel-state-model — claimed 2026-05-03T19:00:33Z, completed 2026-05-03T19:02:42Z, branch: main, integrated as 5c6dc60
@@ -39,7 +40,7 @@ milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 8 (LoRa SPI Interface); eligible next claims are GPIO/SPI foundation functions (`gpio_config_output`, `gpio_config_input`, `gpio_write`, `gpio_read`, `spi_init`, `spi_transfer`).
+- Active milestone is milestone 8 (LoRa SPI Interface); eligible next claims are SPI foundation functions (`spi_init`, `spi_transfer`) followed by SX1262 command-driver slices.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.
@@ -68,3 +69,4 @@ milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 - 2026-05-03T19:02:42Z — added the milestone-7 resource/channel TLA+ state model on main as 5c6dc60; gate: `./verify --module resource` passed with `proofs/resource/resource_state.tla`.
 - 2026-05-03T19:08:56Z — closed milestone 7 and activated milestone 8 on main as eaecabf; gates: `./verify --module resource`, `make ci` (`709 passed, 14 skipped`), qemu/C6 builds, hardware suite `14 passed`, registry, stack max 2304/16384, and `git diff --check`. ADR-0011 records the SX1262 target for milestone 8.
 - 2026-05-03T19:12:15Z — documented the milestone-8 SX1262 hardware contract on main as 4515e82; gates: `make registry` and `git diff --check`. Contract pins the Feather/SX1262 bench wiring, SPI mode/clock bounds, command/reset/BUSY rules, qemu model surface, and hardware test plan.
+- 2026-05-03T19:20:04Z — implemented verified milestone-8 LoRa GPIO helpers on main as e5488d6; gates: `./verify gpio_config_output`, `./verify gpio_config_input`, `./verify gpio_write`, `./verify gpio_read`, direct QEMU GPIO tests (`4 passed`), `make ci` (`713 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
