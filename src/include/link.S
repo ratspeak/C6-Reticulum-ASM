@@ -17,6 +17,7 @@
         .equ LINK_ERR_INVAL,                 -1
         .equ LINK_ERR_OVERFLOW,              -2
         .equ LINK_STATUS_DUPLICATE,           1
+        .equ LINK_STATUS_DECRYPTED,           2
 
         .equ LINK_HEADER_LEN,                 19
         .equ LINK_DESTINATION_HASH_SIZE,      16
@@ -35,6 +36,9 @@
         .equ LINK_REQUEST_HEADER_FLAGS,       0x02
         .equ LINK_REQUEST_HEADER_HOPS,        0x00
         .equ LINK_REQUEST_CONTEXT_NONE,       0x00
+        .equ LINK_DATA_HEADER_FLAGS,          0x0C
+        .equ LINK_DEST_TYPE_LINK_BITS,        0x0C
+        .equ LINK_DATA_CONTEXT_NONE,          0x00
 
         .equ LINK_REQUEST_RAW_OFF_FLAGS,      0
         .equ LINK_REQUEST_RAW_OFF_HOPS,       1

@@ -25,7 +25,7 @@ trip through the asm stack.
 
 ## Definition of Done
 
-- [ ] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-6 function with
+- [x] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-6 function with
       a source, tests, verifier artifact, and status `verified`.
 - [x] `link_request_build` and `link_request_parse` round-trip the milestone-6
       Reticulum link-request subset and reject malformed/truncated inputs
@@ -38,7 +38,7 @@ trip through the asm stack.
       pyca/reference vectors.
 - [x] `link_session_encrypt` and `link_session_decrypt` provide an AES-256-CBC
       plus HMAC authenticated payload path for one in-order session packet.
-- [ ] `link_process_packet` routes inbound link requests and encrypted link
+- [x] `link_process_packet` routes inbound link requests and encrypted link
       packets while preserving the milestone-5 announce RX path.
 - [ ] A TLA+ link state model covers request, accept, duplicate, reject,
       timeout, encrypted packet accept, and encrypted packet reject traces.
@@ -306,9 +306,13 @@ a0 = stable status code for accepted, duplicate, invalid, and encrypted packet
 
 Responsibilities:
 
-1. Dispatch link requests to `link_handshake_accept`.
-2. Dispatch established-link encrypted packets to `link_session_decrypt`.
-3. Preserve milestone-5 announce RX behavior for non-link packets.
+1. Dispatch HEADER_1 link requests to `link_request_parse` and
+   `link_handshake_accept`.
+2. Dispatch HEADER_1 DATA packets addressed to a known established link ID to
+   `link_session_decrypt`, leaving plaintext in bounded session scratch for the
+   later resource/channel milestone.
+3. Preserve milestone-5 announce RX behavior by passing announce packets to
+   `transport_process_announce`.
 
 ## Verifier Plan
 
