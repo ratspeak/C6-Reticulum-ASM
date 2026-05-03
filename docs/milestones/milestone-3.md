@@ -42,9 +42,9 @@ the outgoing announce wire image validates under the Python reference.
       `public_key || name_hash || random_hash || signature || app_data`.
 - [x] The signature verifies with upstream `RNS.Identity.validate_announce()`
       for app-data-empty and app-data-present announces.
-- [ ] `announce_send` KISS-frames the raw announce packet and writes it through
+- [x] `announce_send` KISS-frames the raw announce packet and writes it through
       the existing `uart_tx_bytes` path under qemu-virt.
-- [ ] The TLA+ announce-TX state machine accepts every harness trace emitted by
+- [x] The TLA+ announce-TX state machine accepts every harness trace emitted by
       the asm path: `identity.ready` -> `announce.built` -> `kiss.tx_frame`.
 - [ ] `make ci`, `make build TARGET=qemu-virt`, and `./verify <fn>` pass for
       every function added or modified in this milestone.
@@ -365,7 +365,9 @@ spec. The identity and destination hash foundation is now verified:
 - `destination_name_hash`
 - `destination_hash`
 
-The current sprint is `announce_send`. `announce_build` now produces upstream-
-valid HEADER_1 announce packets for empty app data, non-empty app data,
-exact-capacity output, and one-byte-short overflow; the remaining milestone
-gate is the KISS-framed TX path and its emitted trace.
+The current sprint is `_main` dispatcher integration and milestone closeout.
+`announce_build` produces upstream-valid HEADER_1 announce packets for empty
+app data, non-empty app data, exact-capacity output, and one-byte-short
+overflow; `announce_send` KISS-frames those bytes, emits the
+`announce.built -> kiss.tx_frame` trace, and writes the frame over UART under
+qemu-virt.

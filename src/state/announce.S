@@ -1,8 +1,9 @@
-/* Static announce builder scratch (ADR-0002).
+/* Static announce builder/TX scratch (ADR-0002).
  *
  * announce_build assembles signed data here before invoking ed25519_sign.
- * The buffers are not reentrant; milestone-3 has a single-threaded builder
- * path and no interrupt caller for announces.
+ * announce_send then uses the raw and KISS buffers for the development UART
+ * TX path. The buffers are not reentrant; milestone-3 has a single-threaded
+ * announce path and no interrupt caller for announces.
  */
 
         .include "announce.S"
@@ -38,3 +39,16 @@ announce_signature:
         .zero   ANNOUNCE_SIGNATURE_SIZE
         .size   announce_signature, ANNOUNCE_SIGNATURE_SIZE
 
+        .global announce_raw_tx_buf
+        .type   announce_raw_tx_buf, @object
+        .balign 4
+announce_raw_tx_buf:
+        .zero   ANNOUNCE_RETICULUM_MDU
+        .size   announce_raw_tx_buf, ANNOUNCE_RETICULUM_MDU
+
+        .global announce_kiss_tx_buf
+        .type   announce_kiss_tx_buf, @object
+        .balign 4
+announce_kiss_tx_buf:
+        .zero   ANNOUNCE_KISS_TX_CAPACITY
+        .size   announce_kiss_tx_buf, ANNOUNCE_KISS_TX_CAPACITY

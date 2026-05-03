@@ -54,7 +54,7 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
   (run with `pytest --hardware tests/hardware/`).
 - Total functions registered: **95** (excludes placeholder rows like
   "(functions added when milestone N is activated)")
-- Verified: 87 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 11 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + production HMAC-DRBG-SHA-256 RNG (NIST SP 800-90A Rev. 1 §10.1.2; `rng_entropy` raw-source layer + `hmac_drbg_update` + `rng_init` + `rng_bytes` together discharge the canonical NIST CAVP DRBGVS COUNT=0 KAT symbolically; on TARGET_C6 the entropy source is the on-chip LPPERI hardware RNG) + milestone-3 identity/destination/announce builder helpers (`identity_create`, `identity_hash`, `destination_name_hash`, `destination_hash`, `announce_build`) — all under ADR-0009)
+- Verified: 88 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 11 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + production HMAC-DRBG-SHA-256 RNG (NIST SP 800-90A Rev. 1 §10.1.2; `rng_entropy` raw-source layer + `hmac_drbg_update` + `rng_init` + `rng_bytes` together discharge the canonical NIST CAVP DRBGVS COUNT=0 KAT symbolically; on TARGET_C6 the entropy source is the on-chip LPPERI hardware RNG) + milestone-3 identity/destination/announce TX helpers (`identity_create`, `identity_hash`, `destination_name_hash`, `destination_hash`, `announce_build`, `announce_send`) — all under ADR-0009)
 - Tier A coverage extended: the SHA-512 family (`sha512_init`, `sha512_compress`, `sha512_update`, `sha512_final`) now carries a Cryptol+SAW Tier A proof alongside the QEMU/hashlib KAT bridge. The SAW drivers discharge FIPS 180-4 §C.1 + §C.2 KATs symbolically over the 80-round transform + 16-word schedule, plus K-table constants, ROTR/ch/maj algebraic sanity, streaming associativity (small chunkings), and both padding paths (bl ≤ 111 single-block + bl > 111 two-block).
 - Tier A coverage extended: the Ed25519 lower stack (8 of 11 functions: `sc_reduce`, `sc_muladd`, `point_add`, `point_double`, `scalarmult`, `point_compress`, `point_decompress`, `field_pow_p5d8`) now carries a Cryptol+SAW Tier A proof — `Ed25519Scalar.cry` (sc_reduce/sc_muladd boundary KATs vs (a*b+c) mod L), `Ed25519Point.cry` (BBJLP add/double on edwards25519: identity, additive inverse, double=add-at-equal, commutativity sanity), `Ed25519Encoding.cry` (compress(B) RFC vector, decompress(B) round-trip, scalarmult bit-pattern KATs, sqrt(-1)^2 = -1).
 - Tier B (Binsec/Rel constant-time) coverage landed 2026-05-02 for the
@@ -77,8 +77,8 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
 - `x25519_field_mul121665` and `x25519_field_mul` both rely on a QEMU-pytest Tier C path rather than angr: the pcode RV32IMC engine mistranslates the `mul + mulh + add-with-carry` 64-bit accumulator chain (40-of-40 random inputs disagreed in earlier runs against a hand-written Python asm-level simulator that mirrors the asm verbatim). The X25519 dispatcher tag `'F'` (added in this commit) drives `x25519_field_mul` under qemu-system-riscv32 and compares to the algebraic-spec-validated Python oracle. Same Tier C-future resolution (SAW + macaw-riscv per ADR-0009); QEMU plumbing for `x25519_field_mul121665` is a follow-up since its asm is also covered by transitivity through the simulator.
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
-- In progress: 1
-- Planned: 8 (`uart_isr`, milestone-3 announce_send,
+- In progress: 0
+- Planned: 7 (`uart_isr`,
   milestone-4 identity persistence, milestone-4 flash driver)
 
 The end-to-end milestone-1 demo path is observable: KISS-framed Reticulum
@@ -319,7 +319,7 @@ Reticulum announce transmission over the current KISS serial development interfa
 | Function | Status | Owner | Depends-on | ADRs | Spec |
 |----------|--------|-------|-----------|------|------|
 | `announce_build` | ◉ verified |  | `identity_create`, `destination_name_hash`, `destination_hash`, `rng_bytes`, `ed25519_sign` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#announce_build) |
-| `announce_send` | ◌ in-progress | agent-2 | `announce_build`, `packet_serialize_header`, `kiss_encode_frame`, `uart_tx_bytes` | 0001, 0002, 0004, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#announce_send) |
+| `announce_send` | ◉ verified |  | `announce_build`, `packet_serialize_header`, `kiss_encode_frame`, `uart_tx_bytes` | 0001, 0002, 0004, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#announce_send) |
 
 ## Module: `transport`
 
