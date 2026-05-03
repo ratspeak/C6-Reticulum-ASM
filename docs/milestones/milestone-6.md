@@ -30,7 +30,7 @@ trip through the asm stack.
 - [x] `link_request_build` and `link_request_parse` round-trip the milestone-6
       Reticulum link-request subset and reject malformed/truncated inputs
       without reading outside the caller-provided buffer.
-- [ ] `link_handshake_init` and `link_handshake_accept` maintain a bounded
+- [x] `link_handshake_init` and `link_handshake_accept` maintain a bounded
       static link table with stable pending, established, duplicate, expired,
       and invalid statuses.
 - [x] `link_derive_keys` derives deterministic session material from X25519
@@ -196,8 +196,11 @@ a0 = 0 on established or positive duplicate status, negative errno on invalid
 Responsibilities:
 
 1. Validate parsed request shape.
-2. Compute X25519 shared secret and derive session material.
-3. Create or update a bounded established link entry.
+2. Compute the upstream-compatible link request ID from the request hashable
+   part without signalling bytes.
+3. Generate local X25519 material, compute the shared secret, derive session
+   material with `link_derive_keys`, and create or update a bounded
+   established link entry.
 
 ## link_derive_keys
 

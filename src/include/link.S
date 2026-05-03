@@ -16,6 +16,7 @@
         .equ LINK_OK,                         0
         .equ LINK_ERR_INVAL,                 -1
         .equ LINK_ERR_OVERFLOW,              -2
+        .equ LINK_STATUS_DUPLICATE,           1
 
         .equ LINK_HEADER_LEN,                 19
         .equ LINK_DESTINATION_HASH_SIZE,      16
@@ -47,6 +48,8 @@
         .equ LINK_REQUEST_PAYLOAD_LEN,        67
         .equ LINK_REQUEST_RAW_LEN,            86
         .equ LINK_REQUEST_RETICULUM_MDU,      RETICULUM_MDU
+        .equ LINK_REQUEST_ID_HASHABLE_LEN,    82
+        .equ LINK_ID_SIZE,                    16
 
         /* link_request_t struct offsets (92 bytes total, 4-byte aligned). */
         .equ LINK_REQUEST_OFF_RAW_LEN,        0
