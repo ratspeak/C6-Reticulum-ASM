@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; baseline `make ci` and `./verify --all` passed; milestone 4 is active as of 40493eb; current flash baseline 27b75d6 passed `make ci`, qemu build, C6 image build, focused `./verify flash_*`, and `./verify --all` at 2026-05-03T08:28:10Z. Physical `pytest --hardware tests/hardware/test_flash_persistence.py` is still pending.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 4 is closed and milestone 5 is active as of dd4e341. Current flash baseline passed `make ci` (`529 passed, 14 skipped`), qemu/C6 builds, C6 image build, focused flash/boot verification, and physical `pytest --hardware tests/hardware/test_flash_persistence.py -q -p no:cacheprovider` (`2 passed`) on 2026-05-03. Eligible milestone-5 claims: `announce_parse`, `announce_validate`, `transport_path_init`, `transport_path_update`, `transport_path_lookup`, `transport_process_announce`.
 
 ## Pending
 
@@ -10,6 +10,8 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Close milestone 4 and activate milestone 5 Transport RX; adds `docs/milestones/milestone-5.md`, updates roadmap/registry state, records hardware flash reset-retention pass, and leaves milestone-5 work scoped to inbound announces plus volatile path table — branch: main, integrated as dd4e341 2026-05-03T09:13:00Z
+- [agent-1] Verify physical C6 flash reset-retention after ROM helper geometry initialization; `pytest --hardware tests/hardware/test_flash_persistence.py -q -p no:cacheprovider` passed twice (`2 passed`) and boot diagnostics now distinguish identity load/save errors — branch: main, integrated as 3a74ef1 2026-05-03T08:58:30Z
 - [agent-1] Implement TARGET_C6 ROM-helper flash backend and reset-retention hardware test; flash APIs remain bounded to the reserved identity sector, qemu flash proof now binds the qemu branch explicitly, and milestone-4 local DoD checkboxes are updated with physical hardware retention still open — branch: main, integrated as 27b75d6 2026-05-03T08:28:10Z
 - [agent-2] Merge milestone-4 flash driver verification; adds `proofs/flash/flash_qemu_model.py`, wires it into all four flash `@verify` fields, and moves `flash_init`, `flash_read`, `flash_write_page`, and `flash_erase_sector` from tested to verified after focused `./verify flash_*` passes — branch: agent-2/flash-driver-verification, commit: 4a8c88c, integrated as b77b587 2026-05-03T07:50:54Z
 - [agent-5] Merge milestone-4 TARGET_C6 flash hardware contract and reset-retention test anchor; adds `docs/hardware/flash.md`, hardware docs index, and `tests/hardware/test_flash_persistence.py` contract constants/pending dispatcher test — branch: agent-5/flash-hardware-contract, commit: 3d415a0, integrated as b39f842 2026-05-03T07:42:31Z
