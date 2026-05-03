@@ -27,7 +27,7 @@ small in-RAM reassembly window.
 
 - [ ] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-7 function with
       a source, tests, verifier artifact, and status `verified`.
-- [ ] `channel_envelope_build` and `channel_envelope_parse` round-trip the
+- [x] `channel_envelope_build` and `channel_envelope_parse` round-trip the
       upstream `msgtype[2] || sequence[2] || length[2] || payload` envelope
       shape and reject malformed lengths without reading outside the caller
       buffer.
