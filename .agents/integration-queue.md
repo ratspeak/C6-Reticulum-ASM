@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 4 is closed and milestone 5 is active through a66fe20. `announce_parse` is verified; current gates passed: `./verify announce_parse`, `make ci` (`544 passed, 14 skipped`), qemu/C6 builds, registry, stack, and `git diff --check`. Remaining eligible milestone-5 claims: `announce_validate`, `transport_path_init`, `transport_path_update`, `transport_path_lookup`, `transport_process_announce`.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 4 is closed and milestone 5 is active through 2b224f9. `announce_parse` and `announce_validate` are verified; current gates passed: `./verify announce_validate`, `make ci` (`557 passed, 14 skipped`), qemu/C6 builds, registry, stack, and `git diff --check`. Remaining eligible milestone-5 claims: `transport_path_init`, `transport_path_update`, `transport_path_lookup`, `transport_process_announce`.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified `announce_validate`; checks parsed struct consistency, destination hash recomputation, Ed25519 signature validation over the exact Reticulum signed-data bytes, direct-QEMU tamper coverage, and contract proof — branch: main, integrated as 2b224f9 2026-05-03T10:23:00Z
 - [agent-1] Implement verified `announce_parse`; adds `announce_rx_t` offsets, HEADER_1 announce parser, bounded app-data view semantics, direct-QEMU malformed/valid coverage, oracle MDU rejection, and finite bounds/source-shape proof — branch: main, integrated as a66fe20 2026-05-03T09:57:00Z
 - [agent-1] Close milestone 4 and activate milestone 5 Transport RX; adds `docs/milestones/milestone-5.md`, updates roadmap/registry state, records hardware flash reset-retention pass, and leaves milestone-5 work scoped to inbound announces plus volatile path table — branch: main, integrated as dd4e341 2026-05-03T09:13:00Z
 - [agent-1] Verify physical C6 flash reset-retention after ROM helper geometry initialization; `pytest --hardware tests/hardware/test_flash_persistence.py -q -p no:cacheprovider` passed twice (`2 passed`) and boot diagnostics now distinguish identity load/save errors — branch: main, integrated as 3a74ef1 2026-05-03T08:58:30Z
