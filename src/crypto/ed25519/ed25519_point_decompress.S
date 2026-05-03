@@ -24,11 +24,16 @@
 #                    else: invalid (return 1)
 #                 7. if x_LSB != sign: x = -x
 #                 8. write extended (X, Y, Z=1, T=X*Y)
-# @verify:      kat-only; QEMU pytest exercises decompress on
-#                 - the base point B (RFC 8032 §5.1.5)
-#                 - several random pyca/cryptography-derived public keys
-#                 - confirms compress(decompress(P)) == P round-trip
-# @tests:       tests/crypto/ed25519/test_ed25519_point_decompress.py
+# @verify:      proofs/crypto/ed25519/Ed25519Encoding.cry, proofs/crypto/ed25519/ed25519_point_decompress.saw
+# @tests:       tests/crypto/ed25519/test_ed25519_verify.py
+#               (Tier A: SAW + Cryptol prove the algebraic round-trip
+#               recover_x(B_y, B_x mod 2) == (valid, B_x) and the
+#               related sqrt(-1)^2 == -1 fix-up identity. Tier C
+#               bridge: the QEMU verify pytest exercises decompress
+#               transitively — every signature verification calls
+#               decompress twice (once on the public key, once on the
+#               signature R). Negative cases (tampered signature byte
+#               leading to an invalid R) are also covered.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================

@@ -1,0 +1,34 @@
+// proofs/crypto/ed25519/ed25519_point_decompress.saw
+//
+// SAW driver for ed25519_point_decompress algorithmic verification
+// (Tier A per ADR-0009): proves the Cryptol model in
+// Ed25519Encoding.cry recovers x from y per RFC 8032 §5.1.3 (square-
+// root via field_pow_p5d8 and sign fix-up via the LSB of x).
+//
+// The asm runs the same sequence of field operations on the radix-
+// 2^25.5 limbs; the Cryptol model collapses them to integer-mod-p
+// expressions. SAW verifies that decompressing the published base
+// point's y returns the published base point's x with status = valid,
+// and that sqrt(-1)^2 = -1 (the candidate-fix-up factor's defining
+// identity). The QEMU pytest at
+// tests/crypto/ed25519/test_ed25519_verify.py pins down the asm-vs-
+// Python observable equivalence transitively (every signature
+// verification calls decompress twice — once for the public key,
+// once for the signature R).
+//
+// Run standalone:
+//   saw proofs/crypto/ed25519/ed25519_point_decompress.saw
+// or via dispatcher:
+//   ./verify ed25519_point_decompress
+
+import "Ed25519Encoding.cry";
+
+print "[ed25519_point_decompress.saw] proving sqrt(-1)^2 == -1 (mod p) ...";
+prove_print z3 {{ sqrt_m1_squared_kat }};
+print "[ed25519_point_decompress.saw] sqrt(-1) is a fourth root of unity: PASS.";
+
+print "[ed25519_point_decompress.saw] proving recover_x(B_y, B_x mod 2) returns (valid, B_x) ...";
+prove_print z3 {{ decompress_base_kat }};
+print "[ed25519_point_decompress.saw] base point round-trips through decompression: PASS.";
+
+print "[ed25519_point_decompress.saw] PASS";

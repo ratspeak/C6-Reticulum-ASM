@@ -16,10 +16,15 @@
 #               Built on the same curve25519-donna `crecip` addition
 #               chain as x25519_field_inv, but stopping at
 #               sq^2(z2_250_0) * a instead of sq^5(z2_250_0) * z11.
-# @verify:      kat-only; the QEMU pytest checks the field identity
-#               a^((p-5)/8) for several a values via the
-#               point_decompress round-trip a → encoded → decoded → a.
-# @tests:       tests/crypto/ed25519/test_ed25519_point_decompress.py
+# @verify:      proofs/crypto/ed25519/Ed25519Encoding.cry, proofs/crypto/ed25519/ed25519_field_pow_p5d8.saw
+# @tests:       tests/crypto/ed25519/test_ed25519_verify.py
+#               (Tier A: SAW + Cryptol prove the boundary identities
+#               1^e == 1, 0^e == 0, and the related sqrt(-1)^2 == -1
+#               square-root identity (the fix-up factor used by
+#               point_decompress when v * cand^2 != u). Tier C bridge:
+#               the QEMU verify pytest exercises the field identity
+#               transitively — every signature verification calls
+#               point_decompress, which calls field_pow_p5d8 once.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================

@@ -14,12 +14,16 @@
 # @cycles:      bounded (≈ field_inv (~400K) + 2 field_mul + 2 field_pack)
 # @ct:          required (Z_inv via field_inv is already CT)
 # @spec:        RFC 8032 §5.1.2 (encoding)
-# @verify:      kat-only; the QEMU pytest exercises:
-#                 - identity point (X=0, Y=1, Z=1, T=0) → 0x01,0x00,...,0x00
-#                 - base point B → RFC 8032 §5.1.5 expected encoding
-#                 - decompress(compress(P)) = P (round trip via separate
-#                   pytest once point_decompress lands)
-# @tests:       tests/crypto/ed25519/test_ed25519_point_compress.py
+# @verify:      proofs/crypto/ed25519/Ed25519Encoding.cry, proofs/crypto/ed25519/ed25519_point_compress.saw
+# @tests:       tests/crypto/ed25519/test_ed25519_sign.py
+#               (Tier A: SAW + Cryptol prove the canonical identity
+#               encoding compress(O) == [0x01, 0, ..., 0] and the
+#               canonical base-point encoding compress(B) == the
+#               RFC 8032 §5.1 / IETF Test Vector base-point bytes.
+#               Tier C bridge: the QEMU sign pytest exercises compress
+#               transitively — every signature places compress(R) in
+#               its first 32 bytes, so the sign vs pyca/cryptography
+#               agreement implies compress agreement byte-for-byte.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================

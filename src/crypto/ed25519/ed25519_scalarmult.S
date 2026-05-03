@@ -16,16 +16,16 @@
 #               (selected via constant-time mask). No data-dependent
 #               branches on the secret scalar — the only conditional
 #               branch is the public 256-iteration loop counter.
-# @verify:      kat-only; the algebraic correctness reduces to the
-#               point_add and point_double formulas (BBJLP 2008) and
-#               the well-known double-and-add scalar multiplication.
-#               The QEMU pytest exercises:
-#                 - 0 · B = identity
-#                 - 1 · B = B
-#                 - L · B = identity  (L is the curve order)
-#                 - matches Python's pure25519 reference on random
-#                   non-trivial scalars.
-# @tests:       tests/crypto/ed25519/test_ed25519_scalarmult.py
+# @verify:      proofs/crypto/ed25519/Ed25519Encoding.cry, proofs/crypto/ed25519/ed25519_scalarmult.saw
+# @tests:       tests/crypto/ed25519/test_ed25519_sign.py
+#               (Tier A: SAW + Cryptol prove the boundary-bit-pattern
+#               KATs scalarmult(0, B) == O, scalarmult(1, B) == B,
+#               scalarmult(2, B) == double(B), and scalarmult(3, B)
+#               == double(B) + B — covering the empty, low-bit-only,
+#               high-bit-only, and mixed two-bit cases. Tier C bridge:
+#               the QEMU sign and verify pytests exercise scalarmult
+#               transitively against pyca/cryptography on the full
+#               256-bit secret / challenge scalars.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================
