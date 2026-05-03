@@ -1,7 +1,8 @@
 # Milestone 6: Link Establishment
 
-- **Status:** Active
+- **Status:** Complete
 - **Started:** 2026-05-03
+- **Completed:** 2026-05-03
 - **Estimate:** 6-8 weeks
 
 ## Goal
@@ -42,7 +43,7 @@ trip through the asm stack.
       packets while preserving the milestone-5 announce RX path.
 - [x] A TLA+ link state model covers request, accept, duplicate, reject,
       timeout, encrypted packet accept, and encrypted packet reject traces.
-- [ ] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
+- [x] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
       `pytest --hardware tests/hardware/`, and `./verify <fn>` pass for every
       function added or modified in this milestone.
 
@@ -331,3 +332,30 @@ Responsibilities:
 | Session encryption could expose plaintext before authentication | Decrypt path must have a source-shape proof that HMAC verification gates plaintext copy. |
 | Link table semantics may conflict with resource/channel needs | Keep replacement deterministic and document all statuses before resource transfer starts. |
 | C6 Ed25519/X25519 cost may make link setup slow | Measure with hardware tests; correctness remains the milestone gate. |
+
+## Retrospective
+
+Milestone 6 completed as a strict Reticulum subset: current HEADER_1 link
+requests with MTU signalling, bounded RAM link table state, X25519/HKDF
+session key derivation, Reticulum Token-compatible AES-256-CBC session
+encryption, and a dispatcher for link requests, established encrypted packets,
+and existing announce RX traffic. The largest deliberate subset is encrypted
+DATA context handling: milestone 6 proves one in-order context-0 encrypted
+packet, while resource and channel contexts move to milestone 7.
+
+The link table is intentionally small (`4` entries) and RAM-only. Replacement
+uses the same existing/first-invalid/oldest-age rule established for transport
+paths, which kept the state machine finite enough for direct QEMU tests and the
+TLA+ model. Accept-side link proof/signature packets are still deferred; the
+milestone proves shared-key establishment and encrypted payload handling, not
+full peer identity proof exchange.
+
+Final gates on 2026-05-03:
+
+- `./verify --module link` passed for all eight milestone-6 link functions.
+- `make ci` passed with `649 passed, 14 skipped`.
+- `make build TARGET=qemu-virt` and `make build TARGET=c6` passed.
+- `pytest --hardware tests/hardware/ -q -p no:cacheprovider` passed with
+  `14 passed`.
+- Stack maximum remained `2304 / 16384` bytes.
+- `git diff --check` passed.

@@ -182,10 +182,26 @@ Reticulum identity state, destination hash helpers, announce builder,
 and KISS announce TX dispatcher verified under qemu-virt).
 See [docs/milestones/milestone-3.md](docs/milestones/milestone-3.md).
 
-**Milestone 4 — Flash persistence** (Active 2026-05-03:
-persists the local Reticulum identity in a reserved flash sector and
-loads it before announce TX after reset).
+**Milestone 4 — Flash persistence** (Complete 2026-05-03:
+qemu flash model, C6 ROM-helper flash backend, and identity persistence
+verified through reset-retention hardware tests).
 See [docs/milestones/milestone-4.md](docs/milestones/milestone-4.md).
+
+**Milestone 5 — Transport RX** (Complete 2026-05-03:
+inbound announces, signature validation, bounded path table, main-loop RX
+integration, and transport TLA+ model verified).
+See [docs/milestones/milestone-5.md](docs/milestones/milestone-5.md).
+
+**Milestone 6 — Link establishment** (Complete 2026-05-03:
+link requests, bounded link table, X25519/HKDF session derivation,
+Reticulum Token-compatible AES-256-CBC session packets, dispatcher, and link
+TLA+ model verified).
+See [docs/milestones/milestone-6.md](docs/milestones/milestone-6.md).
+
+**Milestone 7 — Resource / Channel** (Active 2026-05-03:
+bounded channel envelopes, resource advertisement parsing, resource part
+receive, and in-RAM reassembly over established encrypted links).
+See [docs/milestones/milestone-7.md](docs/milestones/milestone-7.md).
 
 Update this section whenever a milestone becomes active or completes.
 

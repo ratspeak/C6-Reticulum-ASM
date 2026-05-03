@@ -15,8 +15,8 @@ spec for each milestone.
 | 3 | Identity + announce TX | Complete (2026-05-03) | [milestone-3.md](milestone-3.md) |
 | 4 | Flash persistence | Complete (2026-05-03) | [milestone-4.md](milestone-4.md) |
 | 5 | Transport RX | Complete (2026-05-03) | [milestone-5.md](milestone-5.md) |
-| 6 | Link establishment | Active (2026-05-03) | [milestone-6.md](milestone-6.md) |
-| 7 | Resource / channel | Planned | (spec written when activated) |
+| 6 | Link establishment | Complete (2026-05-03) | [milestone-6.md](milestone-6.md) |
+| 7 | Resource / channel | Active (2026-05-03) | [milestone-7.md](milestone-7.md) |
 | 8 | LoRa SPI interface | Planned | (spec written when activated) |
 | 9 | LXMF | Planned | (spec written when activated) |
 

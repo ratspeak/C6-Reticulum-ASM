@@ -103,8 +103,8 @@ developer working full-time, with verification overhead included.
 | 3 | Identity + announce TX | Complete (2026-05-03) | 3–4 wk | TLA+ for announce state machine; signature verified end-to-end |
 | 4 | Flash persistence | Complete (2026-05-03) | 2–3 wk | Symbolic execution on flash driver; identity round-trip proven on C6 hardware |
 | 5 | Transport RX (announce processing, paths) | Complete (2026-05-03) | 4–6 wk | TLA+ for transport state; signature verify on inbound |
-| 6 | Link establishment | Active (2026-05-03) | 6–8 wk | TLA+ for link state machine; AES session round-trip proven |
-| 7 | Resource / channel | Planned | 4–6 wk | Refinement proof against reference behavior |
+| 6 | Link establishment | Complete (2026-05-03) | 6–8 wk | TLA+ for link state machine; AES session round-trip proven |
+| 7 | Resource / channel | Active (2026-05-03) | 4–6 wk | Refinement proof against reference behavior |
 | 8 | LoRa SPI interface | Planned | 4–6 wk | Driver contracts; symbolic execution; first wireless milestone |
 | 9 | LXMF | Planned | 6–8 wk | TLA+ for router; message round-trip proven |
 | Later | Native WiFi / BLE / 802.15.4 in asm | Deferred | 12+ mo each | Each gets its own ADR and roadmap |
