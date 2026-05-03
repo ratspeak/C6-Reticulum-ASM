@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 4 is closed and milestone 5 is active through b50122d. All planned milestone-5 registry functions and `_main` RX integration are verified; current gates passed: `./verify _main`, `make ci` (`572 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Remaining work: transport state-machine proof/closeout.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 5 is closed and milestone 6 is active through 7bfa97b. Current gates passed: all milestone-5 focused `./verify` targets, `make ci` (`572 passed, 14 skipped`), qemu/C6 builds, hardware suite (`14 passed`), registry, stack max 2304/16384, and `git diff --check`. Eligible milestone-6 claims: `link_request_build`, `link_request_parse`, `link_handshake_init`, `link_handshake_accept`, `link_derive_keys`, `link_session_encrypt`, `link_session_decrypt`, `link_process_packet`.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Close milestone 5 Transport RX and activate milestone 6 Link Establishment; adds `docs/milestones/milestone-6.md`, updates roadmap/registry counts, records final M5 proof/hardware gates, and leaves M6 link functions planned — branch: main, integrated as 7bfa97b 2026-05-03T11:41:00Z
 - [agent-1] Wire `_main` announce RX integration; initializes path table, routes parsed HEADER_1 announce frames through `transport_process_announce`, and logs valid/path-updated vs invalid status-only events with focused qemu tests — branch: main, integrated as b50122d 2026-05-03T11:17:00Z
 - [agent-1] Implement verified `transport_process_announce`; composes parse/validate/path lookup/path update, returns stable new-vs-update statuses, has direct-QEMU valid/duplicate/invalid coverage, and source contract proof — branch: main, integrated as a9e1ad3 2026-05-03T11:03:00Z
 - [agent-1] Implement verified transport path table; adds fixed RAM table state, init/update/lookup, deterministic existing/first-invalid/oldest-age replacement, direct-QEMU coverage, and finite model/source proof — branch: main, integrated as fd1544f 2026-05-03T10:46:00Z
