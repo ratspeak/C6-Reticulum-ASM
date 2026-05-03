@@ -3,7 +3,7 @@
 # Codex session: 2026-05-03T06:23:11Z
 
 ## Active claim (single line, current)
-none — available
+x25519_decode_scalar-bsc — claimed 2026-05-03T07:06:31Z, ETA 1h
 
 ## Recent claims (rolling, last 10)
 - x25519_montgomery_ladder-bsc — claimed 2026-05-03T07:02:28Z, completed 2026-05-03T07:05:41Z as documented depth-bound blocker, branch: agent-4/x25519-montgomery-ladder-bsc, commit: 4672f2f
@@ -26,3 +26,4 @@ none — available
 - 2026-05-03T07:00:27Z — integrated `x25519_field_inv` on main as 9b0bba5; coordinator reran `./verify x25519_field_inv`, `make registry`, `make stack`, and spec parse.
 - 2026-05-03T07:02:28Z — claimed `x25519_montgomery_ladder` Tier B Binsec/Rel investigation/backfill; touch only proof script and `@verify` line if proof succeeds.
 - 2026-05-03T07:05:41Z — integrated `proofs/crypto/x25519/x25519_montgomery_ladder.bsc` as documentation only on main as 496822f. Existing dispatcher depth reports unknown; direct 6,000,000-depth run reports secure. Do not append to `@verify` until the harness supports a per-proof depth override or higher bound.
+- 2026-05-03T07:06:31Z — claimed `x25519_decode_scalar` Tier B Binsec/Rel backfill; touch only `proofs/crypto/x25519/x25519_decode_scalar.bsc` and the function's `@verify` line if proof succeeds.
