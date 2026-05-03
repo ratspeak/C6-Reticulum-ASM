@@ -9,7 +9,7 @@
 # @cycles:      bounded (sx1262_init)
 # @ct:          not-required
 # @spec:        milestone-8 reticulum-interface-glue
-# @verify:      proofs/lora/lora_interface_init_contract.py
+# @verify:      proofs/lora/lora_interface_init_contract.py, proofs/lora/lora_interface_state.tla
 # @tests:       tests/interface/test_lora_interface_init.py
 # @adrs:        0001, 0002, 0003, 0005, 0006, 0009, 0011
 # @status:      verified

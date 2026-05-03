@@ -9,7 +9,7 @@
 # @cycles:      bounded (one SX1262 RX poll plus packet dispatch)
 # @ct:          not-required
 # @spec:        milestone-8 reticulum-interface-glue
-# @verify:      proofs/lora/lora_interface_poll_contract.py
+# @verify:      proofs/lora/lora_interface_poll_contract.py, proofs/lora/lora_interface_state.tla
 # @tests:       tests/interface/test_lora_interface_poll.py
 # @adrs:        0001, 0002, 0003, 0005, 0006, 0009, 0011
 # @status:      verified

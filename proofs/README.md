@@ -21,6 +21,7 @@ proofs/                     (renamed from verify/, see ADR-0008)
 ├── transport/              (added in milestone 5) TLA+ for transport
 ├── link/                   (added in milestone 6) TLA+ for link state
 ├── resource/               (added in milestone 7) TLA+ and source contracts for resources/channels
+├── lora/                   (added in milestone 8) TLA+ and source contracts for SX1262/LoRa
 └── output/                 (gitignored) verifier outputs and intermediate files
 ```
 

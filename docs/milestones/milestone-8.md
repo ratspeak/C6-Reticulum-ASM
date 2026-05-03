@@ -49,7 +49,7 @@ receive one packet at a time without heap allocation.
 - [x] `_main` initializes the native LoRa interface during boot, preserves the
       USB/KISS development path with a nonblocking UART pump, and polls one
       LoRa frame per idle loop.
-- [ ] A TLA+ LoRa interface state model covers reset, configure, idle, TX,
+- [x] A TLA+ LoRa interface state model covers reset, configure, idle, TX,
       TX timeout, RX, RX error, and recovery traces.
 - [ ] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
       `pytest --hardware tests/hardware/`, and `./verify <fn>` pass for every
@@ -173,7 +173,8 @@ Responsibilities:
 
 ## Verifier Plan
 
-- TLA+ model for LoRa reset/configure/TX/RX/error recovery traces.
+- TLA+ model [proofs/lora/lora_interface_state.tla](../../proofs/lora/lora_interface_state.tla)
+  for LoRa reset/configure/TX/RX/error recovery traces.
 - Hardware-register source contracts for GPIO and SPI helpers.
 - Direct qemu tests against a deterministic SPI/SX1262 model for command,
   timeout, overflow, and IRQ transitions.
