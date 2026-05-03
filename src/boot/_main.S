@@ -166,6 +166,10 @@
         .ascii "ed25519\tsign\thex="
 .Led25519_sign_tag_end:
         .equ   .Led25519_sign_tag_len, .Led25519_sign_tag_end - .Led25519_sign_tag
+.Led25519_verify_tag:
+        .ascii "ed25519\tverify\thex="
+.Led25519_verify_tag_end:
+        .equ   .Led25519_verify_tag_len, .Led25519_verify_tag_end - .Led25519_verify_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -259,6 +263,8 @@ _main:
         beq     t1, t2, .Led25519_keypair_kat
         li      t2, 0x47                /* 'G' for ed25519_sign           */
         beq     t1, t2, .Led25519_sign_kat
+        li      t2, 0x79                /* 'y' for ed25519_verify         */
+        beq     t1, t2, .Led25519_verify_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -817,6 +823,37 @@ _main:
         call    log_str
         la      a0, x25519_field_buf
         li      a1, 40
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Led25519_verify_kat:
+        /* ed25519_verify: 'y' || sig[64] || pk[32] || msg[*] →
+         * 1 byte (0x00 = valid, 0x01 = invalid) emitted as 2 hex chars. */
+        la      t0, kiss_buf
+        addi    a0, t0, 1               /* sig_ptr                        */
+        addi    a1, t0, 1 + 64 + 32     /* msg_ptr (after sig + pk)       */
+        la      t1, kiss_buf_len
+        lw      a2, 0(t1)
+        addi    a2, a2, -97             /* msg_len = total - 1 - 64 - 32  */
+        addi    a3, t0, 1 + 64          /* pk_ptr                         */
+        call    ed25519_verify
+        # Store the return code into a 1-byte buffer for log_hex_buf.
+        la      t0, kiss_buf
+        sb      a0, 0(t0)               /* repurpose kiss_buf[0] = result */
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Led25519_verify_tag
+        li      a1, .Led25519_verify_tag_len
+        call    log_str
+        la      a0, kiss_buf
+        li      a1, 1
         call    log_hex_buf
         li      a0, 13
         call    uart_tx_byte

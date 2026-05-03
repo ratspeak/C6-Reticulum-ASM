@@ -67,3 +67,12 @@ ed25519_base_point:
         .word 0x01b7dda3, 0x001a2ace9, 0x025eadbb, 0x00003ba8a, 0x0083c27e
         .word 0x000abe37d, 0x01274732, 0x000ccacdd, 0x00fd78b7, 0x019e1d7c
         .size ed25519_base_point, 160
+
+        # ---- sqrt(-1) mod p in 10-limb form (Ed25519 point decompress)
+        # = 2^((p-1)/4) mod p
+        .global ed25519_sqrt_m1_limbs
+        .balign 4
+ed25519_sqrt_m1_limbs:
+        .word 0x020ea0b0, 0x00186c9d2, 0x0008f189d, 0x000035697f, 0x000bd0c60
+        .word 0x001fbd7a7, 0x02804c9e, 0x0001e16569, 0x00004fc1d, 0x00ae0c92
+        .size ed25519_sqrt_m1_limbs, 40
