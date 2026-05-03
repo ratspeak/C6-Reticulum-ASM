@@ -16,7 +16,7 @@
 #               bit (255) is dropped because the wire form has 256 bits
 #               but the field has 255; callers requiring the RFC 7748
 #               u-coordinate high-bit mask wrap this with x25519_decode_u.
-# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_unpack.saw, proofs/crypto/x25519/x25519_field_unpack.py
+# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_unpack.saw, proofs/crypto/x25519/x25519_field_unpack.py, proofs/crypto/x25519/x25519_field_unpack.bsc
 # @tests:       tests/crypto/x25519/test_x25519_field_unpack.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
