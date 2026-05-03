@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 7 is active through b1ef640. Latest integrated slice: milestone-6 closeout and milestone-7 activation. Current gates passed: `./verify --module link`, `make ci` (`649 passed, 14 skipped`), qemu/C6 builds, hardware suite `14 passed`, registry, stack max 2304/16384, and `git diff --check`. First eligible milestone-7 claims: `channel_envelope_build`, `channel_envelope_parse`, `resource_part_parse`, `resource_reassembly_init`.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 7 is active through 5b8a70c. Latest integrated slice: verified channel envelope build/parse. Current gates passed: `./verify channel_envelope_build`, `./verify channel_envelope_parse`, `make ci` (`667 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-7 claims: `resource_advertisement_parse`, `resource_part_parse`, `resource_reassembly_init`, `resource_reassembly_update`, `resource_process_plaintext`.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified milestone-7 channel envelopes; adds resource constants, build/parse for upstream `msgtype || sequence || length || payload`, direct-QEMU boundary coverage, and source contract proof — branch: main, integrated as 5b8a70c 2026-05-03T13:18:00Z
 - [agent-1] Close milestone 6 Link Establishment and activate milestone 7 Resource / Channel; marks all M6 DoD items complete, adds the milestone-7 spec, updates roadmap/current-milestone docs, and registers planned resource/channel functions — branch: main, integrated as b1ef640 2026-05-03T13:05:00Z
 - [agent-1] Add milestone-6 link state TLA+ model; covers request accept, duplicate, reject, timeout, encrypted packet accept, and encrypted packet reject traces, and wires the model into `link_process_packet` verification — branch: main, integrated as d2dc272 2026-05-03T12:56:00Z
 - [agent-1] Implement verified `link_process_packet`; dispatches link requests through parse/accept, HEADER_1 link DATA by established link ID through session decrypt, and announces through the milestone-5 transport path, with direct-QEMU dispatch tests and source contract proof — branch: main, integrated as b7ed4ce 2026-05-03T12:51:00Z
