@@ -324,7 +324,7 @@ Reticulum announce transmission over the current KISS serial development interfa
 |----------|--------|-------|-----------|------|------|
 | `announce_build` | ◉ verified |  | `identity_create`, `destination_name_hash`, `destination_hash`, `rng_bytes`, `ed25519_sign` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#announce_build) |
 | `announce_send` | ◉ verified |  | `announce_build`, `packet_serialize_header`, `kiss_encode_frame`, `uart_tx_bytes` | 0001, 0002, 0004, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#announce_send) |
-| `announce_parse` | ☐ planned |  | `packet_parse_header` | 0001, 0002, 0005, 0006, 0009 | [milestone-5](docs/milestones/milestone-5.md#announce_parse) |
+| `announce_parse` | ◉ verified |  | `packet_parse_header` | 0001, 0002, 0005, 0006, 0009 | [milestone-5](docs/milestones/milestone-5.md#announce_parse) |
 | `announce_validate` | ☐ planned |  | `announce_parse`, `identity_hash`, `destination_hash`, `ed25519_verify` | 0001, 0002, 0005, 0006, 0009 | [milestone-5](docs/milestones/milestone-5.md#announce_validate) |
 
 ## Module: `transport`

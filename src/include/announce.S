@@ -1,4 +1,4 @@
-/* Reticulum HEADER_1 announce constants for milestone 3.
+/* Reticulum HEADER_1 announce constants for milestones 3 and 5.
  *
  * Non-ratchet announce packet:
  *   flags[1] || hops[1] || destination_hash[16] || context[1] ||
@@ -8,11 +8,17 @@
 
         .include "config.S"
 
+        .equ ANNOUNCE_OK,                    0
+        .equ ANNOUNCE_ERR_INVAL,            -1
+
         .equ ANNOUNCE_HEADER_FLAGS,          0x01
         .equ ANNOUNCE_HEADER_HOPS,           0x00
         .equ ANNOUNCE_CONTEXT_NONE,          0x00
 
         .equ ANNOUNCE_HEADER_LEN,            19
+        .equ ANNOUNCE_DESTINATION_HASH_SIZE, 16
+        .equ ANNOUNCE_PUBLIC_KEY_SIZE,       64
+        .equ ANNOUNCE_NAME_HASH_SIZE,        10
         .equ ANNOUNCE_RANDOM_HASH_SIZE,      10
         .equ ANNOUNCE_SIGNATURE_SIZE,        64
 
@@ -40,3 +46,20 @@
         .equ ANNOUNCE_KISS_TX_CAPACITY,      (RETICULUM_MDU * 2) + 3
         .equ ANNOUNCE_SIGNED_FIXED_LEN,      100
         .equ ANNOUNCE_SIGNED_DATA_MAX,       417
+
+        /* announce_rx_t struct offsets (180 bytes total).
+         *
+         * App data remains a view into the bounded raw packet buffer:
+         * ANNOUNCE_RX_OFF_APP_DATA_PTR points at raw_packet + 167 and
+         * ANNOUNCE_RX_OFF_APP_DATA_LEN gives the number of bytes to read.
+         */
+        .equ ANNOUNCE_RX_OFF_RAW_LEN,         0
+        .equ ANNOUNCE_RX_OFF_PAYLOAD_LEN,     4
+        .equ ANNOUNCE_RX_OFF_APP_DATA_LEN,    8
+        .equ ANNOUNCE_RX_OFF_DEST_HASH,       12
+        .equ ANNOUNCE_RX_OFF_PUBLIC_KEY,      28
+        .equ ANNOUNCE_RX_OFF_NAME_HASH,       92
+        .equ ANNOUNCE_RX_OFF_RANDOM_HASH,     102
+        .equ ANNOUNCE_RX_OFF_SIGNATURE,       112
+        .equ ANNOUNCE_RX_OFF_APP_DATA_PTR,    176
+        .equ ANNOUNCE_RX_T_SIZE,              180

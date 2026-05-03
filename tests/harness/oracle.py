@@ -39,6 +39,7 @@ DESTINATION_NAME_HASH_LEN = 10
 DESTINATION_HASH_LEN = 16
 ANNOUNCE_RANDOM_HASH_LEN = 10
 ANNOUNCE_SIGNATURE_LEN = 64
+RETICULUM_MDU = 484
 
 HEADER_1_ANNOUNCE_FLAGS = 0x01
 HEADER_1_HOPS = 0x00
@@ -586,6 +587,10 @@ def announce_parse(raw_packet: bytes) -> AnnounceOracle:
     if len(raw_packet) < min_len:
         raise ValueError(
             f"announce packet too short: got {len(raw_packet)}, need at least {min_len}"
+        )
+    if len(raw_packet) > RETICULUM_MDU:
+        raise ValueError(
+            f"announce packet exceeds Reticulum MDU: got {len(raw_packet)}, max {RETICULUM_MDU}"
         )
     if raw_packet[0] != HEADER_1_ANNOUNCE_FLAGS:
         raise ValueError(f"not a HEADER_1 announce: flags=0x{raw_packet[0]:02x}")
