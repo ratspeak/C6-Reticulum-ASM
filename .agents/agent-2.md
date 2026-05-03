@@ -3,9 +3,10 @@
 # Codex session: 2026-05-03T06:19:34Z
 
 ## Active claim (single line, current)
-flash-driver-verification — claimed 2026-05-03T07:41:30Z, ETA 3h
+none
 
 ## Recent claims (rolling, last 10)
+- flash-driver-verification — claimed 2026-05-03T07:41:30Z, completed 2026-05-03T07:48:22Z, branch: agent-2/flash-driver-verification, commit: 4a8c88c, integrated as b77b587
 - flash-driver-qemu-model — claimed 2026-05-03T07:33:11Z, completed 2026-05-03T07:39:12Z, branch: agent-2/flash-driver-qemu-model, commit: 7aaa8dc, integrated as 604b2c1
 - announce_send — claimed 2026-05-03T07:10:41Z, completed 2026-05-03T07:18:20Z, branch: agent-2/announce-send, commit: d659dd5, integrated as dd8ead3
 - announce_build — claimed 2026-05-03T06:56:28Z, completed 2026-05-03T07:06:01Z, branch: agent-2/announce-build, commit: b478aa6, integrated as 1e008e9
@@ -24,3 +25,5 @@ flash-driver-verification — claimed 2026-05-03T07:41:30Z, ETA 3h
 - 2026-05-03T07:33:11Z — claimed milestone-4 qemu flash driver/model; owns `src/include/flash.S`, `src/state/flash.S`, `src/flash/flash_init.S`, `src/flash/flash_read.S`, `src/flash/flash_write_page.S`, `src/flash/flash_erase_sector.S`, `tests/flash/test_flash_driver.py`, and focused verifier artifacts. Avoid `identity_save`, `identity_load`, `_main`, and hardware docs.
 - 2026-05-03T07:39:12Z — completed qemu flash driver/model on branch `agent-2/flash-driver-qemu-model` commit 7aaa8dc; gates passed: spec parse for all four flash functions, focused QEMU pytest, `make registry`, `make stack`, `git diff --check`.
 - 2026-05-03T07:41:30Z — integrated qemu flash model on main as 604b2c1; coordinator reran spec parses, focused QEMU pytest, `./verify flash_init`, `./verify flash_read`, `./verify flash_write_page`, `./verify flash_erase_sector`, `make registry`, `make stack`, `make build TARGET=qemu-virt`, and `git diff --check`. Functions remain `tested` pending symbolic/hardware verification; claimed follow-up verification lane.
+- 2026-05-03T07:48:22Z — completed flash driver verification on branch `agent-2/flash-driver-verification` commit 4a8c88c; statuses moved to verified after `proofs/flash/flash_qemu_model.py` proved qemu bounds/page/no-0-to-1/unchanged-on-failure obligations through `./verify flash_*`.
+- 2026-05-03T07:50:54Z — integrated flash driver verification on main as b77b587; coordinator reran `python3 proofs/flash/flash_qemu_model.py`, focused `./verify flash_*`, `make registry`, and `git diff --check`.

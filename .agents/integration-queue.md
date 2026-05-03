@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-2] Merge milestone-4 flash driver verification; adds `proofs/flash/flash_qemu_model.py`, wires it into all four flash `@verify` fields, and moves `flash_init`, `flash_read`, `flash_write_page`, and `flash_erase_sector` from tested to verified after focused `./verify flash_*` passes — branch: agent-2/flash-driver-verification, commit: 4a8c88c, integrated as b77b587 2026-05-03T07:50:54Z
 - [agent-5] Merge milestone-4 TARGET_C6 flash hardware contract and reset-retention test anchor; adds `docs/hardware/flash.md`, hardware docs index, and `tests/hardware/test_flash_persistence.py` contract constants/pending dispatcher test — branch: agent-5/flash-hardware-contract, commit: 3d415a0, integrated as b39f842 2026-05-03T07:42:31Z
 - [agent-2] Merge milestone-4 qemu flash driver/model; adds flash constants/state, `flash_init`, `flash_read`, `flash_write_page`, `flash_erase_sector`, and focused direct-QEMU tests for erase/read/write/page bounds/0-to-1 unchanged failure semantics — branch: agent-2/flash-driver-qemu-model, commit: 7aaa8dc, integrated as 604b2c1 2026-05-03T07:41:30Z
 - [agent-4] Add Tier B proof `proofs/crypto/x25519/x25519_field_pack.bsc` and append it to `src/crypto/x25519/x25519_field_pack.S` `@verify` — branch: agent-4/x25519-field-pack-bsc, commit: eceaf96, integrated as 918a7ee 2026-05-03T07:28:58Z
