@@ -7,6 +7,7 @@
         .equ LXMF_ERR_OVERFLOW,                  -2
 
         .equ LXMF_HASH_SIZE,                     16
+        .equ LXMF_MESSAGE_ID_SIZE,               32
         .equ LXMF_SIGNATURE_SIZE,                64
         .equ LXMF_TIMESTAMP_SIZE,                8
         .equ LXMF_STRUCT_OVERHEAD,               8

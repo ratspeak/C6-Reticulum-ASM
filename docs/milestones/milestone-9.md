@@ -40,7 +40,7 @@ compatibility mode.
 - [x] Payload build/parse accepts the bounded MessagePack subset needed for
       timestamp, title, content, empty/custom fields, and optional stamp stripping
       for message-id/signature validation.
-- [ ] `lxmf_message_id` computes `SHA256(destination || source || payload_without_stamp)`
+- [x] `lxmf_message_id` computes `SHA256(destination || source || payload_without_stamp)`
       and uses the exact payload bytes that were or will be signed.
 - [ ] `lxmf_message_sign` and `lxmf_message_verify` sign/verify
       `destination || source || payload_without_stamp || message_id` with the

@@ -2,14 +2,15 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 9 is active after closing milestone 8. Latest integrated slice: verified `lxmf_payload_parse`; the bounded LXMF payload codec is now complete. Current gates: `./verify --module lxmf`; `make ci` (`808 passed, 15 skipped`); qemu/C6 builds; registry; stack max 2496/16384; and `git diff --check`. USB endpoint is `/dev/cu.usbmodem4101` (`ESP32-C6FH4`, MAC `98:88:e0:ff:fe:61:14:e4`).
+- parallel session live — 2026-05-03T06:18:00Z; milestone 9 is active after closing milestone 8. Latest integrated slice: verified `lxmf_message_id` over exact no-stamp payload bytes. Current gates: `./verify --module lxmf`; `make ci` (`821 passed, 15 skipped`); qemu/C6 builds; registry; stack max 2496/16384; and `git diff --check`. USB endpoint is `/dev/cu.usbmodem4101` (`ESP32-C6FH4`, MAC `98:88:e0:ff:fe:61:14:e4`).
 
 ## Pending
 
-- lxmf-message-id — next milestone-9 slice; compute `SHA256(destination_hash || source_hash || payload_without_stamp)` using exact parser output bytes
+- lxmf-message-sign-verify — next milestone-9 slice; sign and verify `destination_hash || source_hash || payload_without_stamp || message_id`
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified `lxmf_message_id`; composes SHA-256 over destination hash, source hash, and exact `payload_without_stamp` bytes, with direct-QEMU KATs against hashlib/upstream `RNS.Identity.full_hash` — branch: main, current slice 2026-05-03T22:35:07Z
 - [agent-1] Implement verified `lxmf_payload_parse`; accepts array4 and array5 LXMF payloads, preserves timestamp/title/content/fields/stamp views, rejects unsupported nested field structures, and normalises stamped payloads into exact no-stamp bytes for message-id/signature validation — branch: main, current slice 2026-05-03T22:28:54Z
 - [agent-1] Implement verified `lxmf_payload_build`; builds upstream-compatible `msgpack([timestamp_f64, title_bin, content_bin, fields_map])` from bounded inputs, accepts implicit empty fields or caller-supplied msgpacked map bytes, adds direct-QEMU tests and a source/upstream-vector verifier — branch: main, current slice 2026-05-03T22:12:39Z
 - [agent-1] Implement verified `lxmf_delivery_announce_build`; adds LXMF constants, Makefile source inclusion, upstream-compatible msgpack delivery announce app-data for nil/bin8 display names and nil/fixint/uint8 stamp costs, direct-QEMU tests, and a source/upstream-vector verifier — branch: main, current slice 2026-05-03T21:56:31Z
