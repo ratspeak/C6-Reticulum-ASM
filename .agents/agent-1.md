@@ -15,3 +15,4 @@ parallel-session-live — claimed 2026-05-03T06:18:00Z, ETA ongoing
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
 - Active milestone is milestone 4; first eligible claims are `flash_init`, `flash_read`, `flash_write_page`, `flash_erase_sector`, `identity_save`, and `identity_load`.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
+- 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.

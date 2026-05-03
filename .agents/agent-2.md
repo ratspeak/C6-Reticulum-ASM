@@ -3,7 +3,7 @@
 # Codex session: 2026-05-03T06:19:34Z
 
 ## Active claim (single line, current)
-none
+none — available
 
 ## Recent claims (rolling, last 10)
 - flash-driver-verification — claimed 2026-05-03T07:41:30Z, completed 2026-05-03T07:48:22Z, branch: agent-2/flash-driver-verification, commit: 4a8c88c, integrated as b77b587

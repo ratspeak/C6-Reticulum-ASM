@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; baseline `make ci` and `./verify --all` passed; milestone 4 is active as of 40493eb
+- parallel session live — 2026-05-03T06:18:00Z; baseline `make ci` and `./verify --all` passed; milestone 4 is active as of 40493eb; current flash baseline 143055f passed `make ci`, qemu/C6 builds, and `./verify --all` at 2026-05-03T07:57:41Z
 
 ## Pending
 
