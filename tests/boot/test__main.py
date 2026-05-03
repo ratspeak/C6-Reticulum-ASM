@@ -71,12 +71,35 @@ def test_banner_has_canonical_timestamp_field(
     assert ev.ts_ms < 100, f"boot to ready took {ev.ts_ms} ms — investigate"
 
 
-def _expected_identity_and_random() -> tuple[oracle.IdentityMaterial, bytes]:
+def _expected_identity_and_randoms(count: int) -> tuple[oracle.IdentityMaterial, list[bytes]]:
     k, v = drbg_oracle.drbg_instantiate()
     x25519_sk, k, v = drbg_oracle.drbg_generate(k, v, 32)
     ed25519_seed, k, v = drbg_oracle.drbg_generate(k, v, 32)
-    random_hash, _k, _v = drbg_oracle.drbg_generate(k, v, 10)
-    return oracle.identity_from_private_parts(x25519_sk, ed25519_seed), random_hash
+    random_hashes: list[bytes] = []
+    for _ in range(count):
+        random_hash, k, v = drbg_oracle.drbg_generate(k, v, 10)
+        random_hashes.append(random_hash)
+    return oracle.identity_from_private_parts(x25519_sk, ed25519_seed), random_hashes
+
+
+def _expected_identity_and_random() -> tuple[oracle.IdentityMaterial, bytes]:
+    identity, random_hashes = _expected_identity_and_randoms(1)
+    return identity, random_hashes[0]
+
+
+def _kiss_frames_from_output(out: bytes) -> list[bytes]:
+    frames: list[bytes] = []
+    pos = 0
+    fend = bytes([oracle.KISS_FEND])
+    while True:
+        start = out.find(fend, pos)
+        if start < 0:
+            return frames
+        end = out.find(fend, start + 1)
+        if end < 0:
+            return frames
+        frames.append(out[start:end + 1])
+        pos = end + 1
 
 
 def test_announce_command_emits_valid_kiss_frame(
@@ -117,6 +140,7 @@ def test_announce_command_emits_valid_kiss_frame(
 
     assert log_parser.find_event(events, module="boot", event="ready")
     assert log_parser.find_event(events, module="kiss", event="rx_frame")
+    assert log_parser.find_event(events, module="identity", event="created")
     assert log_parser.find_event(events, module="identity", event="ready")
     assert log_parser.find_event(
         events, module="announce", event="built", len=str(len(expected.raw_packet))
@@ -129,3 +153,45 @@ def test_announce_command_emits_valid_kiss_frame(
     assert oracle.announce_validate_pyca(expected.raw_packet)
     if importlib.util.find_spec("RNS") is not None:
         assert oracle.announce_validate_upstream(expected.raw_packet)
+
+
+def test_second_announce_reuses_loaded_identity(
+    artifacts: build.BuildArtifacts,
+) -> None:
+    pytest.importorskip("cryptography", reason="pyca required for announce oracle")
+    name_hash = oracle.destination_name_hash_from_parts("lxmf", "delivery")
+    first_app = b"first"
+    second_app = b"second"
+    command = (
+        oracle.kiss_encode(b"N" + name_hash + first_app)
+        + oracle.kiss_encode(b"N" + name_hash + second_app)
+    )
+
+    cfg = target.TargetConfig(binary=artifacts.elf)
+    t = target.EmuTarget(cfg)
+    if not t.is_available():
+        pytest.skip("qemu-system-riscv32 not available")
+
+    out = bytearray()
+    with t:
+        t.write(command)
+        for _ in range(220):
+            out.extend(t.read(4096, timeout=0.5))
+            if len(_kiss_frames_from_output(bytes(out))) >= 2:
+                break
+
+    identity, random_hashes = _expected_identity_and_randoms(2)
+    expected_first = oracle.announce_build(
+        identity, name_hash, random_hashes[0], first_app
+    )
+    expected_second = oracle.announce_build(
+        identity, name_hash, random_hashes[1], second_app
+    )
+    frames = _kiss_frames_from_output(bytes(out))
+    assert len(frames) >= 2, bytes(out)
+    assert frames[0] == oracle.kiss_encode(expected_first.raw_packet)
+    assert frames[1] == oracle.kiss_encode(expected_second.raw_packet)
+    assert b"\tidentity\tcreated" in out
+    assert b"\tidentity\tloaded" in out
+    assert oracle.kiss_decode(frames[0]) == [expected_first.raw_packet]
+    assert oracle.kiss_decode(frames[1]) == [expected_second.raw_packet]

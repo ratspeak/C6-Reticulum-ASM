@@ -25,7 +25,12 @@
  *        if status == 1:                    // frame complete
  *            log_event("kiss\\trx_frame");
  *            if frame[0] == 'N':
- *                identity_create(identity_current);
+ *                if identity_load(identity_current) == missing:
+ *                    identity_create(identity_current);
+ *                    identity_save(identity_current);
+ *                    log_event("identity\\tcreated");
+ *                else:
+ *                    log_event("identity\\tloaded");
  *                log_event("identity\\tready");
  *                announce_send(identity_current, frame+1, frame+11, len-11);
  *            ok = packet_parse_header(kiss_buf, kiss_buf_len, packet_struct);
@@ -40,6 +45,7 @@
 
         .include "packet.S"
         .include "aes.S"
+        .include "identity.S"
 
         .section .rodata.boot_event_tags, "a"
 .Lboot_ready_tag:
@@ -66,6 +72,14 @@
         .ascii "identity\tready"
 .Lidentity_ready_tag_end:
         .equ   .Lidentity_ready_tag_len, .Lidentity_ready_tag_end - .Lidentity_ready_tag
+.Lidentity_loaded_tag:
+        .ascii "identity\tloaded"
+.Lidentity_loaded_tag_end:
+        .equ   .Lidentity_loaded_tag_len, .Lidentity_loaded_tag_end - .Lidentity_loaded_tag
+.Lidentity_created_tag:
+        .ascii "identity\tcreated"
+.Lidentity_created_tag_end:
+        .equ   .Lidentity_created_tag_len, .Lidentity_created_tag_end - .Lidentity_created_tag
 .Lannounce_err_tag:
         .ascii "announce\terror"
 .Lannounce_err_tag_end:
@@ -196,6 +210,7 @@ _main:
         call    uart_init
         call    log_init
         call    rng_init                /* zero deterministic counter   */
+        call    flash_init
 
         la      a0, .Lboot_ready_tag
         li      a1, .Lboot_ready_tag_len
@@ -1093,10 +1108,10 @@ _main:
         j       .Lloop
 
 .Lannounce_send_cmd:
-        /* Milestone-3 announce TX command:
+        /* Milestone-4 announce TX command:
          *   'N' || name_hash[10] || app_data[*]
-         * The identity is generated into static state, then announce_send
-         * emits announce.built / kiss.tx_frame and the KISS frame itself.
+         * The identity is loaded from flash when present; otherwise it is
+         * created, saved, then used for announce_send.
          */
         la      t0, kiss_buf_len
         lw      t1, 0(t0)
@@ -1104,7 +1119,27 @@ _main:
         bltu    t1, t2, .Lannounce_send_bad
 
         la      a0, identity_current
+        call    identity_load
+        beqz    a0, .Lannounce_identity_loaded
+        li      t0, IDENTITY_ERR_MISSING
+        bne     a0, t0, .Lannounce_send_bad
+
+        la      a0, identity_current
         call    identity_create
+        la      a0, identity_current
+        call    identity_save
+        bltz    a0, .Lannounce_send_bad
+        la      a0, .Lidentity_created_tag
+        li      a1, .Lidentity_created_tag_len
+        call    log_event
+        j       .Lannounce_identity_ready
+
+.Lannounce_identity_loaded:
+        la      a0, .Lidentity_loaded_tag
+        li      a1, .Lidentity_loaded_tag_len
+        call    log_event
+
+.Lannounce_identity_ready:
         la      a0, .Lidentity_ready_tag
         li      a1, .Lidentity_ready_tag_len
         call    log_event

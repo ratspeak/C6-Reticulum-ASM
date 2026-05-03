@@ -98,7 +98,7 @@ System startup, before any other code runs. Lives at the reset vector.
 | `_reset` | ◉ verified |  | — | 0001, 0002, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 | `_init_bss` | ◉ verified |  | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 | `_init_data` | ◉ verified |  | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_main` | ◉ verified |  | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event`, `log_hex`, `log_str`, `log_hex_buf`, `uart_rx_byte`, `uart_tx_byte`, `clock_now_ms`, `kiss_decode_byte`, `packet_parse_header`, `identity_create`, `announce_send`, `sha256_init`, `sha256_update`, `sha256_final`, `hmac_sha256`, `hkdf_extract`, `hkdf_expand`, `aes_sbox`, `aes_invsbox`, `aes_mixcolumns`, `aes_invmixcolumns`, `aes256_key_expand`, `aes256_encrypt_block`, `aes256_decrypt_block`, `aes256_cbc_encrypt`, `aes256_cbc_decrypt` | 0001, 0004, 0006, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_main` | ◉ verified |  | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event`, `log_hex`, `log_str`, `log_hex_buf`, `uart_rx_byte`, `uart_tx_byte`, `clock_now_ms`, `kiss_decode_byte`, `packet_parse_header`, `identity_create`, `identity_save`, `identity_load`, `announce_send`, `flash_init`, `sha256_init`, `sha256_update`, `sha256_final`, `hmac_sha256`, `hkdf_extract`, `hkdf_expand`, `aes_sbox`, `aes_invsbox`, `aes_mixcolumns`, `aes_invmixcolumns`, `aes256_key_expand`, `aes256_encrypt_block`, `aes256_decrypt_block`, `aes256_cbc_encrypt`, `aes256_cbc_decrypt` | 0001, 0002, 0004, 0005, 0006, 0008, 0009 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 
 ## Module: `clock`
 
