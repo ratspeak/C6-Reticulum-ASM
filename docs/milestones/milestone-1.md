@@ -487,3 +487,10 @@ ESP32-C6 Feather. Notes for future milestones:
   (boot/clock/uart/log/kiss/packet, all 24 verified-status entries)
   ran on a virtual rv32 with no chip-specific scaffolding. Switching
   to real silicon was a register-map exercise, not an algorithmic one.
+- **HwTarget landed alongside bring-up** to close the §harness
+  spec's third-target deliverable. `pytest --hardware tests/hardware/`
+  flashes the C6 once per session (via a class-level cache keyed on
+  the image's mtime), pulses RTS to reset, drains until the
+  `boot\tready` marker, and runs the same KISS-frame + SHA-256-KAT
+  assertions the qemu-virt suite uses. First three tests pass on
+  real silicon in ~3 s; failing this is now a regression.

@@ -25,6 +25,11 @@ class BuildArtifacts:
     elf: Path
     bin: Path
     build_dir: Path
+    # ESP-image-format .bin produced by `make image` for TARGET=c6 (the file
+    # the mask-ROM second-stage loader consumes from flash offset 0x0).
+    # `None` for qemu-virt where the toolchain emits a flat .bin loaded
+    # straight by qemu's `-kernel` flag.
+    image_bin: Path | None = None
 
 
 class BuildError(RuntimeError):
@@ -67,7 +72,30 @@ def build(target: str = "qemu-virt", *, force: bool = False) -> BuildArtifacts:
     binp = build_dir / "firmware.bin"
     if not elf.exists():
         raise BuildError(f"build succeeded but {elf} not produced")
-    return BuildArtifacts(target=target, elf=elf, bin=binp, build_dir=build_dir)
+
+    image_bin: Path | None = None
+    if target == "c6":
+        # Run `make image TARGET=c6` to produce the ESP-format .image.bin
+        # the mask-ROM second-stage loader consumes from flash 0x0. Cheap
+        # to re-run (esptool elf2image on a 30 KB ELF is sub-second), and
+        # always running it keeps the artifact in sync with the ELF when a
+        # test forces a rebuild via `force=True`.
+        image_proc = subprocess.run(
+            ["make", "image", f"TARGET={target}"],
+            cwd=REPO_ROOT, capture_output=True, text=True,
+        )
+        if image_proc.returncode != 0:
+            raise BuildError(
+                f"make image TARGET={target} failed (exit {image_proc.returncode}):\n"
+                f"{image_proc.stdout}\n{image_proc.stderr}"
+            )
+        image_bin = build_dir / "firmware.image.bin"
+        if not image_bin.exists():
+            raise BuildError(f"make image succeeded but {image_bin} not produced")
+
+    return BuildArtifacts(
+        target=target, elf=elf, bin=binp, build_dir=build_dir, image_bin=image_bin,
+    )
 
 
 def objdump_disassemble(elf: Path, *, symbol: str | None = None) -> str:

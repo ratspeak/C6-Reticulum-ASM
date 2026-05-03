@@ -58,12 +58,26 @@ class TargetConfig:
     """
 
     binary: Path | None = None
+    # ESP-format .image.bin for HwTarget; produced by `make image TARGET=c6`
+    # alongside the ELF. EmuTarget ignores this field.
+    image_bin: Path | None = None
     serial_port: str | None = None
     qemu_binary: str = "qemu-system-riscv32"
     qemu_machine: str = "virt"  # placeholder until we have a C6-aware model
     qemu_extra_args: tuple[str, ...] = ()
     flash_baud: int = 460800
     log_baud: int = 115200
+    # HwTarget knobs.
+    flash_chip: str = "esp32c6"
+    # When False, HwTarget.start() never invokes esptool — useful when the
+    # caller has already flashed (or wants to test against whatever's on
+    # the chip right now). Default True so the first test in a session
+    # gets a known image.
+    auto_flash: bool = True
+    # Deadline for the post-reset boot drain in HwTarget.start(). The
+    # marker we wait for is a `boot\tready` line emitted by _main; on a
+    # cold C6 boot this lands within ~10 ms. 3 s is generous headroom.
+    boot_ready_timeout: float = 3.0
 
 
 class Target(abc.ABC):
@@ -315,13 +329,27 @@ class EmuTarget(Target):
 
 
 # -------------------------------------------------------------------------
-# HwTarget — physical Feather over USB-serial. Skeleton with detection;
-# flashing and serial I/O land when the build chain produces a `.bin`.
+# HwTarget — physical Adafruit ESP32-C6 Feather over USB-Serial/JTAG.
+# Flashes the ESP-image-format .bin via esptool, opens the CDC-ACM serial
+# device, pulses RTS to reset the chip, and drains until our `_main` emits
+# a `boot\tready` log line. Subsequent write/read operations talk to the
+# polling KISS loop the same way EmuTarget talks to qemu's UART.
+#
+# A class-level cache keys "what's currently on this chip" by (port,
+# image-bin path, mtime). Tests that share a binary skip the ~2-second
+# esptool round-trip on every test entry; tests that override the binary
+# trigger a fresh flash. Reset between tests is always cheap (DTR/RTS
+# pulse + boot drain).
 # -------------------------------------------------------------------------
 
 
 class HwTarget(Target):
     name = "hw"
+
+    # (port, image_bin abspath, image_bin mtime_ns) of the last flashed
+    # image, shared across all HwTarget instances in the process so
+    # back-to-back tests do not re-flash an unchanged binary.
+    _flash_cache: dict[str, tuple[str, int]] = {}
 
     def __init__(self, config: TargetConfig | None = None) -> None:
         super().__init__(config)
@@ -332,18 +360,86 @@ class HwTarget(Target):
             return False
         if self.config.serial_port is None:
             return False
-        return Path(self.config.serial_port).exists()
+        if not Path(self.config.serial_port).exists():
+            return False
+        try:
+            import serial  # noqa: F401  pyserial; required for I/O
+        except ImportError:
+            return False
+        return True
 
     def start(self) -> None:
         if not self.is_available():
             raise TargetUnavailable(
-                "HwTarget unavailable: esptool and a serial port "
-                "(config.serial_port) are required"
+                "HwTarget unavailable: needs esptool + pyserial + an "
+                "existing serial_port (config.serial_port)"
             )
-        raise TargetUnavailable(
-            "HwTarget.start: flash + serial wiring is not implemented yet "
-            "(blocked on first flashable .bin)"
+        port = self.config.serial_port
+        assert port is not None  # is_available checked
+
+        if self.config.auto_flash:
+            self._maybe_flash(port)
+
+        # Open the CDC-ACM endpoint. Baud is informational on USB-Serial/JTAG
+        # (the CDC layer disregards it) but pyserial requires a value.
+        import serial
+        self._serial = serial.Serial(
+            port, baudrate=self.config.log_baud, timeout=0.05,
         )
+        # Reset via the host's RTS line — esptool uses the same trick. The
+        # USB-Serial/JTAG bridge maps RTS to a CHIP_PU pulse; a clean
+        # high-low-high cycle is enough to trigger a hardware reset.
+        self._serial.dtr = False
+        self._serial.rts = True
+        time.sleep(0.1)
+        self._serial.rts = False
+        time.sleep(0.05)
+
+        # Drain until _main signals boot ready. The structured-log line is
+        # `<ts>\tboot\tready\r\n` per ADR-0004 + ADR-0008. We discard
+        # everything before it (mask-ROM "ESP-ROM:..." chatter + the
+        # `load:` / `entry` lines), then return — the test sees a clean
+        # post-boot stream from the next read.
+        deadline = time.monotonic() + self.config.boot_ready_timeout
+        buf = bytearray()
+        while time.monotonic() < deadline:
+            chunk = self._serial.read(4096)
+            if chunk:
+                buf.extend(chunk)
+                if b"\tboot\tready" in buf:
+                    return
+        raise TargetUnavailable(
+            f"HwTarget: no `boot\\tready` marker within "
+            f"{self.config.boot_ready_timeout}s after reset; got "
+            f"{bytes(buf)[:200]!r}"
+        )
+
+    def _maybe_flash(self, port: str) -> None:
+        if self.config.image_bin is None:
+            raise TargetUnavailable(
+                "HwTarget(auto_flash=True) needs config.image_bin set to a "
+                "built .image.bin (build.build('c6').image_bin)"
+            )
+        image = Path(self.config.image_bin).resolve()
+        if not image.exists():
+            raise TargetUnavailable(f"image_bin {image} does not exist")
+        key = (str(image), image.stat().st_mtime_ns)
+        if HwTarget._flash_cache.get(port) == key:
+            return  # chip already has this exact image
+        esptool = shutil.which("esptool.py") or shutil.which("esptool")
+        assert esptool is not None  # is_available checked
+        cmd = [
+            esptool, "--chip", self.config.flash_chip,
+            "--port", port, "--baud", str(self.config.flash_baud),
+            "write_flash", "0x0", str(image),
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        if proc.returncode != 0:
+            raise TargetUnavailable(
+                f"esptool write_flash failed (exit {proc.returncode}):\n"
+                f"{proc.stdout}\n{proc.stderr}"
+            )
+        HwTarget._flash_cache[port] = key
 
     def stop(self) -> None:
         if self._serial is not None:
@@ -354,10 +450,20 @@ class HwTarget(Target):
             self._serial = None
 
     def write(self, data: bytes) -> None:
-        raise TargetUnavailable("HwTarget I/O not implemented yet")
+        if self._serial is None:
+            raise RuntimeError("HwTarget.write before start")
+        self._serial.write(data)
+        self._serial.flush()
 
     def read(self, max_bytes: int, timeout: float) -> bytes:
-        raise TargetUnavailable("HwTarget I/O not implemented yet")
+        if self._serial is None:
+            raise RuntimeError("HwTarget.read before start")
+        # pyserial's `timeout` is the per-read deadline; we set it to the
+        # caller's value via direct attribute (cheap) and let serial.read
+        # block up to that many seconds. Returning an empty bytes on
+        # timeout matches EmuTarget's contract.
+        self._serial.timeout = timeout
+        return self._serial.read(max_bytes)
 
 
 def all_targets(config: TargetConfig | None = None) -> Iterable[Target]:
