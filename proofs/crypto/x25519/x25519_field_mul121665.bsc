@@ -1,0 +1,23 @@
+# Binsec/Rel constant-time check for x25519_field_mul121665 (Tier B per ADR-0009).
+#
+# x25519_field_mul121665 multiplies one radix-2^25.5 field element by the
+# public scalar 121665, then performs the fixed carry/fold chain required for
+# the X25519 Montgomery ladder. The field-element limbs are secret during a
+# private-key scalar multiplication. The proof checks that the compiled RV32IMC
+# body uses only fixed-offset loads/stores and straight-line arithmetic; output
+# values may depend on the secret, but control flow and memory addresses must
+# not.
+
+starting from <x25519_field_mul121665> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # out (40 bytes)
+  a1 := 0x80001000          # in  (40 bytes)
+  for i<32> in 0 to 9 do
+    @[a1 + i * 4, 4] := secret as in_limb
+  end
+end
+
+halt at <x25519_field_mul121665> return
+
+explore all

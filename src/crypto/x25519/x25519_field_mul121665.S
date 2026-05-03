@@ -15,7 +15,7 @@
 #               (since 2^255 ≡ 19 mod p_25519). After this function, all
 #               output limbs are in nominal width and ready to feed into
 #               another field op without further reduction.
-# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_mul121665.saw
+# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_mul121665.saw, proofs/crypto/x25519/x25519_field_mul121665.bsc
 # @tests:       tests/crypto/x25519/test_x25519_field_mul121665.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
