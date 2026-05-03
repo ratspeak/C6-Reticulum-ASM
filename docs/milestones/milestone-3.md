@@ -34,7 +34,7 @@ the outgoing announce wire image validates under the Python reference.
       `x25519_pk || ed25519_pk`, and whose hash is
       `SHA256(public_bytes)[0:16]`, matching
       `upstream/Reticulum/RNS/Identity.py`.
-- [ ] `destination_name_hash` and `destination_hash` match
+- [x] `destination_name_hash` and `destination_hash` match
       `upstream/Reticulum/RNS/Destination.py` for at least
       `rnstransport.nodes`, `lxmf.delivery`, and one harness-local test name.
 - [ ] `announce_build` emits a HEADER_1 announce with flags `0x01`, hops `0`,

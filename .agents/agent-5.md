@@ -13,3 +13,4 @@ none — available
 - Hardware tests require the user's C6 on bench and should be reported back to the active milestone verification log.
 - Preparing identity/destination/announce Python oracle helpers only; no production asm or milestone/spec edits.
 - Oracle helpers queued for integration; focused harness tests passed, and `make ci` passed after rerunning outside the sandbox for build directory creation.
+- 2026-05-03T06:33:11Z — integrated milestone-3 oracle helpers on main as 01c0301; coordinator reran focused oracle tests and `make ci` (485 passed, 12 skipped).
