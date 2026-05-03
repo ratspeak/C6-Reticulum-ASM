@@ -358,12 +358,14 @@ Tier mapping:
 ## Current Frontier
 
 Milestone 3 opened 2026-05-03 after milestone 2 closed without creating this
-spec. Eligible first claims:
+spec. The identity and destination hash foundation is now verified:
 
-1. `identity_hash` — smallest standalone function; unblocks identity layout.
-2. `destination_name_hash` and `destination_hash` — pure SHA-256 truncation
-   helpers with straightforward upstream vectors.
-3. `identity_create` — keypair composition and layout, after `identity_hash`.
+- `identity_hash`
+- `identity_create`
+- `destination_name_hash`
+- `destination_hash`
 
-Do not claim `announce_build` until the identity and destination hash helpers
-are verified.
+The current sprint is `announce_build`. It is the next dependency gate:
+`announce_send` stays blocked until the raw announce builder produces upstream-
+valid HEADER_1 announce packets for empty app data, non-empty app data,
+exact-capacity output, and one-byte-short overflow.
