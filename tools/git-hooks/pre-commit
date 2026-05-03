@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Pre-commit guard: run `make ci` (registry + stack + tests) and block the
-# commit on failure. Per milestone-1 §Definition of done, every commit must
-# pass `make ci`. This file is the local-repo equivalent of the
-# .github/workflows/ runner the DoD also accepts.
+# commit on failure. Every commit must pass `make ci`; this file is the
+# local-repo equivalent of the .github/workflows/ runner.
 #
 # Install once:
 #     ln -sf ../../tools/git-hooks/pre-commit .git/hooks/pre-commit
@@ -10,7 +9,6 @@
 #
 # Bypass deliberately (e.g., emergency WIP push to a branch you will rewrite):
 #     git commit --no-verify
-# CLAUDE.md forbids bypassing hooks for AI agents — humans only, with a reason.
 
 set -euo pipefail
 

@@ -18,6 +18,14 @@ out/
 /docs/
 /references/
 
+# Sub-directory READMEs are local-only orientation; the root README is the
+# only one published. Tooling does not consume any of these.
+src/README.md
+tests/README.md
+tools/README.md
+proofs/README.md
+toolchain/README.md
+
 # Verification outputs (regenerated, not committed)
 proofs/output/
 proofs/cache/
