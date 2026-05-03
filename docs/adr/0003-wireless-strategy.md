@@ -1,6 +1,6 @@
 # ADR-0003: Wireless strategy — KISS dev → LoRa SPI → native deferred
 
-- **Status:** Accepted
+- **Status:** Accepted (refined by [ADR-0011](0011-sx1262-lora-target.md) -- milestone-8 chip target is SX1262 instead of SX1276/RFM95)
 - **Date:** 2026-05-01
 
 ## Context

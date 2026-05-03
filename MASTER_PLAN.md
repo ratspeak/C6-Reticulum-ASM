@@ -38,7 +38,7 @@ Three claims must hold at completion:
   links, resources, channels, ratchets, IFAC.
 - Cryptographic primitives required by Reticulum: SHA-256, HMAC-SHA-256, HKDF, AES-256-CBC,
   X25519, Ed25519, secure random.
-- At least one wireless interface terminating on the C6: LoRa via SX1276/RFM95 over SPI,
+- At least one wireless interface terminating on the C6: LoRa via SX1262 over SPI,
   via a permanent KISS-framed driver path.
 - Persistence: flash-resident identity, destination cache, path cache.
 - LXMF messaging on top of the Reticulum stack (deferred but in scope).
@@ -104,8 +104,8 @@ developer working full-time, with verification overhead included.
 | 4 | Flash persistence | Complete (2026-05-03) | 2–3 wk | Symbolic execution on flash driver; identity round-trip proven on C6 hardware |
 | 5 | Transport RX (announce processing, paths) | Complete (2026-05-03) | 4–6 wk | TLA+ for transport state; signature verify on inbound |
 | 6 | Link establishment | Complete (2026-05-03) | 6–8 wk | TLA+ for link state machine; AES session round-trip proven |
-| 7 | Resource / channel | Active (2026-05-03) | 4–6 wk | Refinement proof against reference behavior |
-| 8 | LoRa SPI interface | Planned | 4–6 wk | Driver contracts; symbolic execution; first wireless milestone |
+| 7 | Resource / channel | Complete (2026-05-03) | 4–6 wk | Refinement proof against reference behavior |
+| 8 | LoRa SPI interface | Active (2026-05-03) | 4–6 wk | Driver contracts; symbolic execution; first wireless milestone |
 | 9 | LXMF | Planned | 6–8 wk | TLA+ for router; message round-trip proven |
 | Later | Native WiFi / BLE / 802.15.4 in asm | Deferred | 12+ mo each | Each gets its own ADR and roadmap |
 
@@ -139,7 +139,7 @@ The project is considered complete (for its near-term arc, milestones 1–8) whe
 
 1. A standalone Adafruit ESP32-C6 Feather, flashed with this repository's binary, can:
    - Generate and persist its own Reticulum identity.
-   - Emit valid signed announces over an attached SX1276 LoRa module.
+   - Emit valid signed announces over an attached SX1262 LoRa module.
    - Receive and validate announces from peer Reticulum nodes (Python `rnsd`, microReticulum, rsReticulum).
    - Establish a link with a peer and exchange encrypted data packets.
 2. Every function in the compiled binary is listed in FUNCTIONS.md with status `verified`.

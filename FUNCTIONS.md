@@ -52,7 +52,7 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
   hardware-RNG entropy properties) over the on-chip USB-Serial/JTAG endpoint per
   [ADR-0010](docs/adr/0010-usb-serial-jtag-backend.md). 12 hardware tests pass in ~6 s
   (run with `pytest --hardware tests/hardware/`).
-- Total functions registered: **116** (excludes placeholder rows like
+- Total functions registered: **131** (excludes placeholder rows like
   "(functions added when milestone N is activated)")
 - Verified: 115 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 11 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + production HMAC-DRBG-SHA-256 RNG (NIST SP 800-90A Rev. 1 §10.1.2; `rng_entropy` raw-source layer + `hmac_drbg_update` + `rng_init` + `rng_bytes` together discharge the canonical NIST CAVP DRBGVS COUNT=0 KAT symbolically; on TARGET_C6 the entropy source is the on-chip LPPERI hardware RNG) + milestone-3 identity/destination/announce TX helpers (`identity_create`, `identity_hash`, `destination_name_hash`, `destination_hash`, `announce_build`, `announce_send`) + milestone-4 qemu flash model (`flash_init`, `flash_read`, `flash_write_page`, `flash_erase_sector`) + milestone-4 identity persistence (`identity_save`, `identity_load`) + milestone-5 transport RX helpers (`announce_parse`, `announce_validate`, `transport_path_init`, `transport_path_update`, `transport_path_lookup`, `transport_process_announce`) + milestone-6 link request/key/handshake/session/dispatch helpers (`link_request_build`, `link_request_parse`, `link_derive_keys`, `link_handshake_init`, `link_handshake_accept`, `link_session_encrypt`, `link_session_decrypt`, `link_process_packet`) + milestone-7 channel envelope/resource helpers (`channel_envelope_build`, `channel_envelope_parse`, `resource_advertisement_parse`, `resource_part_parse`, `resource_reassembly_init`, `resource_reassembly_update`, `resource_process_plaintext`) — all under ADR-0009)
 - Tier A coverage extended: the SHA-512 family (`sha512_init`, `sha512_compress`, `sha512_update`, `sha512_final`) now carries a Cryptol+SAW Tier A proof alongside the QEMU/hashlib KAT bridge. The SAW drivers discharge FIPS 180-4 §C.1 + §C.2 KATs symbolically over the 80-round transform + 16-word schedule, plus K-table constants, ROTR/ch/maj algebraic sanity, streaming associativity (small chunkings), and both padding paths (bl ≤ 111 single-block + bl > 111 two-block).
@@ -80,7 +80,7 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
 - Tested: 0
 - In progress: 0
-- Planned: 1 (`uart_isr`)
+- Planned: 16 (`uart_isr` plus milestone-8 GPIO/SPI/SX1262/LoRa interface functions)
 
 The end-to-end milestone-1 demo path is observable: KISS-framed Reticulum
 packets sent to qemu's stdin produce `boot.ready`, `kiss.rx_frame`, and
@@ -375,13 +375,32 @@ Flash driver: page read/write/erase. Required for identity persistence, destinat
 | `flash_write_page` | ◉ verified |  | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_write_page) |
 | `flash_erase_sector` | ◉ verified |  | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_erase_sector) |
 
-## Module: `interface/lora`
+## Module: `interface/gpio`
 
-LoRa interface via SX1276/RFM95 over SPI. The first wireless interface.
+GPIO helpers for the external LoRa module control and IRQ pins.
 
 | Function | Status | Owner | Depends-on | ADRs | Spec |
 |----------|--------|-------|-----------|------|------|
-| (functions added when milestone 8 is activated) | ☐ planned |  | | 0003 | (milestone 8) |
+| `gpio_config_output` | ☐ planned |  | `clock_init` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#gpio-helpers) |
+| `gpio_config_input` | ☐ planned |  | `clock_init` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#gpio-helpers) |
+| `gpio_write` | ☐ planned |  | `gpio_config_output` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#gpio-helpers) |
+| `gpio_read` | ☐ planned |  | `gpio_config_input` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#gpio-helpers) |
+
+## Module: `interface/lora`
+
+LoRa interface via SX1262 over SPI. The first wireless interface.
+
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `sx1262_reset` | ☐ planned |  | `gpio_config_output`, `gpio_write`, `clock_delay_us` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#sx1262-command-driver) |
+| `sx1262_command_write` | ☐ planned |  | `spi_transfer`, `gpio_write` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#sx1262-command-driver) |
+| `sx1262_command_read` | ☐ planned |  | `spi_transfer`, `gpio_write` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#sx1262-command-driver) |
+| `sx1262_init` | ☐ planned |  | `sx1262_reset`, `sx1262_command_write`, `sx1262_command_read`, `gpio_config_input`, `clock_delay_us` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#sx1262-command-driver) |
+| `sx1262_send_frame` | ☐ planned |  | `sx1262_init`, `sx1262_command_write`, `sx1262_command_read`, `clock_now_ms` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#lora-packet-txrx) |
+| `sx1262_poll_receive` | ☐ planned |  | `sx1262_init`, `sx1262_command_write`, `sx1262_command_read`, `gpio_read` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#lora-packet-txrx) |
+| `lora_interface_init` | ☐ planned |  | `sx1262_init` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#reticulum-interface-glue) |
+| `lora_interface_send` | ☐ planned |  | `lora_interface_init`, `sx1262_send_frame` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#reticulum-interface-glue) |
+| `lora_interface_poll` | ☐ planned |  | `lora_interface_init`, `sx1262_poll_receive`, `packet_parse_header` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#reticulum-interface-glue) |
 
 ## Module: `interface/spi`
 
@@ -389,7 +408,8 @@ SPI driver. Used by the LoRa interface.
 
 | Function | Status | Owner | Depends-on | ADRs | Spec |
 |----------|--------|-------|-----------|------|------|
-| (functions added when milestone 8 is activated) | ☐ planned |  | | | (milestone 8) |
+| `spi_init` | ☐ planned |  | `clock_init` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#spi-transfer-path) |
+| `spi_transfer` | ☐ planned |  | `spi_init` | 0001, 0002, 0003, 0005, 0006, 0009, 0011 | [milestone-8](docs/milestones/milestone-8.md#spi-transfer-path) |
 
 ## Module: `lxmf`
 

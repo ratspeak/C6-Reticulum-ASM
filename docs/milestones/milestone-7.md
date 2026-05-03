@@ -1,7 +1,8 @@
 # Milestone 7: Resource / Channel
 
-- **Status:** Active
+- **Status:** Complete
 - **Started:** 2026-05-03
+- **Completed:** 2026-05-03
 - **Estimate:** 4-6 weeks
 
 ## Goal
@@ -46,7 +47,7 @@ small in-RAM reassembly window.
 - [x] A TLA+ resource/channel state model covers advertise, accept part,
       duplicate part, complete transfer, reject, and channel envelope accept
       traces.
-- [ ] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
+- [x] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
       `pytest --hardware tests/hardware/`, and `./verify <fn>` pass for every
       function added or modified in this milestone.
 
@@ -220,3 +221,28 @@ Verified dispatcher shape:
 | Resource transfer scope expands into retransmission or persistence | Keep this milestone receive-window only; timers and flash storage wait for a later resource milestone. |
 | Channel and resource contexts require changes to `link_process_packet` | Keep link changes limited to passing decrypted context/plaintext into `resource_process_plaintext`; re-run all milestone-6 link gates. |
 | Payload buffers become too large for static SRAM discipline | Use link MDU-derived maxima and one fixed receive window; add stack/static-size checks to CI gates. |
+
+## Retrospective
+
+Milestone 7 completed as a strict, bounded resource/channel subset over the
+milestone-6 encrypted link path. The implementation follows upstream channel
+envelope shape, parses a deliberately narrow encrypted single-segment resource
+advertisement, computes resource map hashes as `SHA256(part || random_hash)[0:4]`,
+and maintains a two-entry in-RAM reassembly table with deterministic advertised,
+accepted, duplicate, complete, and invalid statuses.
+
+The largest planned simplification remains intentional: resource persistence,
+sliding windows, retransmission timers, compression, split resources, requests,
+responses, and broader msgpack encodings are deferred. The state model and qemu
+tests pin the accepted subset so later expansion has to be explicit.
+
+Final gates on 2026-05-03:
+
+- `./verify --module resource` passed for all seven milestone-7 resource
+  functions.
+- `make ci` passed with `709 passed, 14 skipped`.
+- `make build TARGET=qemu-virt` and `make build TARGET=c6` passed.
+- `pytest --hardware tests/hardware/ -q -p no:cacheprovider` passed with
+  `14 passed`.
+- Stack maximum remained `2304 / 16384` bytes.
+- `make registry` and `git diff --check` passed.

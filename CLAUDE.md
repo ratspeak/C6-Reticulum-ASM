@@ -198,10 +198,16 @@ Reticulum Token-compatible AES-256-CBC session packets, dispatcher, and link
 TLA+ model verified).
 See [docs/milestones/milestone-6.md](docs/milestones/milestone-6.md).
 
-**Milestone 7 — Resource / Channel** (Active 2026-05-03:
+**Milestone 7 — Resource / Channel** (Complete 2026-05-03:
 bounded channel envelopes, resource advertisement parsing, resource part
-receive, and in-RAM reassembly over established encrypted links).
+receive, in-RAM reassembly, plaintext dispatch, and resource/channel TLA+
+model verified).
 See [docs/milestones/milestone-7.md](docs/milestones/milestone-7.md).
+
+**Milestone 8 — LoRa SPI Interface** (Active 2026-05-03:
+GPIO/SPI hardware foundation, SX1262 command driver, and first standalone
+Reticulum LoRa TX/RX interface).
+See [docs/milestones/milestone-8.md](docs/milestones/milestone-8.md).
 
 Update this section whenever a milestone becomes active or completes.
 

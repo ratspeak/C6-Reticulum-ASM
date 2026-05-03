@@ -10,7 +10,7 @@ a single decision, the context that produced it, and its consequences. ADRs with
 |---|-------|--------|
 | [0001](0001-abi.md) | RISC-V psABI (ILP32) calling convention | Accepted |
 | [0002](0002-memory-model.md) | Static-only memory model, no heap | Accepted |
-| [0003](0003-wireless-strategy.md) | Wireless strategy: KISS dev → LoRa SPI → native deferred | Accepted |
+| [0003](0003-wireless-strategy.md) | Wireless strategy: KISS dev → LoRa SPI → native deferred | Accepted (refined by 0011) |
 | [0004](0004-diagnostics.md) | Structured UART logging as the permanent diagnostic channel | Accepted (refined by 0008, 0010) |
 | [0005](0005-test-harness.md) | Mandatory host-side test harness from day 1 | Accepted |
 | [0006](0006-formal-verification.md) | Per-function formal verification, tooling per category | Accepted (partially superseded by 0008) |
@@ -18,6 +18,7 @@ a single decision, the context that produced it, and its consequences. ADRs with
 | [0008](0008-naming-toolchain-format.md) | Verifier directory rename, vanilla binutils, hex log timestamps | Accepted |
 | [0009](0009-verifier-toolchain.md) | Verifier toolchain — Cryptol/SAW + Binsec/Rel + angr+pcode + Sail-RISCV | Accepted (refines 0006) |
 | [0010](0010-usb-serial-jtag-backend.md) | USB-Serial/JTAG as the early-bring-up serial backend | Accepted (refines 0004) |
+| [0011](0011-sx1262-lora-target.md) | SX1262 LoRa target for milestone 8 | Accepted (refines 0003) |
 
 ## Template
 

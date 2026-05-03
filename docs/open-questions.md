@@ -26,14 +26,14 @@ modulation, same RF math, different register map (SX1262 uses busy line
 
 **Decision:** milestone 8 targets SX1262, not SX1276.
 
-**Action items (deferred until milestone 8 activates):**
+**Action items (milestone 8 activation):**
 
-* Write ADR-0009: "SX1262 supersedes SX1276 in ADR-0003" — references the
-  SX1262 datasheet (user will provide).
-* Mark ADR-0003 status as `Accepted (partially superseded by ADR-0009 —
-  chip choice)`.
-* Replace `references/sx1276-datasheet.pdf` line in `references/README.md`
-  with the SX1262 datasheet entry.
+* [x] Write ADR-0011: "SX1262 LoRa target for milestone 8".
+* [x] Mark ADR-0003 status as refined by ADR-0011 for the chip choice.
+* [x] Replace the milestone-8 reference inventory with SX1262/module
+  documentation entries.
+* [ ] Vendor the SX1262 datasheet and module pinout, or document acquisition
+  steps if redistribution is not allowed.
 * The SPI driver and the Reticulum protocol layer above are unchanged;
   only the chip driver moves. Files become `src/interface/lora/sx1262_*`.
 

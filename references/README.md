@@ -39,8 +39,8 @@ specific milestone, with provenance recorded below.
 
 ### Required by milestone 8 (LoRa)
 
-- [ ] **SX1276 datasheet** (Semtech).
-- [ ] **RFM95 module datasheet** (HopeRF).
+- [ ] **SX1262 datasheet** (Semtech).
+- [ ] **Seeed Wio SX1262 module schematic/pinout**.
 
 ### Provenance log
 
