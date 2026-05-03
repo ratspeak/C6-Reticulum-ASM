@@ -67,3 +67,27 @@ sx1262_model_tx_len:
 sx1262_model_last_irq:
         .skip   4
         .size   sx1262_model_last_irq, 4
+
+        .global sx1262_frame_rx_buf
+        .type   sx1262_frame_rx_buf, @object
+sx1262_frame_rx_buf:
+        .skip   SPI_MAX_TRANSFER
+        .size   sx1262_frame_rx_buf, SPI_MAX_TRANSFER
+
+        .global sx1262_rx_status_buf
+        .type   sx1262_rx_status_buf, @object
+sx1262_rx_status_buf:
+        .skip   4
+        .size   sx1262_rx_status_buf, 4
+
+        .global sx1262_read_buffer_req_buf
+        .type   sx1262_read_buffer_req_buf, @object
+sx1262_read_buffer_req_buf:
+        .skip   4
+        .size   sx1262_read_buffer_req_buf, 4
+
+        .global sx1262_model_rx_len
+        .type   sx1262_model_rx_len, @object
+sx1262_model_rx_len:
+        .skip   4
+        .size   sx1262_model_rx_len, 4

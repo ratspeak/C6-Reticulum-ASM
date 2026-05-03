@@ -96,9 +96,10 @@ remaining explicit in asm constants:
 - TX power: `7` dBm with a 200 us ramp.
 - Preamble: 12 symbols.
 - Explicit LoRa header, CRC enabled, standard IQ.
-- Payload cap: 254 bytes. The SX1262 FIFO can hold 255 bytes, and the first
-  bounded TX helper uses one command payload byte for the FIFO offset before
-  the frame bytes. Upper layers must still respect Reticulum's interface MDU.
+- Payload cap: 253 bytes. The SX1262 FIFO can hold 255 bytes; the shared
+  bounded command wrapper reserves command bytes for the FIFO offset and
+  read-buffer dummy/status byte so TX and RX fit within one 256-byte SPI
+  transfer. Upper layers must still respect Reticulum's interface MDU.
 
 `sx1262_init` applies this profile and returns the chip to standby. It does not
 enter TX or continuous RX by itself.

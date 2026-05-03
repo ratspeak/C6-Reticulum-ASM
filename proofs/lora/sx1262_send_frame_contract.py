@@ -58,7 +58,10 @@ def prove_constants() -> None:
     require(LORA["SX1262_CMD_WRITE_BUFFER"] == 0x0E, "WriteBuffer opcode mismatch")
     require(LORA["SX1262_CMD_SET_TX"] == 0x83, "SetTx opcode mismatch")
     require(LORA["SX1262_CMD_GET_IRQ_STATUS"] == 0x12, "GetIrqStatus opcode mismatch")
-    require(LORA["SX1262_BENCH_PAYLOAD_MAX"] == SPI["SPI_MAX_TRANSFER"] - 2, "TX cap must fit opcode+offset")
+    require(
+        LORA["SX1262_BENCH_PAYLOAD_MAX"] == SPI["SPI_MAX_TRANSFER"] - 3,
+        "shared TX/RX cap must fit opcode+offset+dummy ReadBuffer path",
+    )
     require(LORA["SX1262_IRQ_TX_DONE"] == 0x0001, "TX done IRQ mismatch")
     require(LORA["SX1262_IRQ_TIMEOUT"] == 0x0200, "timeout IRQ mismatch")
 
@@ -67,7 +70,11 @@ def prove_finite_model() -> None:
     require(send_model(True, 3, [0x0001]) == (LORA["LORA_OK"], 3, 0x0001), "TX done model")
     require(send_model(False, 3, [0x0001])[0] == LORA["LORA_ERR_NOT_INITIALIZED"], "init guard")
     require(send_model(True, 0, [0x0001])[0] == LORA["LORA_ERR_INVAL"], "zero frame guard")
-    require(send_model(True, 255, [0x0001])[0] == LORA["LORA_ERR_OVERFLOW"], "overflow guard")
+    require(
+        send_model(True, LORA["SX1262_BENCH_PAYLOAD_MAX"] + 1, [0x0001])[0]
+        == LORA["LORA_ERR_OVERFLOW"],
+        "overflow guard",
+    )
     require(send_model(True, 3, [0x0200])[0] == LORA["LORA_ERR_TX_TIMEOUT"], "radio timeout model")
     require(send_model(True, 3, [0, 0])[0] == LORA["LORA_ERR_TX_TIMEOUT"], "poll budget timeout model")
 

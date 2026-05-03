@@ -26,8 +26,11 @@
         .equ SX1262_CMD_SET_DIO_IRQ_PARAMS, 0x08
         .equ SX1262_CMD_WRITE_BUFFER,       0x0e
         .equ SX1262_CMD_GET_IRQ_STATUS,     0x12
+        .equ SX1262_CMD_GET_RX_BUFFER_STATUS, 0x13
+        .equ SX1262_CMD_READ_BUFFER,        0x1e
         .equ SX1262_CMD_GET_STATUS,         0xc0
         .equ SX1262_CMD_SET_STANDBY,        0x80
+        .equ SX1262_CMD_SET_RX,             0x82
         .equ SX1262_CMD_SET_TX,             0x83
         .equ SX1262_CMD_SET_REGULATOR_MODE, 0x96
         .equ SX1262_CMD_CALIBRATE_IMAGE,    0x98
@@ -51,7 +54,7 @@
         .equ SX1262_BENCH_RF_FREQ_WORD,     0x36333333
         .equ SX1262_BENCH_TX_POWER_DBM,     7
         .equ SX1262_BENCH_PREAMBLE_SYMBOLS, 12
-        .equ SX1262_BENCH_PAYLOAD_MAX,      254
+        .equ SX1262_BENCH_PAYLOAD_MAX,      253
 
         .equ SX1262_PA_DUTY_CYCLE,          0x04
         .equ SX1262_PA_HP_MAX,              0x07
@@ -73,3 +76,4 @@
         .equ SX1262_IRQ_HEADER_ERR,         0x0020
         .equ SX1262_IRQ_CRC_ERR,            0x0040
         .equ SX1262_IRQ_TIMEOUT,            0x0200
+        .equ SX1262_RX_CONTINUOUS_TIMEOUT,  0xffffff

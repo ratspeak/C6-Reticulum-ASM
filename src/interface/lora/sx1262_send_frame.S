@@ -6,7 +6,7 @@
 # @clobbers:    a0..a5, t0..t6
 # @preserves:   sp, gp, ra, s0..s11
 # @stack:       64
-# @cycles:      bounded (<=254 frame bytes + command transfers + TX IRQ polls)
+# @cycles:      bounded (<=253 frame bytes + command transfers + TX IRQ polls)
 # @ct:          not-required
 # @spec:        milestone-8 lora-packet-txrx
 # @verify:      proofs/lora/sx1262_send_frame_contract.py
