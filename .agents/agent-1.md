@@ -6,6 +6,7 @@
 milestone-7-resource-channel — claimed 2026-05-03T12:52:00Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- resource-part-parse — claimed 2026-05-03T18:33:00Z, completed 2026-05-03T18:36:58Z, branch: main, integrated as e0e4b31
 - resource-reassembly-init — claimed 2026-05-03T18:20:00Z, completed 2026-05-03T18:32:55Z, branch: main, integrated as d034722
 - channel-envelopes — claimed 2026-05-03T13:06:00Z, completed 2026-05-03T13:18:00Z, branch: main, integrated as 5b8a70c
 - milestone-6-closeout — claimed 2026-05-03T12:52:00Z, completed 2026-05-03T13:05:00Z, branch: main, integrated as b1ef640
@@ -32,7 +33,7 @@ milestone-7-resource-channel — claimed 2026-05-03T12:52:00Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 7; eligible remaining claims are `resource_advertisement_parse`, `resource_part_parse`, `resource_reassembly_update`, and `resource_process_plaintext`.
+- Active milestone is milestone 7; eligible remaining claims are `resource_advertisement_parse`, `resource_reassembly_update`, and `resource_process_plaintext`.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.
@@ -54,3 +55,4 @@ milestone-7-resource-channel — claimed 2026-05-03T12:52:00Z, ETA active
 - 2026-05-03T13:05:00Z — closed milestone 6 and activated milestone 7 on main as b1ef640; gates: `./verify --module link`, `make ci` (`649 passed, 14 skipped`), qemu/C6 builds, hardware suite `14 passed`, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T13:18:00Z — implemented verified `channel_envelope_build` and `channel_envelope_parse` on main as 5b8a70c; gates: `./verify channel_envelope_build`, `./verify channel_envelope_parse`, `make ci` (`667 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T18:32:55Z — implemented verified `resource_reassembly_init` on main as d034722; gates: `./verify resource_reassembly_init`, `make ci` (`671 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
+- 2026-05-03T18:36:58Z — implemented verified `resource_part_parse` on main as e0e4b31; gates: `./verify resource_part_parse`, `make ci` (`679 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
