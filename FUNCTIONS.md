@@ -52,7 +52,7 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
   hardware-RNG entropy properties) over the on-chip USB-Serial/JTAG endpoint per
   [ADR-0010](docs/adr/0010-usb-serial-jtag-backend.md). 12 hardware tests pass in ~6 s
   (run with `pytest --hardware tests/hardware/`).
-- Total functions registered: **91** (excludes placeholder rows like
+- Total functions registered: **95** (excludes placeholder rows like
   "(functions added when milestone N is activated)")
 - Verified: 82 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 11 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + production HMAC-DRBG-SHA-256 RNG (NIST SP 800-90A Rev. 1 §10.1.2; `rng_entropy` raw-source layer + `hmac_drbg_update` + `rng_init` + `rng_bytes` together discharge the canonical NIST CAVP DRBGVS COUNT=0 KAT symbolically; on TARGET_C6 the entropy source is the on-chip LPPERI hardware RNG) — all under ADR-0009)
 - Tier A coverage extended: the SHA-512 family (`sha512_init`, `sha512_compress`, `sha512_update`, `sha512_final`) now carries a Cryptol+SAW Tier A proof alongside the QEMU/hashlib KAT bridge. The SAW drivers discharge FIPS 180-4 §C.1 + §C.2 KATs symbolically over the 80-round transform + 16-word schedule, plus K-table constants, ROTR/ch/maj algebraic sanity, streaming associativity (small chunkings), and both padding paths (bl ≤ 111 single-block + bl > 111 two-block).
@@ -77,7 +77,8 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
 - In progress: 0
-- Planned: 9 (`uart_isr`, milestone-3 identity create/hash, milestone-4 identity persistence, milestone-4 flash driver)
+- Planned: 13 (`uart_isr`, milestone-3 identity/destination/announce TX,
+  milestone-4 identity persistence, milestone-4 flash driver)
 
 The end-to-end milestone-1 demo path is observable: KISS-framed Reticulum
 packets sent to qemu's stdin produce `boot.ready`, `kiss.rx_frame`, and
@@ -296,10 +297,28 @@ Reticulum identity: keypair generation, persistence, hash derivation.
 
 | Function | Status | Owner | Depends-on | ADRs | Spec |
 |----------|--------|-------|-----------|------|------|
-| `identity_create` | ☐ planned |  | `x25519_keypair`, `ed25519_keypair`, `rng_bytes` | — | (milestone 3) |
-| `identity_hash` | ☐ planned |  | `sha256_*` | — | (milestone 3) |
+| `identity_hash` | ☐ planned |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#identity_hash) |
+| `identity_create` | ☐ planned |  | `identity_hash`, `x25519_keypair`, `ed25519_keypair`, `rng_bytes` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#identity_create) |
 | `identity_save` | ☐ planned |  | `flash_*`, `identity_create` | — | (milestone 4) |
 | `identity_load` | ☐ planned |  | `flash_*` | — | (milestone 4) |
+
+## Module: `destination`
+
+Destination hash derivation. Used by announce TX and later by inbound announce validation.
+
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `destination_name_hash` | ☐ planned |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#destination_name_hash) |
+| `destination_hash` | ☐ planned |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#destination_hash) |
+
+## Module: `announce`
+
+Reticulum announce transmission over the current KISS serial development interface.
+
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `announce_build` | ☐ planned |  | `identity_create`, `destination_name_hash`, `destination_hash`, `rng_bytes`, `ed25519_sign` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#announce_build) |
+| `announce_send` | ☐ planned |  | `announce_build`, `packet_serialize_header`, `kiss_encode_frame`, `uart_tx_bytes` | 0001, 0002, 0004, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#announce_send) |
 
 ## Module: `transport`
 

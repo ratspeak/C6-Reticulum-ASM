@@ -177,6 +177,12 @@ X25519 functions, with the remaining Tier B sweep tracked as a
 post-milestone follow-up).
 See [docs/milestones/milestone-2.md](docs/milestones/milestone-2.md).
 
+**Milestone 3 — Identity + announce TX** (Active 2026-05-03:
+creates Reticulum identity state, destination hash helpers, and a
+signed HEADER_1 announce TX path over the existing KISS serial
+development interface).
+See [docs/milestones/milestone-3.md](docs/milestones/milestone-3.md).
+
 Update this section whenever a milestone becomes active or completes.
 
 ## Toolchain assumptions
