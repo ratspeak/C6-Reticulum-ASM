@@ -78,9 +78,11 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
 - `x25519_field_mul121665` and `x25519_field_mul` both rely on a QEMU-pytest Tier C path rather than angr: the pcode RV32IMC engine mistranslates the `mul + mulh + add-with-carry` 64-bit accumulator chain (40-of-40 random inputs disagreed in earlier runs against a hand-written Python asm-level simulator that mirrors the asm verbatim). The X25519 dispatcher tag `'F'` (added in this commit) drives `x25519_field_mul` under qemu-system-riscv32 and compares to the algebraic-spec-validated Python oracle. Same Tier C-future resolution (SAW + macaw-riscv per ADR-0009); QEMU plumbing for `x25519_field_mul121665` is a follow-up since its asm is also covered by transitivity through the simulator.
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
+- Tested: 4 (`flash_init`, `flash_read`, `flash_write_page`,
+  `flash_erase_sector`; qemu-virt model path landed, hardware backend and
+  symbolic driver contracts still pending)
 - In progress: 0
-- Planned: 7 (`uart_isr`,
-  milestone-4 identity persistence, milestone-4 flash driver)
+- Planned: 3 (`uart_isr`, milestone-4 identity persistence)
 
 The end-to-end milestone-1 demo path is observable: KISS-framed Reticulum
 packets sent to qemu's stdin produce `boot.ready`, `kiss.rx_frame`, and
@@ -352,10 +354,10 @@ Flash driver: page read/write/erase. Required for identity persistence, destinat
 
 | Function | Status | Owner | Depends-on | ADRs | Spec |
 |----------|--------|-------|-----------|------|------|
-| `flash_init` | ☐ planned |  | `clock_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_init) |
-| `flash_read` | ☐ planned |  | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_read) |
-| `flash_write_page` | ☐ planned |  | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_write_page) |
-| `flash_erase_sector` | ☐ planned |  | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_erase_sector) |
+| `flash_init` | ◑ tested | agent-2 | `clock_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_init) |
+| `flash_read` | ◑ tested | agent-2 | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_read) |
+| `flash_write_page` | ◑ tested | agent-2 | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_write_page) |
+| `flash_erase_sector` | ◑ tested | agent-2 | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_erase_sector) |
 
 ## Module: `interface/lora`
 
