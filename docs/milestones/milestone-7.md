@@ -35,7 +35,8 @@ small in-RAM reassembly window.
       advertisement subset selected for this milestone and rejects unsupported
       msgpack keys, over-MDU advertisements, and inconsistent sizes.
 - [ ] `resource_part_parse` extracts one resource part from decrypted link
-      plaintext and checks part index, resource hash, and caller length bounds.
+      plaintext, checks caller length bounds, and computes the map-hash used
+      to infer the part position from the advertised receive window.
 - [ ] `resource_reassembly_init` and `resource_reassembly_update` maintain a
       fixed-capacity in-RAM received-part window with deterministic duplicate,
       complete, and invalid statuses.
@@ -110,7 +111,9 @@ Function:
 Responsibilities:
 
 1. Extract one decrypted RESOURCE context payload into a bounded part view.
-2. Check part index and payload length against the active advertisement.
+2. Do not require an on-wire part index; RESOURCE payloads are raw part data,
+   so reassembly infers the part position by matching the map-hash against the
+   active advertisement window.
 3. Hash each received part with SHA-256 truncated to the resource map-hash
    width selected for this milestone.
 
@@ -130,6 +133,15 @@ Responsibilities:
 2. Track received part bitmap/hashmap progress and return stable statuses for
    new part, duplicate part, complete resource, invalid part, and overflow.
 3. Keep replacement deterministic if multiple inbound resources are active.
+
+Verified state baseline:
+
+1. `resource_reassembly_init` clears `resource_reassembly_table`.
+2. The table has 2 fixed entries. Each entry reserves 64 received-part bits and
+   64 upstream map hashes (`Resource.MAPHASH_LEN == 4`) for future
+   `resource_reassembly_update` matching.
+3. The initial receive-window constants mirror upstream Reticulum's receive
+   window floor/default/max for this bounded subset: 2, 4, and 75.
 
 ## resource_process_plaintext
 
