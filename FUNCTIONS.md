@@ -301,8 +301,8 @@ Reticulum identity: keypair generation, persistence, hash derivation.
 |----------|--------|-------|-----------|------|------|
 | `identity_hash` | ◉ verified |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#identity_hash) |
 | `identity_create` | ◉ verified |  | `identity_hash`, `x25519_keypair`, `ed25519_keypair`, `rng_bytes` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#identity_create) |
-| `identity_save` | ☐ planned |  | `flash_*`, `identity_create` | — | (milestone 4) |
-| `identity_load` | ☐ planned |  | `flash_*` | — | (milestone 4) |
+| `identity_save` | ☐ planned |  | `flash_*`, `identity_hash`, `sha256_*` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#identity_save) |
+| `identity_load` | ☐ planned |  | `flash_*`, `identity_hash`, `sha256_*` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#identity_load) |
 
 ## Module: `destination`
 
@@ -352,10 +352,10 @@ Flash driver: page read/write/erase. Required for identity persistence, destinat
 
 | Function | Status | Owner | Depends-on | ADRs | Spec |
 |----------|--------|-------|-----------|------|------|
-| `flash_init` | ☐ planned |  | `clock_init` | — | (milestone 4) |
-| `flash_read` | ☐ planned |  | `flash_init` | — | (milestone 4) |
-| `flash_write_page` | ☐ planned |  | `flash_init` | — | (milestone 4) |
-| `flash_erase_sector` | ☐ planned |  | `flash_init` | — | (milestone 4) |
+| `flash_init` | ☐ planned |  | `clock_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_init) |
+| `flash_read` | ☐ planned |  | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_read) |
+| `flash_write_page` | ☐ planned |  | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_write_page) |
+| `flash_erase_sector` | ☐ planned |  | `flash_init` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#flash_erase_sector) |
 
 ## Module: `interface/lora`
 

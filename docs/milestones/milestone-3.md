@@ -1,7 +1,8 @@
 # Milestone 3: Identity + announce TX
 
-- **Status:** Active
+- **Status:** Complete
 - **Started:** 2026-05-03
+- **Completed:** 2026-05-03
 - **Estimate:** 3-4 weeks
 
 ## Goal
@@ -27,7 +28,7 @@ the outgoing announce wire image validates under the Python reference.
 
 ## Definition of done
 
-- [ ] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-3 function with
+- [x] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-3 function with
       a source, tests, verifier artifact, and status `verified`.
 - [x] `identity_create` produces an identity whose private bytes are
       `x25519_sk || ed25519_seed`, whose public bytes are
@@ -46,7 +47,7 @@ the outgoing announce wire image validates under the Python reference.
       the existing `uart_tx_bytes` path under qemu-virt.
 - [x] The TLA+ announce-TX state machine accepts every harness trace emitted by
       the asm path: `identity.ready` -> `announce.built` -> `kiss.tx_frame`.
-- [ ] `make ci`, `make build TARGET=qemu-virt`, and `./verify <fn>` pass for
+- [x] `make ci`, `make build TARGET=qemu-virt`, and `./verify <fn>` pass for
       every function added or modified in this milestone.
 
 ## Wire Format
@@ -371,3 +372,14 @@ app data, non-empty app data, exact-capacity output, and one-byte-short
 overflow; `announce_send` KISS-frames those bytes, emits the
 `announce.built -> kiss.tx_frame` trace, and writes the frame over UART under
 qemu-virt.
+
+## Retrospective
+
+Milestone 3 closed on 2026-05-03. Scope landed faster than the 3-4 week
+estimate because milestone 2 had already delivered the crypto and RNG stack,
+and parallel agents split production, proof backfill, and tests cleanly. The
+main divergence was opening this missing spec at sprint start instead of during
+the previous milestone close. The announce TX path also used direct qemu-virt
+KISS dispatcher tests for the end-to-end trace rather than hardware, leaving
+real-device persistence and reset behavior for milestone 4. `random_hash`
+remains an opaque RNG nonce; wall-clock timestamp parity is deferred.

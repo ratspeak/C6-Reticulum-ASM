@@ -177,11 +177,15 @@ X25519 functions, with the remaining Tier B sweep tracked as a
 post-milestone follow-up).
 See [docs/milestones/milestone-2.md](docs/milestones/milestone-2.md).
 
-**Milestone 3 — Identity + announce TX** (Active 2026-05-03:
-creates Reticulum identity state, destination hash helpers, and a
-signed HEADER_1 announce TX path over the existing KISS serial
-development interface).
+**Milestone 3 — Identity + announce TX** (Complete 2026-05-03:
+Reticulum identity state, destination hash helpers, announce builder,
+and KISS announce TX dispatcher verified under qemu-virt).
 See [docs/milestones/milestone-3.md](docs/milestones/milestone-3.md).
+
+**Milestone 4 — Flash persistence** (Active 2026-05-03:
+persists the local Reticulum identity in a reserved flash sector and
+loads it before announce TX after reset).
+See [docs/milestones/milestone-4.md](docs/milestones/milestone-4.md).
 
 Update this section whenever a milestone becomes active or completes.
 
