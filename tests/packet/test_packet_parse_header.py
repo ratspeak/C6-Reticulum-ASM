@@ -82,8 +82,16 @@ def test_minimum_h1_packet_is_parsed(artifacts: build.BuildArtifacts) -> None:
 
 
 def test_short_packet_is_rejected(artifacts: build.BuildArtifacts) -> None:
-    """A 5-byte payload is shorter than HEADER_MINSIZE (19)."""
-    framed = oracle.kiss_encode(b"shrt!")
+    """A 5-byte payload is shorter than HEADER_MINSIZE (19).
+
+    The first byte must not collide with any of the boot dispatcher's
+    KAT tags (S, h, H, E, X, B, I, M, m, K, C, D, V, v, F, Q, i, L, s,
+    r, k, R, a, g, G, y) — those route the frame to a crypto KAT handler
+    instead of the packet parser. 0x01 is a valid HEADER_1 flags byte
+    and falls through to packet_parse_header, where the short length
+    triggers the rejection path.
+    """
+    framed = oracle.kiss_encode(b"\x01hrt!")
     events = _run(artifacts.elf, framed)
     assert log_parser.find_event(events, module="kiss", event="rx_frame")
     assert log_parser.find_event(events, module="packet", event="rejected"), \
