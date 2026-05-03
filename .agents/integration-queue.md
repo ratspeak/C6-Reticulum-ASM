@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 4 is closed and milestone 5 is active as of dd4e341. Current flash baseline passed `make ci` (`529 passed, 14 skipped`), qemu/C6 builds, C6 image build, focused flash/boot verification, and physical `pytest --hardware tests/hardware/test_flash_persistence.py -q -p no:cacheprovider` (`2 passed`) on 2026-05-03. Eligible milestone-5 claims: `announce_parse`, `announce_validate`, `transport_path_init`, `transport_path_update`, `transport_path_lookup`, `transport_process_announce`.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 4 is closed and milestone 5 is active through a66fe20. `announce_parse` is verified; current gates passed: `./verify announce_parse`, `make ci` (`544 passed, 14 skipped`), qemu/C6 builds, registry, stack, and `git diff --check`. Remaining eligible milestone-5 claims: `announce_validate`, `transport_path_init`, `transport_path_update`, `transport_path_lookup`, `transport_process_announce`.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified `announce_parse`; adds `announce_rx_t` offsets, HEADER_1 announce parser, bounded app-data view semantics, direct-QEMU malformed/valid coverage, oracle MDU rejection, and finite bounds/source-shape proof — branch: main, integrated as a66fe20 2026-05-03T09:57:00Z
 - [agent-1] Close milestone 4 and activate milestone 5 Transport RX; adds `docs/milestones/milestone-5.md`, updates roadmap/registry state, records hardware flash reset-retention pass, and leaves milestone-5 work scoped to inbound announces plus volatile path table — branch: main, integrated as dd4e341 2026-05-03T09:13:00Z
 - [agent-1] Verify physical C6 flash reset-retention after ROM helper geometry initialization; `pytest --hardware tests/hardware/test_flash_persistence.py -q -p no:cacheprovider` passed twice (`2 passed`) and boot diagnostics now distinguish identity load/save errors — branch: main, integrated as 3a74ef1 2026-05-03T08:58:30Z
 - [agent-1] Implement TARGET_C6 ROM-helper flash backend and reset-retention hardware test; flash APIs remain bounded to the reserved identity sector, qemu flash proof now binds the qemu branch explicitly, and milestone-4 local DoD checkboxes are updated with physical hardware retention still open — branch: main, integrated as 27b75d6 2026-05-03T08:28:10Z
