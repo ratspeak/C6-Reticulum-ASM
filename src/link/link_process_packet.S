@@ -11,7 +11,7 @@
 # @cycles:      bounded (~4-entry link-table scan plus delegated processing)
 # @ct:          not-required
 # @spec:        milestone-6 link_process_packet
-# @verify:      proofs/link/link_process_packet.py
+# @verify:      proofs/link/link_process_packet.py, proofs/link/link_state.tla
 # @tests:       tests/link/test_link_process_packet.py
 # @adrs:        0001, 0002, 0004, 0005, 0006, 0009
 # @status:      verified

@@ -40,7 +40,7 @@ trip through the asm stack.
       plus HMAC authenticated payload path for one in-order session packet.
 - [x] `link_process_packet` routes inbound link requests and encrypted link
       packets while preserving the milestone-5 announce RX path.
-- [ ] A TLA+ link state model covers request, accept, duplicate, reject,
+- [x] A TLA+ link state model covers request, accept, duplicate, reject,
       timeout, encrypted packet accept, and encrypted packet reject traces.
 - [ ] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
       `pytest --hardware tests/hardware/`, and `./verify <fn>` pass for every
@@ -316,8 +316,9 @@ Responsibilities:
 
 ## Verifier Plan
 
-- TLA+ state model for pending, established, duplicate, timeout, reject, and
-  encrypted-packet transitions.
+- TLA+ state model [proofs/link/link_state.tla](../../proofs/link/link_state.tla)
+  for pending, established, duplicate, timeout, reject, and encrypted-packet
+  transitions.
 - Bounds proof for `link_request_parse`.
 - KAT/oracle coverage for key derivation and session encryption/decryption.
 - Source-shape proofs that authentication checks precede plaintext release.
