@@ -13,9 +13,7 @@ This test:
 """
 from __future__ import annotations
 
-import hashlib
 import re
-import struct
 import time
 
 import pytest
@@ -24,15 +22,15 @@ from cryptography.hazmat.primitives.serialization import (
     Encoding, PublicFormat, PrivateFormat, NoEncryption,
 )
 
-from harness import build, log_parser, oracle, target
-
-SEED = b"DETERMINISTIC_FAKE_RNG_FOR_QEMU" + b"\x00"
-assert len(SEED) == 32
+from harness import build, drbg_oracle, log_parser, oracle, target
 
 
 def _expected_sk() -> bytes:
-    """First 32 bytes of the RNG output after rng_init."""
-    return hashlib.sha256(SEED + struct.pack("<I", 0)).digest()
+    """First 32 bytes of `rng_bytes` after a fresh `rng_init`. The
+    HMAC-DRBG-SHA-256 oracle (drbg_oracle.drbg_oracle) mirrors the
+    asm pipeline: instantiate from 48 bytes of deterministic-fake
+    entropy, then generate 32 bytes."""
+    return drbg_oracle.drbg_oracle(32)
 
 
 def _expected_pk(sk: bytes) -> bytes:

@@ -1,0 +1,25 @@
+// proofs/crypto/rng/rng_init.saw
+//
+// SAW driver for rng_init algorithmic verification (Tier A per
+// ADR-0009).
+//
+// rng_init is HMAC_DRBG_Instantiate per NIST SP 800-90A Rev. 1
+// §10.1.2.3. We discharge:
+//   * `instantiate` is deterministic — same seed_material always
+//     produces the same (K, V) post-instantiate state.
+//   * The full NIST CAVP DRBGVS COUNT=0 KAT, which exercises
+//     instantiate followed by generate-and-discard / generate-and-keep
+//     (the `nist_count0_kat` property in HMACDRBG.cry implicitly
+//     witnesses instantiate's correctness — if instantiate were wrong,
+//     the post-instantiate K, V would diverge from NIST's reference
+//     implementation and the second generate's output would not match
+//     the published ReturnedBits). The KAT itself is proven in
+//     rng_bytes.saw to keep the per-function SAW driver scoped.
+
+import "HMACDRBG.cry";
+
+print "[rng_init.saw] proving instantiate is deterministic (48-byte seed) ...";
+prove_print z3 {{ \seed -> instantiate_deterministic seed }};
+print "[rng_init.saw] instantiate: deterministic.";
+
+print "[rng_init.saw] PASS";

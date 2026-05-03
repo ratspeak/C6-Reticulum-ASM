@@ -1,0 +1,31 @@
+# Binsec/Rel constant-time check for aes_invsubbytes (Tier B per ADR-0009).
+#
+# Same shape as aes_subbytes — fixed-count loop over 16 state bytes,
+# delegating each byte to aes_invsbox (constant-time by construction,
+# separately proven by aes_invsbox.bsc).
+
+starting from <aes_invsubbytes> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000
+  @[a0,  1] := secret as state_byte_0
+  @[a0 + 1,  1] := secret as state_byte_1
+  @[a0 + 2,  1] := secret as state_byte_2
+  @[a0 + 3,  1] := secret as state_byte_3
+  @[a0 + 4,  1] := secret as state_byte_4
+  @[a0 + 5,  1] := secret as state_byte_5
+  @[a0 + 6,  1] := secret as state_byte_6
+  @[a0 + 7,  1] := secret as state_byte_7
+  @[a0 + 8,  1] := secret as state_byte_8
+  @[a0 + 9,  1] := secret as state_byte_9
+  @[a0 + 10, 1] := secret as state_byte_10
+  @[a0 + 11, 1] := secret as state_byte_11
+  @[a0 + 12, 1] := secret as state_byte_12
+  @[a0 + 13, 1] := secret as state_byte_13
+  @[a0 + 14, 1] := secret as state_byte_14
+  @[a0 + 15, 1] := secret as state_byte_15
+end
+
+halt at <aes_invsubbytes> return
+
+explore all

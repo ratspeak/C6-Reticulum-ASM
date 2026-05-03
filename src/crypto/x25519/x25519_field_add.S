@@ -13,7 +13,7 @@
 # @spec:        donna 32-bit / RFC 7748 §5 — pointwise limb add over the
 #               radix-2^25.5 representation. No reduction: limbs may
 #               grow by one bit; later operations carry-propagate.
-# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_add.saw, proofs/crypto/x25519/x25519_field_add.py
+# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_add.saw, proofs/crypto/x25519/x25519_field_add.bsc, proofs/crypto/x25519/x25519_field_add.py
 # @tests:       tests/crypto/x25519/test_x25519_field_add.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

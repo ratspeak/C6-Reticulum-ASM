@@ -9,7 +9,7 @@
 # @cycles:      bounded (16 * aes_sbox + loop overhead, ~5500)
 # @ct:          required (loop counter is data-independent; aes_sbox is CT)
 # @spec:        FIPS 197 §5.1.1 (SubBytes — 16-cell map)
-# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_subbytes.bsc
 # @tests:       tests/crypto/aes/test_aes_subbytes.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

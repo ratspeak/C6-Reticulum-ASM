@@ -11,7 +11,7 @@
 # @spec:        FIPS 197 §5.3.2 + Saarinen identity
 #               iS(x) = A(S(A(x)))   where  A(x) = rol8(x,6) ^ rol8(x,3) ^ rol8(x,1) ^ 0x05
 #               (BearSSL src/symcipher/aes_ct.c:br_aes_ct_bitslice_invSbox)
-# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_invsbox.bsc
 # @tests:       tests/crypto/aes/test_aes_invsbox.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

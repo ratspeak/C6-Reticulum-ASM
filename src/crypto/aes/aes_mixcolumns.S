@@ -14,7 +14,7 @@
 #               where T = s0 ^ s1 ^ s2 ^ s3 (column XOR sum) and indices
 #               are taken mod 4. Constant-time xtime: msb extract → sign
 #               mask → AND with 0x1B → XOR with (input<<1).
-# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_mixcolumns.py
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_mixcolumns.bsc, proofs/crypto/aes/aes_mixcolumns.py
 # @tests:       tests/crypto/aes/test_aes_mixcolumns.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

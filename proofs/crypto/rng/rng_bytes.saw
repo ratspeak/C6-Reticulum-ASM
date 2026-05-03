@@ -1,0 +1,24 @@
+// proofs/crypto/rng/rng_bytes.saw
+//
+// SAW driver for rng_bytes algorithmic verification (Tier A per
+// ADR-0009).
+//
+// rng_bytes is HMAC_DRBG_Generate per NIST SP 800-90A Rev. 1
+// §10.1.2.5 with unconditional per-call backtracking-resistance
+// update (i.e. step 5 always runs, even when AddIn is empty).
+//
+// The headline property is the NIST CAVP DRBGVS HMAC_DRBG SHA-256
+// COUNT=0 KAT: the canonical 1024-bit ReturnedBits emitted by the
+// second generate(1024 bits) call after instantiate(seed_material)
+// + generate(1024 bits, discarded). This KAT is the strongest
+// algebraic check available — it pins both the generate body
+// (HMAC(K, V) loop + concatenation) and the inter-generate update
+// state transition.
+
+import "HMACDRBG.cry";
+
+print "[rng_bytes.saw] proving NIST CAVP DRBGVS HMAC_DRBG SHA-256 COUNT=0 KAT (1024-bit ReturnedBits) ...";
+prove_print z3 {{ nist_count0_kat }};
+print "[rng_bytes.saw] NIST COUNT=0 KAT: PASS.";
+
+print "[rng_bytes.saw] PASS";

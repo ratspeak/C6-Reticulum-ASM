@@ -1,0 +1,33 @@
+# Binsec/Rel constant-time check for aes256_cbc_encrypt (Tier B per ADR-0009).
+#
+# AES-256-CBC encrypt: prev = IV; per block: buf = pt[i] ^ prev;
+# ct[i] = AES-256(K, buf); prev = &ct[i]. Constant-time iff the per-
+# block aes256_encrypt_block is CT (proven separately) and the loop
+# count is structural — i.e., depends on `len` (a3) which is public.
+# Set `len` to 32 (2 blocks) to bound the analysis; the proof
+# generalises by induction since each block iteration runs identical
+# code with secret-only-but-fixed-pattern inputs.
+
+starting from <aes256_cbc_encrypt> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # round_keys (secret)
+  a1 := 0x80001000          # IV (16 bytes; secret in CBC's threat model)
+  a2 := 0x80002000          # plaintext (secret)
+  a3 := 32                  # length (2 blocks; public)
+  a4 := 0x80003000          # ciphertext output
+  for i<32> in 0 to 59 do
+    @[a0 + i * 4, 4] := secret as round_key_word
+  end
+  @[a1,  4] := secret as iv_w0
+  @[a1 + 4, 4] := secret as iv_w1
+  @[a1 + 8, 4] := secret as iv_w2
+  @[a1 + 12, 4] := secret as iv_w3
+  for i<32> in 0 to 7 do      # 8 words = 32 bytes
+    @[a2 + i * 4, 4] := secret as pt_w
+  end
+end
+
+halt at <aes256_cbc_encrypt> return
+
+explore all

@@ -4,13 +4,12 @@ Frame: 'g' (no args). Resets the deterministic-fake RNG, calls
 ed25519_keypair, emits sk + pk on two log lines.
 
 Verifies:
-  - sk matches the first RNG output (sha256(SEED || u32_le(0)))
-  - pk matches pyca/cryptography's Ed25519PrivateKey.from_private_bytes(sk)
+  - sk matches the first 32 bytes from rng_bytes after rng_init
+    (HMAC-DRBG-SHA-256 instantiate + generate, see drbg_oracle).
+  - pk matches pyca/cryptography's Ed25519PrivateKey.from_private_bytes(sk).
 """
 from __future__ import annotations
 
-import hashlib
-import struct
 import time
 
 import pytest
@@ -19,13 +18,11 @@ from cryptography.hazmat.primitives.serialization import (
     Encoding, PublicFormat,
 )
 
-from harness import build, log_parser, oracle, target
-
-SEED = b"DETERMINISTIC_FAKE_RNG_FOR_QEMU" + b"\x00"
+from harness import build, drbg_oracle, log_parser, oracle, target
 
 
 def _expected_sk() -> bytes:
-    return hashlib.sha256(SEED + struct.pack("<I", 0)).digest()
+    return drbg_oracle.drbg_oracle(32)
 
 
 def _expected_pk(sk: bytes) -> bytes:

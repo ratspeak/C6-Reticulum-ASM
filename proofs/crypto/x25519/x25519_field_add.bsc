@@ -1,0 +1,22 @@
+# Binsec/Rel constant-time check for x25519_field_add (Tier B per ADR-0009).
+#
+# x25519_field_add: 10 pointwise int32 adds over the radix-2^25.5 limb
+# representation, fully unrolled, no carry propagation. Branch-free,
+# pure register arithmetic, fixed-offset memory access. Field elements
+# are secret (Montgomery ladder state during private-key scalar mul).
+
+starting from <x25519_field_add> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # out
+  a1 := 0x80001000          # a
+  a2 := 0x80002000          # b
+  for i<32> in 0 to 9 do
+    @[a1 + i * 4, 4] := secret as a_limb
+    @[a2 + i * 4, 4] := secret as b_limb
+  end
+end
+
+halt at <x25519_field_add> return
+
+explore all

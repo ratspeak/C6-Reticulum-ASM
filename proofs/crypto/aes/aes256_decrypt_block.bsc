@@ -1,0 +1,25 @@
+# Binsec/Rel constant-time check for aes256_decrypt_block (Tier B per ADR-0009).
+#
+# AES-256 single-block inverse cipher: 14 rounds composing
+# InvSubBytes / InvShiftRows / InvMixColumns / AddRoundKey, structured
+# identically to the encrypt path. Same threat model: round keys + the
+# input ciphertext are secret.
+
+starting from <aes256_decrypt_block> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # round_keys (240 bytes; secret)
+  a1 := 0x80001000          # ciphertext (16 bytes; secret)
+  a2 := 0x80002000          # plaintext (16 bytes; output)
+  @[a1,  4] := secret as ct_w0
+  @[a1 + 4, 4] := secret as ct_w1
+  @[a1 + 8, 4] := secret as ct_w2
+  @[a1 + 12, 4] := secret as ct_w3
+  for i<32> in 0 to 59 do
+    @[a0 + i * 4, 4] := secret as round_key_word
+  end
+end
+
+halt at <aes256_decrypt_block> return
+
+explore all

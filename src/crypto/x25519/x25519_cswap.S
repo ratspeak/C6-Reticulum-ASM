@@ -13,7 +13,7 @@
 # @spec:        RFC 7748 §5 — constant-time conditional swap via
 #               mask(swap) = -swap (0 → 0x00000000, 1 → 0xFFFFFFFF).
 #               Each limb: diff = (a^b) & mask; a ^= diff; b ^= diff.
-# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_cswap.saw, proofs/crypto/x25519/x25519_cswap.py
+# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_cswap.saw, proofs/crypto/x25519/x25519_cswap.bsc, proofs/crypto/x25519/x25519_cswap.py
 # @tests:       tests/crypto/x25519/test_x25519_cswap.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

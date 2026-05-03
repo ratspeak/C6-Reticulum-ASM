@@ -11,7 +11,7 @@
 # @cycles:      bounded (~75k; 14 inverse rounds + final-round shortcut)
 # @ct:          required
 # @spec:        FIPS 197 §5.3 (Inverse Cipher) for Nr=14
-# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes256_decrypt_block.bsc
 # @tests:       tests/crypto/aes/test_aes256_decrypt_block.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

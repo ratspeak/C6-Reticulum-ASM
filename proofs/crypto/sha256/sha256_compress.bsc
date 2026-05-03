@@ -1,0 +1,30 @@
+# Binsec/Rel constant-time check for sha256_compress (Tier B per ADR-0009).
+#
+# SHA-256 compression is data-oblivious by construction: 64 rounds
+# of fixed shape (sigma/ch/maj over the schedule, then accumulate into
+# H[8]) — no branch on input bytes, no memory access indexed by them.
+# The asm follows that shape literally, so a Tier B confirmation is
+# strong evidence the compiler/linker didn't introduce side channels.
+#
+# Both the chaining state (ctx[0..32], i.e. H[8]) and the input block
+# (block[0..64]) are treated as secret. Tagging both is conservative
+# — H is intermediate digest state which a side-channel attacker
+# might want to recover; block is the raw message bytes the function
+# processes.
+
+starting from <sha256_compress> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # ctx ptr (containing H[8])
+  a1 := 0x80001000          # block ptr (64 bytes)
+  for i<32> in 0 to 7 do      # H[8] = 8 words
+    @[a0 + i * 4, 4] := secret as h_word
+  end
+  for i<32> in 0 to 15 do     # block = 16 words
+    @[a1 + i * 4, 4] := secret as block_word
+  end
+end
+
+halt at <sha256_compress> return
+
+explore all

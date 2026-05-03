@@ -1,34 +1,26 @@
 """KAT for rng_bytes executed under QEMU.
 
-Frame layout: 'r' || count[1]. The dispatcher calls rng_init then
-rng_bytes(buf, count); the counter advances per 32-byte block.
+`rng_bytes` is the HMAC-DRBG-SHA-256 generate operation per NIST
+SP 800-90A Rev. 1 §10.1.2.5. The DRBG is instantiated by `rng_init`
+from 48 bytes of `rng_entropy` (entropy_input(32) + nonce(16); null
+personalization). On TARGET_QEMU_VIRT the entropy source is the
+deterministic-fake CSPRNG `sha256(SEED || counter_le32)`, so the
+DRBG output is fully reproducible and pinnable in a Python oracle.
 
-Each test asserts the emitted bytes match
-  sha256(SEED || u32_le(0)) || sha256(SEED || u32_le(1)) || ...
-truncated to `count` bytes.
+Frame layout: 'r' || count[1]. The dispatcher calls `rng_init` then
+`rng_bytes(buf, count)` once. Tests assert the emitted bytes match
+the in-script HMAC-DRBG oracle (which itself is exercised against
+the verified RFC 4231 / RFC 5869 / NIST CAVP HMAC and SHA-256
+behaviour by the existing per-primitive Tier A proofs).
 """
 from __future__ import annotations
 
-import hashlib
 import re
-import struct
 import time
 
 import pytest
 
-from harness import build, log_parser, oracle, target
-
-SEED = b"DETERMINISTIC_FAKE_RNG_FOR_QEMU" + b"\x00"
-assert len(SEED) == 32
-
-
-def _oracle(count: int) -> bytes:
-    out = b""
-    counter = 0
-    while len(out) < count:
-        out += hashlib.sha256(SEED + struct.pack("<I", counter)).digest()
-        counter += 1
-    return out[:count]
+from harness import build, drbg_oracle, log_parser, oracle, target
 
 
 @pytest.fixture(scope="module")
@@ -42,10 +34,13 @@ def test_function_exists(artifacts):
     assert build.symbol_address(artifacts.elf, "rng_bytes") > 0
 
 
-def test_calls_sha256(artifacts):
+def test_calls_hmac_sha256(artifacts):
+    """The HMAC-DRBG generate path is HMAC-SHA-256 plus the
+    backtracking-resistance hmac_drbg_update — both visible in the
+    direct call list."""
     body = build.objdump_disassemble(artifacts.elf, symbol="rng_bytes")
-    for sym in ("sha256_init", "sha256_update", "sha256_final"):
-        assert sym in body, f"{sym} not invoked"
+    for sym in ("hmac_sha256", "hmac_drbg_update"):
+        assert sym in body, f"{sym} not invoked from rng_bytes"
 
 
 def test_stack_frame_balanced(artifacts):
@@ -83,10 +78,10 @@ def _qemu_rng(artifacts, count: int) -> bytes:
 
 @pytest.mark.parametrize("count", [1, 16, 31, 32, 33, 64, 96, 100])
 def test_oracle_match(artifacts, count):
-    """rng_bytes(N) for N ∈ {1, 16, 31, 32, 33, 64, 96, 100} matches
-    the sha256-counter oracle (full 32-byte blocks plus a partial)."""
+    """`rng_bytes(N)` for N ∈ {1, 16, 31, 32, 33, 64, 96, 100} matches
+    the HMAC-DRBG oracle (full 32-byte output blocks plus a partial)."""
     got = _qemu_rng(artifacts, count)
-    expected = _oracle(count)
+    expected = drbg_oracle.drbg_oracle(count)
     assert got == expected, (
         f"count={count}:\n  got:  {got.hex()}\n  want: {expected.hex()}"
     )

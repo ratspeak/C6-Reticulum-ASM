@@ -1,24 +1,27 @@
-"""Static + QEMU smoke tests for rng_init.
+"""Static + QEMU smoke tests for `rng_init`.
 
-rng_init resets the deterministic-fake counter to zero. There's no
-data-dependent behavior to verify algebraically; the pytest below
-exercises the QEMU-driven `r` dispatcher tag (which itself calls
-rng_init followed by rng_bytes), and asserts that after a fresh boot
-the first 32 emitted bytes match sha256(SEED || 0).
+`rng_init` is HMAC-DRBG-SHA-256 instantiate per NIST SP 800-90A
+Rev. 1 §10.1.2.3:
+  1. seed_material = entropy_input(32) || nonce(16)   (= rng_entropy(48))
+  2. K = 0x00 * 32
+  3. V = 0x01 * 32
+  4. (K, V) = HMAC_DRBG_Update(seed_material, K, V)
+  5. reseed_counter = 1
+
+The TARGET_QEMU_VIRT entropy source is the deterministic-fake
+`sha256(SEED || counter_le32)` CSPRNG (see test_rng_bytes.py for the
+oracle). This test asserts the post-instantiate state by observing
+that the first 32 bytes from a subsequent `rng_bytes(32)` call match
+the in-script HMAC-DRBG oracle.
 """
 from __future__ import annotations
 
-import hashlib
 import re
-import struct
 import time
 
 import pytest
 
-from harness import build, log_parser, oracle, target
-
-SEED = b"DETERMINISTIC_FAKE_RNG_FOR_QEMU" + b"\x00"
-assert len(SEED) == 32
+from harness import build, drbg_oracle, log_parser, oracle, target
 
 
 @pytest.fixture(scope="module")
@@ -32,19 +35,27 @@ def test_function_exists(artifacts):
     assert build.symbol_address(artifacts.elf, "rng_init") > 0
 
 
-def test_no_data_dependent_branches(artifacts):
+def test_calls_entropy_and_drbg_update(artifacts):
+    """rng_init's body must call rng_entropy (seed gathering) and
+    hmac_drbg_update (the §10.1.2.3 step-4 update)."""
     body = build.objdump_disassemble(artifacts.elf, symbol="rng_init")
-    branches = re.findall(r"\b(?:beq|bne|blt|bge|bltu|bgeu|beqz|bnez)\b", body)
-    assert not branches, f"unexpected branches: {branches}"
+    for sym in ("rng_entropy", "hmac_drbg_update"):
+        assert sym in body, f"{sym} not invoked from rng_init"
 
 
 def test_seed_symbol_present(artifacts):
-    """The DETERMINISTIC_FAKE_RNG marker must be in the linked image so
-    a CI gate can refuse a release build that includes it."""
+    """The DETERMINISTIC_FAKE_RNG marker must remain in the linked
+    image so a CI gate can refuse a release build that includes it."""
     assert build.symbol_address(artifacts.elf, "DETERMINISTIC_FAKE_RNG") > 0
 
 
-# ---------- QEMU smoke (asserts the post-condition counter==0) ----------
+def test_drbg_state_symbols_present(artifacts):
+    """All three pieces of HMAC-DRBG state are addressable in BSS."""
+    for sym in ("hmac_drbg_K", "hmac_drbg_V", "hmac_drbg_reseed_counter"):
+        assert build.symbol_address(artifacts.elf, sym) > 0, sym
+
+
+# ---------- QEMU smoke (asserts the post-condition by observation) ----------
 
 def _run_frame(elf, frame: bytes, *, timeout: float = 10.0) -> list:
     cfg = target.TargetConfig(binary=elf)
@@ -69,9 +80,11 @@ def _qemu_rng(artifacts, count: int) -> bytes:
     return out
 
 
-def test_first_block_is_sha256_seed_zero_counter(artifacts):
-    """After boot (rng_init was called), the first 32 emitted bytes
-    must equal sha256(SEED || u32_le(0))."""
-    expected = hashlib.sha256(SEED + struct.pack("<I", 0)).digest()
+def test_first_block_matches_drbg_instantiate(artifacts):
+    """After boot and the dispatcher's `rng_init`+`rng_bytes(32)`
+    sequence, the first 32 emitted bytes must equal the HMAC-DRBG
+    instantiate-then-generate(32) output computed by the Python
+    oracle."""
+    expected = drbg_oracle.drbg_oracle(32)
     got = _qemu_rng(artifacts, 32)
     assert got == expected, f"\n  got:  {got.hex()}\n  want: {expected.hex()}"

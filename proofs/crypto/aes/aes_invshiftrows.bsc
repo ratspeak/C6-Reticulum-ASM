@@ -1,0 +1,18 @@
+# Binsec/Rel constant-time check for aes_invshiftrows (Tier B per ADR-0009).
+#
+# Inverse of aes_shiftrows — same shape (pure byte permutation),
+# same threat model (state is secret).
+
+starting from <aes_invshiftrows> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000
+  @[a0,  4] := secret as state_w0
+  @[a0 + 4, 4] := secret as state_w1
+  @[a0 + 8, 4] := secret as state_w2
+  @[a0 + 12, 4] := secret as state_w3
+end
+
+halt at <aes_invshiftrows> return
+
+explore all

@@ -9,7 +9,7 @@
 # @cycles:      bounded (16 * aes_invsbox + loop overhead, ~6300)
 # @ct:          required
 # @spec:        FIPS 197 §5.3.2 (InvSubBytes)
-# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_invsubbytes.bsc
 # @tests:       tests/crypto/aes/test_aes_subbytes.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

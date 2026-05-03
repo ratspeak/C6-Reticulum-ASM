@@ -287,21 +287,46 @@ def _run_python_verifier(path: Path, repo_root: Path, name: str) -> StepResult:
 
 
 def _run_binsec_ct(path: Path, name: str) -> StepResult:
-    """Constant-time check via Binsec/Rel (relational symbolic execution)."""
+    """Constant-time check via Binsec/Rel (relational symbolic execution).
+
+    The .bsc file is an SSE script (Binsec's own DSL — `starting from
+    <symbol>`, `secret`, `assume`, `halt at`, etc.). The harness wires
+    it to the qemu-virt firmware ELF and runs the constant-time checker.
+    A 'secure' verdict from the checker (combined with a complete
+    exploration — no warnings about pending paths) maps to a pass; an
+    'insecure' verdict or any failed check maps to fail; an 'unknown'
+    verdict maps to fail (incomplete proofs are not accepted)."""
     if not _have("binsec"):
         return StepResult(name, "not-implemented", "binsec not installed")
+    elf = REPO_ROOT / "build" / "qemu-virt" / "firmware.elf"
+    if not elf.exists():
+        return StepResult(name, "fail",
+                          f"{elf} missing — run `make build` first")
     started = time.monotonic()
+    # -sse-depth: 524288 instructions per path. Default is 1000, which
+    # is too tight for crypto wrappers (aes_subbytes ~5300, aes256_
+    # encrypt_block ~66k). 524288 covers any single-function proof
+    # without making per-path exploration unbounded; CBC modes with
+    # multi-block messages or full ed25519_sign would need an explicit
+    # bump in the harness if and when they get a Tier B proof.
+    # -sse-timeout: 600 s per Binsec process.
     proc = subprocess.run(
-        ["binsec", "-config", str(path)],
+        ["binsec", "-isa", "riscv32", "-sse", "-checkct",
+         "-sse-depth", "524288", "-sse-timeout", "600",
+         "-sse-script", str(path), str(elf)],
         env=_proof_env(),
         capture_output=True,
         text=True,
     )
     elapsed = int((time.monotonic() - started) * 1000)
+    output = (proc.stdout + proc.stderr).strip()
+    # Binsec returns 0 even when the program is reported insecure, so
+    # we parse the result line directly.
+    secure = "Program status is : secure" in output
     return StepResult(
         name,
-        "pass" if proc.returncode == 0 else "fail",
-        (proc.stdout + proc.stderr).strip(),
+        "pass" if (proc.returncode == 0 and secure) else "fail",
+        output,
         elapsed,
     )
 

@@ -1,0 +1,29 @@
+# Binsec/Rel constant-time check for aes256_cbc_decrypt (Tier B per ADR-0009).
+#
+# AES-256-CBC decrypt: per block: pt[i] = AES-256-inv(K, ct[i]) ^ prev;
+# prev = ct[i]. Same CT argument as cbc_encrypt — composes the proven-
+# CT aes256_decrypt_block over a public-bounded loop count.
+
+starting from <aes256_cbc_decrypt> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # round_keys
+  a1 := 0x80001000          # IV
+  a2 := 0x80002000          # ciphertext
+  a3 := 32                  # length (2 blocks; public)
+  a4 := 0x80003000          # plaintext output
+  for i<32> in 0 to 59 do
+    @[a0 + i * 4, 4] := secret as round_key_word
+  end
+  @[a1,  4] := secret as iv_w0
+  @[a1 + 4, 4] := secret as iv_w1
+  @[a1 + 8, 4] := secret as iv_w2
+  @[a1 + 12, 4] := secret as iv_w3
+  for i<32> in 0 to 7 do
+    @[a2 + i * 4, 4] := secret as ct_w
+  end
+end
+
+halt at <aes256_cbc_decrypt> return
+
+explore all

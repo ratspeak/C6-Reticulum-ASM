@@ -13,7 +13,7 @@
 # @cycles:      bounded; n_blocks * (2 * 16-byte copies + decrypt + XOR)
 # @ct:          required
 # @spec:        NIST SP 800-38A §6.2 (CBC mode, decryption)
-# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes256_cbc_decrypt.bsc
 # @tests:       tests/crypto/aes/test_aes256_cbc.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

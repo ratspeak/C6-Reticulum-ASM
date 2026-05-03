@@ -1,0 +1,31 @@
+# Binsec/Rel constant-time check for aes256_encrypt_block (Tier B per ADR-0009).
+#
+# AES-256 single-block cipher: 14 rounds composing SubBytes, ShiftRows,
+# MixColumns, AddRoundKey (with the final round skipping MixColumns).
+# Each underlying primitive is constant-time (separately proven), and
+# the round count is structural (no data-dependent loop bounds), so
+# the wrapper is constant-time by composition. Threat model: both the
+# round-key schedule (a0, 240 bytes derived from the master key) and
+# the plaintext (a1, 16 bytes) are secret; the pointers themselves
+# (a0, a1, a2) are public.
+
+starting from <aes256_encrypt_block> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # round_keys (240 bytes; secret)
+  a1 := 0x80001000          # plaintext (16 bytes; secret)
+  a2 := 0x80002000          # ciphertext (16 bytes; output)
+  # Plaintext (16 bytes; 4 words)
+  @[a1,  4] := secret as pt_w0
+  @[a1 + 4, 4] := secret as pt_w1
+  @[a1 + 8, 4] := secret as pt_w2
+  @[a1 + 12, 4] := secret as pt_w3
+  # Round keys (240 bytes; 60 words). Loop construct over the schedule.
+  for i<32> in 0 to 59 do
+    @[a0 + i * 4, 4] := secret as round_key_word
+  end
+end
+
+halt at <aes256_encrypt_block> return
+
+explore all

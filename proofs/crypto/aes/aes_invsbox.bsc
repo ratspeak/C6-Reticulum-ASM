@@ -1,0 +1,15 @@
+# Binsec/Rel constant-time check for aes_invsbox (Tier B per ADR-0009).
+#
+# Same construction as aes_sbox — Boyar-Peralta-style branch-free
+# combinational circuit on the 8 input bits. Secret is the input byte.
+
+starting from <aes_invsbox> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := secret as input_byte
+  assume a0 < 256
+end
+
+halt at <aes_invsbox> return
+
+explore all

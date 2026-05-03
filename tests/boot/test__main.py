@@ -44,9 +44,13 @@ def test_emits_boot_banner(artifacts: build.BuildArtifacts) -> None:
 def test_banner_has_canonical_timestamp_field(
     artifacts: build.BuildArtifacts,
 ) -> None:
-    """The hard-coded boot banner uses ts=00000000 (8 hex digits per
-    ADR-0008). Once log_event lands the value will be a real cycle count;
-    until then the placeholder must still be parseable."""
+    """The boot banner's timestamp field is the 8-hex-digit format per
+    ADR-0008 — a real `clock_now_ms` reading at the moment `log_event`
+    runs for `boot.ready`. The exact value is implementation-detail
+    (it depends on how much work happens between `clock_init` and the
+    log call — including the HMAC-DRBG instantiate inside `rng_init`),
+    so we assert format only: 8 lowercase hex digits, parseable, and
+    ≤ a generous upper bound that any plausible boot path stays under."""
     cfg = target.TargetConfig(binary=artifacts.elf)
     t = target.EmuTarget(cfg)
     if not t.is_available():
@@ -61,5 +65,5 @@ def test_banner_has_canonical_timestamp_field(
     assert banner is not None
     ev = log_parser.parse_line(banner + "\r\n")
     assert ev is not None
-    assert ev.ts_raw == "00000000"
-    assert ev.ts_ms == 0
+    assert len(ev.ts_raw) == 8 and all(c in "0123456789abcdef" for c in ev.ts_raw)
+    assert ev.ts_ms < 100, f"boot to ready took {ev.ts_ms} ms — investigate"

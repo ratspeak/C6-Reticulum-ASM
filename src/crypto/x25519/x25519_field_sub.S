@@ -13,7 +13,7 @@
 # @spec:        donna 32-bit — pointwise signed limb subtraction over
 #               the radix-2^25.5 representation. No reduction: limbs
 #               may go negative; later operations handle signs.
-# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_sub.saw, proofs/crypto/x25519/x25519_field_sub.py
+# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_sub.saw, proofs/crypto/x25519/x25519_field_sub.bsc, proofs/crypto/x25519/x25519_field_sub.py
 # @tests:       tests/crypto/x25519/test_x25519_field_sub.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

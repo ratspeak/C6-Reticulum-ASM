@@ -12,7 +12,7 @@
 #               (Boyar & Peralta, "A new combinational logic minimization
 #                technique with applications to cryptology", 2010 —
 #                https://eprint.iacr.org/2009/191).
-# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_sbox.bsc
 # @tests:       tests/crypto/aes/test_aes_sbox.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

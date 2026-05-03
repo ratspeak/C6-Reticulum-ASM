@@ -165,13 +165,16 @@ KAT bridge all verified end-to-end on real silicon over the on-chip
 USB-Serial/JTAG endpoint per [ADR-0010](docs/adr/0010-usb-serial-jtag-backend.md)).
 See [docs/milestones/milestone-1.md](docs/milestones/milestone-1.md).
 
-**Milestone 2 — Cryptographic primitives** (software-complete; the
-SHA-256/HMAC/HKDF/AES/X25519 stack is verified Tier A + Tier C, the
-SHA-512/Ed25519 stack is KAT-verified end-to-end against
-pyca/cryptography under qemu-system-riscv32, and the deterministic-
-fake RNG is in place pending hardware-TRNG bring-up. Tier A Cryptol
-models for SHA-512/Ed25519 and Binsec/Rel constant-time proofs across
-the full crypto stack are the remaining hardening work).
+**Milestone 2 — Cryptographic primitives** (Complete 2026-05-02:
+the full SHA-256 / SHA-512 / HMAC / HKDF / AES-256-CBC / X25519 /
+Ed25519 stack is verified Tier A; the production HMAC-DRBG-SHA-256
+per NIST SP 800-90A Rev. 1 §10.1.2 is wired over a two-layer entropy
+source — deterministic-fake CSPRNG on qemu, on-chip LPPERI hardware
+RNG on TARGET_C6 — and discharges the canonical NIST CAVP DRBGVS
+COUNT=0 KAT symbolically; Tier B Binsec/Rel constant-time proofs
+cover the full AES-256-CBC stack plus representative SHA-256 and
+X25519 functions, with the remaining Tier B sweep tracked as a
+post-milestone follow-up).
 See [docs/milestones/milestone-2.md](docs/milestones/milestone-2.md).
 
 Update this section whenever a milestone becomes active or completes.

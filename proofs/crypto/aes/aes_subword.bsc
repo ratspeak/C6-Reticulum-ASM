@@ -1,0 +1,16 @@
+# Binsec/Rel constant-time check for aes_subword (Tier B per ADR-0009).
+#
+# aes_subword applies aes_sbox to each of the 4 bytes of a 32-bit word
+# (helper used by AES key expansion). Four straight-line aes_sbox
+# calls; aes_sbox itself is constant-time (separately proven). Secret
+# is the input word.
+
+starting from <aes_subword> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := secret as input_word
+end
+
+halt at <aes_subword> return
+
+explore all

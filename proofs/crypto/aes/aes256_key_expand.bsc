@@ -1,0 +1,26 @@
+# Binsec/Rel constant-time check for aes256_key_expand (Tier B per ADR-0009).
+#
+# AES-256 key schedule per FIPS 197 §5.2: expands the 32-byte master
+# key into a 240-byte round-key table. The schedule is data-oblivious
+# in shape (loop count is structural; no branch on key bytes), and
+# its only call into a non-CT-by-construction primitive is aes_subword
+# (which delegates to aes_sbox — both proven CT in Tier B).
+
+starting from <aes256_key_expand> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # master key (32 bytes; secret)
+  a1 := 0x80001000          # round_keys output (240 bytes)
+  @[a0,  4] := secret as key_w0
+  @[a0 + 4, 4] := secret as key_w1
+  @[a0 + 8, 4] := secret as key_w2
+  @[a0 + 12, 4] := secret as key_w3
+  @[a0 + 16, 4] := secret as key_w4
+  @[a0 + 20, 4] := secret as key_w5
+  @[a0 + 24, 4] := secret as key_w6
+  @[a0 + 28, 4] := secret as key_w7
+end
+
+halt at <aes256_key_expand> return
+
+explore all

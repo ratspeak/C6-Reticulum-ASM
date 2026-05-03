@@ -1,0 +1,18 @@
+# Binsec/Rel constant-time check for aes_invmixcolumns (Tier B per ADR-0009).
+#
+# Inverse of MixColumns — same shape (matrix mult over GF(2^8) with
+# branch-free GF arithmetic), same threat model (state secret).
+
+starting from <aes_invmixcolumns> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000
+  @[a0,  4] := secret as state_w0
+  @[a0 + 4, 4] := secret as state_w1
+  @[a0 + 8, 4] := secret as state_w2
+  @[a0 + 12, 4] := secret as state_w3
+end
+
+halt at <aes_invmixcolumns> return
+
+explore all

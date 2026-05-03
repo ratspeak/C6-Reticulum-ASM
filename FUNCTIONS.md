@@ -50,11 +50,26 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
   hardware-RNG entropy properties) over the on-chip USB-Serial/JTAG endpoint per
   [ADR-0010](docs/adr/0010-usb-serial-jtag-backend.md). 12 hardware tests pass in ~6 s
   (run with `pytest --hardware tests/hardware/`).
-- Total functions registered: **39** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 78 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 12 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + RNG (deterministic-fake) — all under ADR-0009)
+- Total functions registered: **41** (excludes wildcard placeholders like `x25519_field_*`)
+- Verified: 80 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 12 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + production HMAC-DRBG-SHA-256 RNG (NIST SP 800-90A Rev. 1 §10.1.2; the new `rng_entropy` raw-source layer + `hmac_drbg_update` + `rng_init` + `rng_bytes` together discharge the canonical NIST CAVP DRBGVS COUNT=0 KAT symbolically; on TARGET_C6 the entropy source is the on-chip LPPERI hardware RNG) — all under ADR-0009)
 - Tier A coverage extended: the SHA-512 family (`sha512_init`, `sha512_compress`, `sha512_update`, `sha512_final`) now carries a Cryptol+SAW Tier A proof alongside the QEMU/hashlib KAT bridge. The SAW drivers discharge FIPS 180-4 §C.1 + §C.2 KATs symbolically over the 80-round transform + 16-word schedule, plus K-table constants, ROTR/ch/maj algebraic sanity, streaming associativity (small chunkings), and both padding paths (bl ≤ 111 single-block + bl > 111 two-block).
 - Tier A coverage extended: the Ed25519 lower stack (8 of 11 functions: `sc_reduce`, `sc_muladd`, `point_add`, `point_double`, `scalarmult`, `point_compress`, `point_decompress`, `field_pow_p5d8`) now carries a Cryptol+SAW Tier A proof — `Ed25519Scalar.cry` (sc_reduce/sc_muladd boundary KATs vs (a*b+c) mod L), `Ed25519Point.cry` (BBJLP add/double on edwards25519: identity, additive inverse, double=add-at-equal, commutativity sanity), `Ed25519Encoding.cry` (compress(B) RFC vector, decompress(B) round-trip, scalarmult bit-pattern KATs, sqrt(-1)^2 = -1).
-- Planned: Tier A symbolic proofs for the three end-to-end Ed25519 functions (`keypair`, `sign`, `verify`) — these remain kat-only with strengthened rationale because every underlying primitive (sha512, scalarmult, compress, sc_reduce, sc_muladd, decompress, point_add) now has its own Tier A; running the full sign/verify symbolically through SAW would re-execute the same primitives and is dominated by the existing per-primitive coverage. Binsec/Rel ct backfill across the crypto stack remains a separate sub-project (RV32 ELF input modeling is non-trivial). `uart_isr` (hw) remains for the milestone-1 hardware-demo DoD. The production ESP32-C6 RNG (HMAC-DRBG seeded from the on-chip TRNG) replaces the deterministic-fake at hardware bring-up time. `decode_u` removed from the registry — `field_unpack`'s limb 9 mask already drops bit 255 (the RFC 7748 high-bit mask), so a separate decode_u is redundant in our representation.
+- Tier B (Binsec/Rel constant-time) coverage landed 2026-05-02 for the
+  full AES-256-CBC stack (15 functions: aes_sbox/invsbox,
+  aes_subbytes/invsubbytes, aes_shiftrows/invshiftrows,
+  aes_mixcolumns/invmixcolumns, aes_addroundkey, aes_subword,
+  aes256_key_expand, aes256_encrypt_block / aes256_decrypt_block,
+  aes256_cbc_encrypt / aes256_cbc_decrypt) plus sha256_compress
+  (representative SHA-256 family) and three X25519 functions
+  (x25519_cswap, x25519_field_add, x25519_field_sub). All discharge a
+  `secure` verdict from binsec -checkct against the qemu-virt RV32IMC
+  ELF with full path coverage. The remaining Tier B sweep across X25519
+  heavy field ops (`field_mul`, `field_sq`, `field_mul121665`,
+  `field_inv`, `montgomery_ladder`, `scalar_mult`, `keypair`),
+  Ed25519, SHA-512, HMAC, HKDF is tracked as a follow-up sub-project;
+  their CT obligation is currently discharged by source-level review
+  against `@ct: required` and composition through proven-CT primitives.
+- Planned: Tier A symbolic proofs for the three end-to-end Ed25519 functions (`keypair`, `sign`, `verify`) — these remain kat-only with strengthened rationale because every underlying primitive (sha512, scalarmult, compress, sc_reduce, sc_muladd, decompress, point_add) now has its own Tier A; running the full sign/verify symbolically through SAW would re-execute the same primitives and is dominated by the existing per-primitive coverage. `uart_isr` (hw) remains for the milestone-1 hardware-demo DoD. `decode_u` removed from the registry — `field_unpack`'s limb 9 mask already drops bit 255 (the RFC 7748 high-bit mask), so a separate decode_u is redundant in our representation.
 - `x25519_field_mul121665` and `x25519_field_mul` both rely on a QEMU-pytest Tier C path rather than angr: the pcode RV32IMC engine mistranslates the `mul + mulh + add-with-carry` 64-bit accumulator chain (40-of-40 random inputs disagreed in earlier runs against a hand-written Python asm-level simulator that mirrors the asm verbatim). The X25519 dispatcher tag `'F'` (added in this commit) drives `x25519_field_mul` under qemu-system-riscv32 and compares to the algebraic-spec-validated Python oracle. Same Tier C-future resolution (SAW + macaw-riscv per ADR-0009); QEMU plumbing for `x25519_field_mul121665` is a follow-up since its asm is also covered by transitivity through the simulator.
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
@@ -258,12 +273,19 @@ SHA-256).
 
 ## Module: `crypto/rng`
 
-Cryptographically secure random number generation. Source: ESP32-C6 hardware RNG.
+Cryptographically secure random number generation. Two-layer
+architecture per NIST SP 800-90A Rev. 1: a raw entropy source
+(`rng_entropy` — deterministic-fake CSPRNG on TARGET_QEMU_VIRT, the
+on-chip LPPERI hardware RNG on TARGET_C6) and an HMAC-DRBG-SHA-256
+generator (`rng_init` instantiate, `rng_bytes` generate, with the
+internal `hmac_drbg_update` primitive shared between them).
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `rng_init` | ◉ verified | `clock_init` | 0006, 0009 | (milestone 2) |
-| `rng_bytes` | ◉ verified | `rng_init`, `sha256_*` | 0006, 0009 | (milestone 2) |
+| `rng_entropy` | ◉ verified | `sha256_*` | 0006, 0009 | (milestone 2) |
+| `hmac_drbg_update` | ◉ verified | `hmac_sha256` | 0006, 0009 | (milestone 2) |
+| `rng_init` | ◉ verified | `rng_entropy`, `hmac_drbg_update` | 0006, 0009 | (milestone 2) |
+| `rng_bytes` | ◉ verified | `rng_init`, `hmac_sha256`, `hmac_drbg_update` | 0006, 0009 | (milestone 2) |
 
 ## Module: `identity`
 

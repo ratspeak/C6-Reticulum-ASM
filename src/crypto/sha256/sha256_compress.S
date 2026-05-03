@@ -9,7 +9,7 @@
 # @cycles:      bounded (~64 round bodies × ~30 instructions + 64-word schedule + I/O ≈ 2700 instructions)
 # @ct:          required
 # @spec:        FIPS 180-4 §6.2.2 (SHA-256 hash computation)
-# @verify:      proofs/crypto/sha256/SHA256Compress.cry, proofs/crypto/sha256/sha256_compress.saw, proofs/crypto/sha256/sha256_compress.py
+# @verify:      proofs/crypto/sha256/SHA256Compress.cry, proofs/crypto/sha256/sha256_compress.saw, proofs/crypto/sha256/sha256_compress.bsc, proofs/crypto/sha256/sha256_compress.py
 # @tests:       tests/crypto/sha256/test_sha256_compress.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

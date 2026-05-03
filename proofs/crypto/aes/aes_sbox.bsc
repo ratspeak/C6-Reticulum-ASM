@@ -1,0 +1,36 @@
+# Binsec/Rel constant-time check for aes_sbox (Tier B per ADR-0009).
+#
+# aes_sbox implements the AES forward S-box via the 113-gate
+# Boyar-Peralta combinational circuit (per the asm spec block) — a
+# branch-free, table-free arithmetic computation on the 8 input bits.
+# The constant-time property is therefore "argued by construction"
+# at the asm level; this Tier B proof discharges that argument
+# against the compiled RV32IMC binary.
+#
+# Threat model: the input byte (a0, low 8 bits) is the secret. All
+# other registers (sp, ra, callee-saved) are public. The output
+# (a0) is permitted to depend on the secret (it must — that is the
+# function's contract). What must NOT depend on the secret:
+#   * Control flow (no branch on any bit of the secret).
+#   * Memory access addresses (no load/store with secret-dependent
+#     address — only stack spill/fill at fixed offsets is allowed).
+#
+# Setup:
+#   * sp is fixed at a concrete safe address well above .text/.data.
+#   * ra is set to a sentinel address; exploration halts there.
+#   * a0 is a symbolic secret (low 8 bits; high bits zero).
+
+starting from <aes_sbox> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := secret as input_byte
+  assume a0 < 256
+end
+
+# Halt at the function's return — Binsec interprets the `<symbol>
+# return` form as "halt when control reaches the ret instruction in
+# <symbol>", which is robust against asm address drift from edits
+# elsewhere in the binary.
+halt at <aes_sbox> return
+
+explore all

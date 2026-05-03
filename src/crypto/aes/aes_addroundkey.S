@@ -10,7 +10,7 @@
 # @cycles:      bounded (16: 4 unrolled word-XOR triples + ret)
 # @ct:          required
 # @spec:        FIPS 197 §5.1.4 (AddRoundKey)
-# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_addroundkey.py
+# @verify:      proofs/crypto/aes/AES256.cry, proofs/crypto/aes/aes256.saw, proofs/crypto/aes/aes_addroundkey.bsc, proofs/crypto/aes/aes_addroundkey.py
 # @tests:       tests/crypto/aes/test_aes_addroundkey.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
