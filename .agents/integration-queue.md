@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through e141f56. Latest integrated slice: native LoRa boot-loop polling. Current gates passed: `./verify _main`, `./verify sx1262_poll_receive`, refreshed `./verify sx1262_send_frame`, `./verify sx1262_init`, `./verify lora_interface_poll`, and `./verify lora_interface_send`, clock timestamp tests (`5 passed`), `make ci` (`751 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2496/16384, and `git diff --check`. Eligible next milestone-8 claim: LoRa state model or hardware reset/readback tests.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 74772d8. Latest integrated slice: LoRa interface state model. Current gates passed: project-local TLC for `proofs/lora/lora_interface_state.tla`, `./verify lora_interface_init`, `./verify lora_interface_send`, `./verify lora_interface_poll`, `make ci` (`751 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2496/16384, and `git diff --check`. Eligible next milestone-8 claim: hardware reset/readback tests.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Add milestone-8 LoRa interface TLA+ state model; covers reset/configure/idle, init error, TX done, TX timeout with recovery, RX frame, and RX error with recovery, and wires the model into `lora_interface_init`, `lora_interface_send`, and `lora_interface_poll` verification — branch: main, integrated as 74772d8 2026-05-03T21:02:38Z
 - [agent-1] Wire native LoRa boot-loop polling; `_main` now initializes `lora_interface_init`, emits `lora.ready`/`lora.init_error`, uses `uart_rx_available` before the existing KISS pump, polls one LoRa frame while idle, logs received LoRa frames, and `sx1262_poll_receive` now avoids repeated `SetRx` commands while continuous RX is already armed — branch: main, integrated as e141f56 2026-05-03T20:57:47Z
 - [agent-1] Implement verified milestone-8 `lora_interface_poll`; polls one SX1262 RX frame into static interface storage, returns radio errors without dispatch, forwards received raw packets through `link_process_packet` with `TRANSPORT_INTERFACE_LORA`, records receive/dispatch status, and covers dispatch/no-packet/not-ready/CRC/dispatch-error paths with finite/source proof plus direct-QEMU tests — branch: main, integrated as 1aa351c 2026-05-03T20:50:41Z
 - [agent-1] Implement verified milestone-8 `lora_interface_send`; gates sends on interface-ready state, delegates raw Reticulum packet TX to `sx1262_send_frame`, records last status/TX length, and covers success/not-ready/argument-error/timeout paths with finite/source proof plus direct-QEMU tests — branch: main, integrated as 6a3b6a2 2026-05-03T20:46:20Z
