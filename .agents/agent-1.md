@@ -6,6 +6,7 @@
 milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- lora-interface-poll — claimed 2026-05-03T20:46:20Z, completed 2026-05-03T20:50:41Z, branch: main, integrated as 1aa351c
 - lora-interface-send — claimed 2026-05-03T20:39:23Z, completed 2026-05-03T20:46:20Z, branch: main, integrated as 6a3b6a2
 - lora-interface-init — claimed 2026-05-03T20:35:37Z, completed 2026-05-03T20:39:23Z, branch: main, integrated as 4e2f074
 - sx1262-poll-receive — claimed 2026-05-03T19:55:15Z, completed 2026-05-03T20:35:37Z, branch: main, integrated as d152075
@@ -48,7 +49,7 @@ milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 8 (LoRa SPI Interface); eligible next claims are `lora_interface_poll` or the milestone-8 LoRa state model/hardware tests.
+- Active milestone is milestone 8 (LoRa SPI Interface); eligible next claims are `_main` native LoRa boot-loop integration, the milestone-8 LoRa TLA+ state model, and hardware reset/readback tests.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.
@@ -86,3 +87,4 @@ milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 - 2026-05-03T20:35:37Z — implemented verified milestone-8 `sx1262_poll_receive` on main as d152075; gates: `./verify sx1262_poll_receive`, refreshed `./verify sx1262_send_frame` and `./verify sx1262_init`, direct QEMU RX/TX/init tests (`11 passed`), `make ci` (`736 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Shared LoRa payload cap is now 253 bytes so TX and RX fit the bounded SPI command path.
 - 2026-05-03T20:39:23Z — implemented verified milestone-8 `lora_interface_init` on main as 4e2f074; gates: `./verify lora_interface_init`, refreshed `./verify sx1262_init`, direct QEMU interface-init/init tests (`6 passed`), `make ci` (`739 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T20:46:20Z — implemented verified milestone-8 `lora_interface_send` on main as 6a3b6a2; gates: `./verify lora_interface_send`, refreshed `./verify lora_interface_init` and `./verify sx1262_send_frame`, direct QEMU interface-send/init/TX tests (`10 passed`), `make ci` (`743 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
+- 2026-05-03T20:50:41Z — implemented verified milestone-8 `lora_interface_poll` on main as 1aa351c; gates: `./verify lora_interface_poll`, refreshed `./verify lora_interface_send` and `./verify sx1262_poll_receive`, direct QEMU interface-poll/send/RX tests (`14 passed`), `make ci` (`748 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Native LoRa interface functions are now all verified; hardware and TLA+ milestone gates remain open.
