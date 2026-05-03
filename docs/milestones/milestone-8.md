@@ -37,7 +37,7 @@ receive one packet at a time without heap allocation.
 - [x] SPI init and transfer support bounded full-duplex byte exchange on the
       selected ESP32-C6 SPI peripheral, with deterministic timeout/error
       statuses on qemu and TARGET_C6.
-- [ ] SX1262 reset/init verifies the radio command path by reaching standby
+- [x] SX1262 reset/init verifies the radio command path by reaching standby
       from cold reset and validating at least one readback/status command on
       hardware.
 - [x] TX accepts one bounded Reticulum packet, writes it into the SX1262 FIFO,
@@ -51,7 +51,7 @@ receive one packet at a time without heap allocation.
       LoRa frame per idle loop.
 - [x] A TLA+ LoRa interface state model covers reset, configure, idle, TX,
       TX timeout, RX, RX error, and recovery traces.
-- [ ] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
+- [x] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
       `pytest --hardware tests/hardware/`, and `./verify <fn>` pass for every
       function added or modified in this milestone.
 
