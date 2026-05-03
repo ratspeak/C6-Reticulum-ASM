@@ -25,7 +25,7 @@ small in-RAM reassembly window.
 
 ## Definition of Done
 
-- [ ] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-7 function with
+- [x] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-7 function with
       a source, tests, verifier artifact, and status `verified`.
 - [x] `channel_envelope_build` and `channel_envelope_parse` round-trip the
       upstream `msgtype[2] || sequence[2] || length[2] || payload` envelope
@@ -43,7 +43,7 @@ small in-RAM reassembly window.
 - [x] `resource_process_plaintext` dispatches decrypted link plaintext for
       RESOURCE_ADV, RESOURCE, and CHANNEL contexts while preserving the
       milestone-6 context-0 encrypted packet path.
-- [ ] A TLA+ resource/channel state model covers advertise, accept part,
+- [x] A TLA+ resource/channel state model covers advertise, accept part,
       duplicate part, complete transfer, reject, and channel envelope accept
       traces.
 - [ ] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
@@ -204,8 +204,9 @@ Verified dispatcher shape:
 
 ## Verifier Plan
 
-- TLA+ model for advertisement, part receive, duplicate, completion, reject,
-  and channel envelope accept traces.
+- TLA+ model [proofs/resource/resource_state.tla](../../proofs/resource/resource_state.tla)
+  for advertisement, part receive, duplicate, completion, reject, and channel
+  envelope accept traces.
 - Bounds/source-shape proofs for every parser.
 - Direct QEMU tests against Python oracle helpers for channel envelopes and the
   selected resource advertisement subset.

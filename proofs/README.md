@@ -20,6 +20,7 @@ proofs/                     (renamed from verify/, see ADR-0008)
 ├── identity/               (added in milestone 3) TLA+ for identity state
 ├── transport/              (added in milestone 5) TLA+ for transport
 ├── link/                   (added in milestone 6) TLA+ for link state
+├── resource/               (added in milestone 7) TLA+ and source contracts for resources/channels
 └── output/                 (gitignored) verifier outputs and intermediate files
 ```
 

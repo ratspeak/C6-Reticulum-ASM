@@ -9,7 +9,7 @@
 # @cycles:      bounded (~431-byte parser plus 2-entry reassembly scan)
 # @ct:          not-required
 # @spec:        milestone-7 resource_process_plaintext
-# @verify:      proofs/resource/resource_process.py
+# @verify:      proofs/resource/resource_process.py, proofs/resource/resource_state.tla
 # @tests:       tests/resource/test_resource_process_plaintext.py
 # @adrs:        0001, 0002, 0004, 0005, 0006, 0009
 # @status:      verified
