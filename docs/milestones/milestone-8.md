@@ -34,7 +34,7 @@ receive one packet at a time without heap allocation.
 - [x] GPIO helpers configure and sample the exact C6 pins used for SX1262
       CS, RESET, BUSY, and DIO1 without disturbing UART0 or USB-Serial/JTAG
       diagnostics.
-- [ ] SPI init and transfer support bounded full-duplex byte exchange on the
+- [x] SPI init and transfer support bounded full-duplex byte exchange on the
       selected ESP32-C6 SPI peripheral, with deterministic timeout/error
       statuses on qemu and TARGET_C6.
 - [ ] SX1262 reset/init verifies the radio command path by reaching standby
