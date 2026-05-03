@@ -1,0 +1,35 @@
+# Binsec/Rel constant-time investigation for x25519_montgomery_ladder (Tier B).
+#
+# This is the direct proof shape: start at the ladder entry, mark the scalar
+# bytes and u-coordinate limbs secret, and halt only at the function return.
+# It intentionally does not summarize callees; Binsec must traverse the 255
+# fixed ladder iterations plus the final field inversion and multiplication.
+# The file is only added to the function's @verify line if the direct check
+# completes with "Program status is : secure" under the project harness bounds.
+#
+# 2026-05-03 investigation result:
+#   * Existing dispatcher bound (-sse-depth 524288) cuts the only path at
+#     depth 524299 near 0x80002a36 and reports "Program status is : unknown".
+#   * Raising only the depth to 6000000 completes the direct proof:
+#     secure, max path depth 4788832, 5624/5624 control-flow checks pass,
+#     2090845/2090845 memory-access checks pass.
+# Therefore this script is intentionally not listed in @verify until the
+# Binsec harness grows a per-proof depth override or higher global bound.
+
+starting from <x25519_montgomery_ladder> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # out limbs (40 bytes)
+  a1 := 0x80001000          # scalar bytes (32 bytes)
+  a2 := 0x80002000          # u-coordinate limbs (40 bytes)
+  for i<32> in 0 to 31 do
+    @[a1 + i, 1] := secret as k_byte
+  end
+  for i<32> in 0 to 9 do
+    @[a2 + i * 4, 4] := secret as u_limb
+  end
+end
+
+halt at <x25519_montgomery_ladder> return
+
+explore all
