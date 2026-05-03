@@ -1,0 +1,182 @@
+// proofs/crypto/ed25519/Ed25519Point.cry
+//
+// Cryptol algorithmic specification for the Ed25519 group operations.
+//
+// Curve edwards25519 is the twisted Edwards model
+//
+//   -x² + y² = 1 + d·x²·y²  over F_p with p = 2^255 - 19
+//
+// where d = -121665/121666 mod p. Points are represented in extended
+// twisted Edwards coordinates (X, Y, Z, T) with x = X/Z, y = Y/Z, and
+// T = X·Y/Z (Hisil-Wong-Carter-Dawson 2008; the canonical formulation
+// used by Bernstein-Birkner-Joye-Lange-Peters 2008).
+//
+// The asm uses the BBJLP "2d" variant of dedicated addition (9 mul +
+// 6 add/sub) and the BBJLP doubling formula (4 sq + 3 mul + 5 add/sub)
+// over the radix-2^25.5 limb representation modelled in X25519FieldOps.
+// This module collapses the field arithmetic to Integer-mod-p so SAW
+// can discharge concrete KATs without running the limb machinery.
+//
+// Test vectors:
+//   * The base point B from RFC 8032 §5.1 (with the published
+//     coordinates).
+//   * Identity (0, 1, 1, 0) — additive zero of the group.
+//   * 2B via the doubling formula vs B + B via the addition formula
+//     (must agree).
+//   * B + (-B) = identity.
+
+module Ed25519Point where
+
+import X25519
+
+// ---------- field re-exports for legibility ---------------------------
+
+p : Integer
+p = p_25519
+
+// ---------- d constant ------------------------------------------------
+
+// d = -121665 / 121666 mod p, per RFC 8032 §5.1.
+d_int : Integer
+d_int = f_mul (p - 121665) (f_inv 121666)
+
+// 2d (used by the BBJLP addition formula's C = T1 * 2d * T2).
+two_d_int : Integer
+two_d_int = f_mul 2 d_int
+
+// ---------- point representation --------------------------------------
+
+// Extended twisted Edwards coordinates.
+type Point = (Integer, Integer, Integer, Integer)   // (X, Y, Z, T)
+
+// Group identity: x = 0, y = 1 → (0, 1, 1, 0).
+identity : Point
+identity = (0, 1, 1, 0)
+
+// Negation: (X, Y, Z, T) -> (-X, Y, Z, -T) (since x → -x flips T = X*Y/Z).
+neg_point : Point -> Point
+neg_point P = (f_sub 0 X, Y, Z, f_sub 0 T)
+  where (X, Y, Z, T) = P
+
+// Affine accessors (only valid when Z != 0; for use in KAT reasoning).
+affine_x : Point -> Integer
+affine_x P = f_mul X (f_inv Z)
+  where (X, _, Z, _) = P
+
+affine_y : Point -> Integer
+affine_y P = f_mul Y (f_inv Z)
+  where (_, Y, Z, _) = P
+
+// Two extended-coords points are *equal as group elements* iff their
+// affine projections agree.
+point_eq : Point -> Point -> Bit
+point_eq P Q = (affine_x P == affine_x Q) /\ (affine_y P == affine_y Q)
+
+// ---------- BBJLP 2008 dedicated addition (the asm formula) -----------
+
+// 9 mul + 6 add/sub. Inputs in extended coords, output in extended coords.
+point_add : Point -> Point -> Point
+point_add P Q = (X3, Y3, Z3, T3)
+  where
+    (X1, Y1, Z1, T1) = P
+    (X2, Y2, Z2, T2) = Q
+    a = f_mul (f_sub Y1 X1) (f_sub Y2 X2)
+    b = f_mul (f_add Y1 X1) (f_add Y2 X2)
+    c = f_mul (f_mul T1 two_d_int) T2
+    dd = f_mul 2 (f_mul Z1 Z2)
+    e = f_sub b a
+    ff = f_sub dd c
+    g = f_add dd c
+    h = f_add b a
+    X3 = f_mul e ff
+    Y3 = f_mul g h
+    T3 = f_mul e h
+    Z3 = f_mul ff g
+
+// ---------- BBJLP 2008 doubling (the asm formula) ---------------------
+
+// 4 sq + 3 mul + 5 add/sub. Inputs in extended coords, output in
+// extended coords.
+//
+// The asm omits any T1 use (doubling doesn't need it; T3 falls out of
+// the spare mul). We mirror that here.
+point_double : Point -> Point
+point_double P = (X3, Y3, Z3, T3)
+  where
+    (X1, Y1, Z1, _T1) = P
+    a = f_sq X1
+    b = f_sq Y1
+    c = f_mul 2 (f_sq Z1)
+    h = f_add a b
+    e = f_sub h (f_sq (f_add X1 Y1))
+    g = f_sub a b
+    ff = f_add c g
+    X3 = f_mul e ff
+    Y3 = f_mul g h
+    T3 = f_mul e h
+    Z3 = f_mul ff g
+
+// ---------- base point ------------------------------------------------
+
+// RFC 8032 §5.1: base point B has y = 4/5 mod p, and x is the unique
+// positive root of the curve equation (i.e. x with x mod 2 == 0).
+//
+//   y_B = 4 * 5^-1 mod p
+//   x_B = canonical positive root of (-x^2 + y^2 = 1 + d*x^2*y^2)
+B_y : Integer
+B_y = f_mul 4 (f_inv 5)
+
+// The published x-coordinate of B (RFC 8032 §5.1 / IETF RFC 8032 Test
+// Vectors). We embed the literal here; the algebraic-identity proof
+// below confirms it satisfies the curve equation.
+B_x : Integer
+B_x = 15112221349535400772501151409588531511454012693041857206046113283949847762202
+
+// Base point in extended coords: (X, Y, Z=1, T=X*Y).
+B : Point
+B = (B_x, B_y, 1, f_mul B_x B_y)
+
+// ---------- algebraic identities --------------------------------------
+
+// d satisfies the published value (sanity).
+d_canonical : Bit
+d_canonical = d_int ==
+    37095705934669439343138083508754565189542113879843219016388785533085940283555
+
+// 2d matches the canonical value (sanity).
+two_d_canonical : Bit
+two_d_canonical = two_d_int ==
+    16295367250680780974490674513165176452449235426866156013048779062215315747161
+
+// B satisfies the curve equation -x² + y² = 1 + d·x²·y².
+B_on_curve : Bit
+B_on_curve =
+    f_sub (f_sq B_y) (f_sq B_x) == f_add 1 (f_mul d_int (f_mul (f_sq B_x) (f_sq B_y)))
+
+// Identity is the additive zero: P + identity == P (as group elements).
+add_identity_right : Bit
+add_identity_right = point_eq (point_add B identity) B
+
+// Identity is the additive zero: identity + P == P.
+add_identity_left : Bit
+add_identity_left = point_eq (point_add identity B) B
+
+// Adding a point to its negation gives identity.
+add_negation : Bit
+add_negation = point_eq (point_add B (neg_point B)) identity
+
+// Doubling B gives the same group element as B + B (the dedicated add
+// is "complete" on edwards25519, so it works for distinct AND equal
+// inputs).
+double_eq_add : Bit
+double_eq_add = point_eq (point_double B) (point_add B B)
+
+// Identity doubled is identity.
+double_identity_is_identity : Bit
+double_identity_is_identity = point_eq (point_double identity) identity
+
+// Double-and-add: 2P + P == P + 2P (commutativity sanity).
+add_commutative_2P_P : Bit
+add_commutative_2P_P =
+    point_eq (point_add (point_double B) B)
+             (point_add B (point_double B))

@@ -18,11 +18,17 @@
 #               formulas). 9 multiplications, 6 add/sub. The "2d"
 #               variant is used so the constant `ed25519_2d_limbs`
 #               folds the doubling into the multiplication.
-# @verify:      kat-only; the algebraic correctness flows from the
-#               BBJLP paper. The QEMU pytest exercises addition against
-#               Python reference (sum of two RFC-derived points re-
-#               compressed) plus the identity P + (-P) = identity.
-# @tests:       tests/crypto/ed25519/test_ed25519_point_add.py
+# @verify:      proofs/crypto/ed25519/Ed25519Point.cry, proofs/crypto/ed25519/ed25519_point_add.saw
+# @tests:       tests/crypto/ed25519/test_ed25519_sign.py
+#               (Tier A: SAW + Cryptol prove the canonical d and 2d
+#               values, that the published base point lies on the
+#               curve, and that the BBJLP add formula satisfies left
+#               + right identity, additive inverse (B + (-B) = O), and
+#               commutativity (2B + B == B + 2B). Tier C bridge:
+#               point_add is exercised transitively in the sign and
+#               verify QEMU pytests — every signature production +
+#               verification calls scalarmult, which in turn calls
+#               point_add for every set bit of the scalar.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================

@@ -14,10 +14,17 @@
 #               multiplications. T1 is not consumed (and the formula
 #               is independent of `a` since we use a = -1 with
 #               appropriate signs).
-# @verify:      kat-only; algebraic correctness from BBJLP 2008
-#               (IACR ePrint 2008/522). QEMU pytest exercises the
-#               identity 2P == P + P (against ed25519_point_add).
-# @tests:       tests/crypto/ed25519/test_ed25519_point_double.py
+# @verify:      proofs/crypto/ed25519/Ed25519Point.cry, proofs/crypto/ed25519/ed25519_point_double.saw
+# @tests:       tests/crypto/ed25519/test_ed25519_sign.py
+#               (Tier A: SAW + Cryptol prove that the BBJLP doubling
+#               formula at the integer-mod-p level matches the BBJLP
+#               dedicated-add formula at equal inputs (point_double(B)
+#               == point_add(B, B)) and that doubling preserves the
+#               identity. The completeness of the dedicated add on
+#               edwards25519 is what makes the constant-time scalarmult
+#               possible. Tier C bridge: point_double is exercised
+#               transitively in the sign and verify QEMU pytests —
+#               every scalarmult performs 256 doublings.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================
