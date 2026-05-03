@@ -336,9 +336,9 @@ def _run_qemu(tmp_path: Path, packets: PacketCase, body: str, line_count: int) -
     with emu:
         for _ in range(240):
             out.extend(emu.read(2048, timeout=0.5))
-            if len(out.splitlines()) >= line_count:
+            if out.count(b"\n") >= line_count:
                 break
-    return out.splitlines()
+    return bytes(out).splitlines()[:line_count]
 
 
 def _signed_hex(line: bytes) -> int:

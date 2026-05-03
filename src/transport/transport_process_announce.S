@@ -9,7 +9,7 @@
 # @cycles:      bounded (~24000000)
 # @ct:          not-required
 # @spec:        milestone-5 transport_process_announce
-# @verify:      proofs/transport/process_announce.py
+# @verify:      proofs/transport/process_announce.py, proofs/transport/transport_state.tla
 # @tests:       tests/transport/test_process_announce.py
 # @adrs:        0001, 0002, 0004, 0005, 0006, 0009
 # @status:      verified

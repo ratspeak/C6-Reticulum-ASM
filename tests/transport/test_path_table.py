@@ -347,9 +347,9 @@ def _run_qemu(tmp_path: Path, body: str, line_count: int) -> list[bytes]:
     with emu:
         for _ in range(120):
             out.extend(emu.read(2048, timeout=0.5))
-            if len(out.splitlines()) >= line_count:
+            if out.count(b"\n") >= line_count:
                 break
-    return out.splitlines()
+    return bytes(out).splitlines()[:line_count]
 
 
 def _parse_ret_entry(line: bytes) -> tuple[int, bytes]:
