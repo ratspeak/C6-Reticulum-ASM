@@ -17,8 +17,8 @@ spec for each milestone.
 | 5 | Transport RX | Complete (2026-05-03) | [milestone-5.md](milestone-5.md) |
 | 6 | Link establishment | Complete (2026-05-03) | [milestone-6.md](milestone-6.md) |
 | 7 | Resource / channel | Complete (2026-05-03) | [milestone-7.md](milestone-7.md) |
-| 8 | LoRa SPI interface | Active (2026-05-03) | [milestone-8.md](milestone-8.md) |
-| 9 | LXMF | Planned | (spec written when activated) |
+| 8 | LoRa SPI interface | Complete (2026-05-03) | [milestone-8.md](milestone-8.md) |
+| 9 | LXMF foundation | Active (2026-05-03) | [milestone-9.md](milestone-9.md) |
 
 Each milestone spec is written when the milestone is activated, not in advance. Pre-writing
 specs invites them to drift from reality before they are used.

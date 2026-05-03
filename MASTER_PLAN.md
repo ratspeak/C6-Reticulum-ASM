@@ -105,8 +105,8 @@ developer working full-time, with verification overhead included.
 | 5 | Transport RX (announce processing, paths) | Complete (2026-05-03) | 4–6 wk | TLA+ for transport state; signature verify on inbound |
 | 6 | Link establishment | Complete (2026-05-03) | 6–8 wk | TLA+ for link state machine; AES session round-trip proven |
 | 7 | Resource / channel | Complete (2026-05-03) | 4–6 wk | Refinement proof against reference behavior |
-| 8 | LoRa SPI interface | Active (2026-05-03) | 4–6 wk | Driver contracts; symbolic execution; first wireless milestone |
-| 9 | LXMF | Planned | 6–8 wk | TLA+ for router; message round-trip proven |
+| 8 | LoRa SPI interface | Complete (2026-05-03) | 4–6 wk | Driver contracts; symbolic execution; first wireless milestone passed on Wio-SX1262 hardware |
+| 9 | LXMF foundation | Active (2026-05-03) | 6–8 wk | TLA+ for router; direct/opportunistic message round-trip proven |
 | Later | Native WiFi / BLE / 802.15.4 in asm | Deferred | 12+ mo each | Each gets its own ADR and roadmap |
 
 **Realistic total to milestone 8 (first standalone wireless node), single dev:** 24–36 months.

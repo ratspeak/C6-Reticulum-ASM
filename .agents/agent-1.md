@@ -3,9 +3,10 @@
 # Codex session: 2026-05-03T06:01:49Z
 
 ## Active claim (single line, current)
-milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
+milestone-9-lxmf-foundation — claimed 2026-05-03T21:49:00Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- milestone-8-closeout-and-milestone-9-activation — claimed 2026-05-03T21:49:00Z, completed 2026-05-03T21:49:00Z, branch: main, current closeout; closed LoRa SPI Interface and activated LXMF Foundation spec/registry
 - lora-hardware-closeout — claimed 2026-05-03T21:41:48Z, completed 2026-05-03T21:46:28Z, branch: main, committed; hardware reset/readback and full hardware suite pass on `/dev/cu.usbmodem4101`
 - lora-v1-header-wiring-contract — claimed 2026-05-03T21:34:00Z, completed 2026-05-03T21:41:48Z, branch: main, integrated in current wiring-contract correction; hardware now blocked by USB enumeration, not confirmed radio wiring
 - lora-hardware-readback-smoke — claimed 2026-05-03T21:02:38Z, completed 2026-05-03T21:07:02Z, branch: main, integrated as 63f8f1d; hardware blocked by BUSY timeout
@@ -54,7 +55,7 @@ milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 8 (LoRa SPI Interface); physical SX1262 reset/readback blocker is cleared on the Wio-SX1262 V1.0 header carrier. Hardware port: `/dev/cu.usbmodem4101`.
+- Active milestone is milestone 9 (LXMF Foundation). Milestone 8 is complete; physical SX1262 reset/readback blocker is cleared on the Wio-SX1262 V1.0 header carrier. Hardware port: `/dev/cu.usbmodem4101`.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.

@@ -1,7 +1,8 @@
 # Milestone 8: LoRa SPI Interface
 
-- **Status:** Active
+- **Status:** Complete
 - **Started:** 2026-05-03
+- **Completed:** 2026-05-03
 - **Estimate:** 4-6 weeks
 
 ## Goal
@@ -191,3 +192,19 @@ Responsibilities:
 | ESP32-C6 SPI register setup may require clock/reset details not yet modeled | Start with `spi_init` plus a qemu hardware model; document every register source in the hardware contract. |
 | Hardware tests need a second LoRa peer or RF test setup | Split command/readback tests from RF packet tests; allow deterministic qemu model coverage for paths that need a peer until bench hardware is present. |
 | Airtime/regulatory behavior is easy to over-scope | Keep milestone 8 to a static bench configuration and basic timeout/error statuses; regional policy and airtime accounting wait for a later interface hardening milestone. |
+
+## Retrospective
+
+Milestone 8 closed with the native LoRa interface verified in qemu and reset/readback
+validated on the physical Wio-SX1262 V1.0 header carrier. The main divergence was
+hardware documentation: early notes used bare SX1262 module pin numbering, while
+the bench uses the Wio header labels (`SCK`, `MOSI`, `MISO`, `NSS`, `RST`,
+`BUSY`, `DIO1`). Correcting that contract cleared the BUSY-timeout blocker.
+
+Final gates passed on 2026-05-03: concrete `./verify --module interface/gpio`,
+`./verify --module interface/spi`, and `./verify --module interface/lora`;
+`pytest --hardware --hardware-port /dev/cu.usbmodem4101 tests/hardware/ -q -p no:cacheprovider`
+(`15 passed`); `make ci` (`751 passed, 15 skipped`); qemu/C6 builds; stack max
+2496/16384; and `git diff --check`. The radio is now a native Reticulum-facing
+interface foundation; RNode compatibility over USB KISS remains a later interface
+mode, not a replacement for this native path.
