@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 6 is active through 58c83d9. Latest integrated slice: verified Reticulum Token-compatible `link_session_encrypt` + `link_session_decrypt`. Current gates passed: `./verify link_request_build`, `./verify link_request_parse`, `./verify link_derive_keys`, `./verify link_handshake_init`, `./verify link_handshake_accept`, `./verify link_session_encrypt`, `./verify link_session_decrypt`, `make ci` (`639 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-6 claim: `link_process_packet`.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 6 is active through b7ed4ce. Latest integrated slice: verified `link_process_packet` dispatcher. Current gates passed: all milestone-6 focused `./verify` targets, `make ci` (`649 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-6 claim: link state-machine proof and closeout gates.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified `link_process_packet`; dispatches link requests through parse/accept, HEADER_1 link DATA by established link ID through session decrypt, and announces through the milestone-5 transport path, with direct-QEMU dispatch tests and source contract proof — branch: main, integrated as b7ed4ce 2026-05-03T12:51:00Z
 - [agent-1] Implement verified `link_session_encrypt` and `link_session_decrypt`; adds Reticulum Token-compatible AES-256-CBC session tokens with PKCS7 padding, signing-key/encryption-key split from derived material, HMAC-before-decrypt release gating, tamper/padding/capacity tests, and source contract proof — branch: main, integrated as 58c83d9 2026-05-03T12:37:00Z
 - [agent-1] Implement verified `link_handshake_accept`; validates parsed Reticulum link requests, computes upstream-compatible link IDs excluding signalling bytes, generates accept-side X25519 material, derives established session keys, refreshes duplicates, and keeps bounded table replacement deterministic with direct-QEMU tests and source contract proof — branch: main, integrated as 9e7a171 2026-05-03T12:23:00Z
 - [agent-1] Implement verified `link_handshake_init`; adds RAM link table state, deterministic existing/first-invalid/oldest-age replacement, fresh local X25519 and Ed25519 link keys, pending entry metadata, current Reticulum link request emission, direct-QEMU table/request tests, and source contract proof — branch: main, integrated as 0a34309 2026-05-03T12:10:00Z
