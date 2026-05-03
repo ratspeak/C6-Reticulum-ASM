@@ -1,0 +1,84 @@
+// proofs/identity/ReticulumIdentity.cry
+//
+// Shared Cryptol helpers for Reticulum identity hash derivation.
+//
+// Reticulum uses SHA-256 with protocol-specific truncation in several
+// milestone-3 functions:
+//   * identity_hash(public_key) = SHA256(public_key)[0:16]
+//   * destination_hash(...) eventually reuses the same 16-byte truncation.
+//
+// This module intentionally models only byte-level hash/truncation behavior.
+// It does not model identity state layout or keypair generation; production
+// identity proof modules can import these helpers without inheriting unrelated
+// layout assumptions.
+
+module ReticulumIdentity where
+
+import SHA256Final
+
+type Byte = [8]
+type Digest32 = [32]Byte
+type ReticulumTruncatedHash = [16]Byte
+type IdentityHash = ReticulumTruncatedHash
+type PublicKey = [64]Byte
+
+// SHA-256 digest in the canonical byte order emitted by SHA256Final.
+sha256_bytes : {n} (fin n) => [n]Byte -> Digest32
+sha256_bytes msg = sha256_oneshot msg
+
+// First 16 bytes of a SHA-256 digest, matching upstream Reticulum's
+// "truncated hash" convention.
+digest_prefix16 : Digest32 -> ReticulumTruncatedHash
+digest_prefix16 digest =
+    [ digest @ i | i <- [0..15] : [16][5] ]
+
+// Reticulum's generic 16-byte SHA-256 truncation helper.
+reticulum_truncated_hash : {n} (fin n) => [n]Byte -> ReticulumTruncatedHash
+reticulum_truncated_hash msg = digest_prefix16 (sha256_bytes msg)
+
+// Hash two byte strings after exact byte concatenation.
+sha256_concat : {n, m} (fin n, fin m) =>
+    [n]Byte -> [m]Byte -> Digest32
+sha256_concat left right = sha256_bytes (left # right)
+
+// Hash two byte strings after exact byte concatenation, then retain the
+// first 16 digest bytes.
+truncated_hash_concat : {n, m} (fin n, fin m) =>
+    [n]Byte -> [m]Byte -> ReticulumTruncatedHash
+truncated_hash_concat left right = reticulum_truncated_hash (left # right)
+
+// Milestone-3 identity_hash contract:
+//   SHA256(x25519_public || ed25519_public)[0:16]
+identity_hash : PublicKey -> IdentityHash
+identity_hash public_key = reticulum_truncated_hash public_key
+
+// Concrete public-key fixture: bytes 0x00..0x3f.
+ascending_public_key : PublicKey
+ascending_public_key =
+    [ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+    , 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+    , 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17
+    , 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
+    , 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27
+    , 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f
+    , 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37
+    , 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f
+    ]
+
+ascending_public_key_identity_hash_expected : IdentityHash
+ascending_public_key_identity_hash_expected =
+    [ 0xfd, 0xea, 0xb9, 0xac, 0xf3, 0x71, 0x03, 0x62
+    , 0xbd, 0x26, 0x58, 0xcd, 0xc9, 0xa2, 0x9e, 0x8f
+    ]
+
+// KAT: identity hash fixture generated independently with:
+//   hashlib.sha256(bytes(range(64))).digest()[:16]
+ascending_public_key_identity_hash_kat : Bit
+ascending_public_key_identity_hash_kat =
+    identity_hash ascending_public_key == ascending_public_key_identity_hash_expected
+
+// KAT: the all-zero 64-byte public key reuses SHA256Final's existing
+// zero64 digest vector and only checks Reticulum's prefix selection.
+zero_public_key_identity_hash_kat : Bit
+zero_public_key_identity_hash_kat =
+    identity_hash (zero : PublicKey) == digest_prefix16 zero64_digest_bytes

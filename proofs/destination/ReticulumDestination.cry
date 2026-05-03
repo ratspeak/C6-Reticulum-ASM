@@ -1,0 +1,150 @@
+// proofs/destination/ReticulumDestination.cry
+//
+// Shared Cryptol helpers for Reticulum destination hash derivation.
+//
+// Milestone 3 needs two byte-exact SHA-256 truncation forms:
+//   * name_hash        = SHA256(destination_name_bytes)[0:10]
+//   * destination_hash = SHA256(name_hash || identity_hash)[0:16]
+//
+// The caller supplies the Reticulum destination name without the identity
+// suffix, matching Destination.expand_name(None, app_name, *aspects).
+
+module ReticulumDestination where
+
+import ReticulumIdentity
+
+type NameHash = [10]Byte
+type DestinationHash = ReticulumTruncatedHash
+
+// First 10 bytes of a SHA-256 digest, matching upstream Reticulum's
+// destination-name hash truncation.
+digest_prefix10 : Digest32 -> NameHash
+digest_prefix10 digest =
+    [ digest @ i | i <- [0..9] : [10][5] ]
+
+// Milestone-3 destination_name_hash contract:
+//   SHA256(destination_name_utf8_without_identity_suffix)[0:10]
+destination_name_hash : {n} (fin n) => [n]Byte -> NameHash
+destination_name_hash name_bytes = digest_prefix10 (sha256_bytes name_bytes)
+
+// Exact byte material hashed by destination_hash:
+//   name_hash[10] || identity_hash[16]
+destination_hash_material : NameHash -> IdentityHash -> [26]Byte
+destination_hash_material name_hash identity =
+    name_hash # identity
+
+// Milestone-3 destination_hash contract:
+//   SHA256(name_hash || identity_hash)[0:16]
+destination_hash_from_hashes : NameHash -> IdentityHash -> DestinationHash
+destination_hash_from_hashes name_hash identity =
+    reticulum_truncated_hash (destination_hash_material name_hash identity)
+
+// Convenience wrapper for proofs/tests that start from destination-name bytes.
+destination_hash_for_name : {n} (fin n) =>
+    [n]Byte -> IdentityHash -> DestinationHash
+destination_hash_for_name name_bytes identity =
+    destination_hash_from_hashes (destination_name_hash name_bytes) identity
+
+// Byte-concat sanity: destination_hash_material preserves the two slices
+// that production asm will pass to sha256_update.
+destination_material_name_prefix :
+    NameHash -> IdentityHash -> Bit
+destination_material_name_prefix name_hash identity =
+    [ material @ i | i <- [0..9] : [10][5] ] == name_hash
+  where
+    material = destination_hash_material name_hash identity
+
+destination_material_identity_suffix :
+    NameHash -> IdentityHash -> Bit
+destination_material_identity_suffix name_hash identity =
+    [ material @ (i + 10) | i <- [0..15] : [16][5] ] == identity
+  where
+    material = destination_hash_material name_hash identity
+
+// Destination-name fixtures selected from the milestone-3 definition of done.
+rnstransport_nodes_name : [18]Byte
+rnstransport_nodes_name =
+    [ 0x72, 0x6e, 0x73, 0x74, 0x72, 0x61, 0x6e, 0x73, 0x70
+    , 0x6f, 0x72, 0x74, 0x2e, 0x6e, 0x6f, 0x64, 0x65, 0x73
+    ]
+
+lxmf_delivery_name : [13]Byte
+lxmf_delivery_name =
+    [ 0x6c, 0x78, 0x6d, 0x66, 0x2e, 0x64, 0x65
+    , 0x6c, 0x69, 0x76, 0x65, 0x72, 0x79
+    ]
+
+harness_local_name : [13]Byte
+harness_local_name =
+    [ 0x68, 0x61, 0x72, 0x6e, 0x65, 0x73, 0x73
+    , 0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c
+    ]
+
+rnstransport_nodes_name_hash_expected : NameHash
+rnstransport_nodes_name_hash_expected =
+    [ 0xdd, 0x9b, 0x8e, 0xa0, 0xcb, 0xef, 0xfd, 0xd9, 0x63, 0x9f ]
+
+lxmf_delivery_name_hash_expected : NameHash
+lxmf_delivery_name_hash_expected =
+    [ 0x6e, 0xc6, 0x0b, 0xc3, 0x18, 0xe2, 0xc0, 0xf0, 0xd9, 0x08 ]
+
+harness_local_name_hash_expected : NameHash
+harness_local_name_hash_expected =
+    [ 0x1d, 0x63, 0xe6, 0xa2, 0x95, 0x0d, 0x3a, 0xc7, 0x00, 0xfe ]
+
+rnstransport_nodes_name_hash_kat : Bit
+rnstransport_nodes_name_hash_kat =
+    destination_name_hash rnstransport_nodes_name ==
+    rnstransport_nodes_name_hash_expected
+
+lxmf_delivery_name_hash_kat : Bit
+lxmf_delivery_name_hash_kat =
+    destination_name_hash lxmf_delivery_name ==
+    lxmf_delivery_name_hash_expected
+
+harness_local_name_hash_kat : Bit
+harness_local_name_hash_kat =
+    destination_name_hash harness_local_name ==
+    harness_local_name_hash_expected
+
+// Destination-hash fixtures use the identity hash of ascending_public_key
+// from ReticulumIdentity. Expected bytes generated independently with:
+//   hashlib.sha256(name_hash || identity_hash).digest()[:16]
+rnstransport_nodes_destination_hash_expected : DestinationHash
+rnstransport_nodes_destination_hash_expected =
+    [ 0x86, 0x16, 0x33, 0x41, 0x4e, 0x9a, 0x5f, 0x57
+    , 0xfc, 0x82, 0x6c, 0xcb, 0x85, 0x79, 0x6f, 0xad
+    ]
+
+lxmf_delivery_destination_hash_expected : DestinationHash
+lxmf_delivery_destination_hash_expected =
+    [ 0xd1, 0x06, 0x3d, 0x51, 0x5a, 0x32, 0xca, 0x24
+    , 0x0d, 0x78, 0x6e, 0x34, 0x9d, 0xb9, 0xf3, 0x59
+    ]
+
+harness_local_destination_hash_expected : DestinationHash
+harness_local_destination_hash_expected =
+    [ 0xa5, 0x21, 0x37, 0xa9, 0xed, 0xc2, 0x82, 0x16
+    , 0x02, 0xe4, 0x82, 0x11, 0x9f, 0x83, 0xec, 0xbb
+    ]
+
+rnstransport_nodes_destination_hash_kat : Bit
+rnstransport_nodes_destination_hash_kat =
+    destination_hash_for_name
+        rnstransport_nodes_name
+        (identity_hash ascending_public_key) ==
+    rnstransport_nodes_destination_hash_expected
+
+lxmf_delivery_destination_hash_kat : Bit
+lxmf_delivery_destination_hash_kat =
+    destination_hash_for_name
+        lxmf_delivery_name
+        (identity_hash ascending_public_key) ==
+    lxmf_delivery_destination_hash_expected
+
+harness_local_destination_hash_kat : Bit
+harness_local_destination_hash_kat =
+    destination_hash_for_name
+        harness_local_name
+        (identity_hash ascending_public_key) ==
+    harness_local_destination_hash_expected

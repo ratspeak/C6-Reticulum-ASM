@@ -1,0 +1,38 @@
+// proofs/destination/reticulum_hash_helpers.saw
+//
+// Focused Tier A sanity checks for the shared Reticulum identity and
+// destination hash helper modules.
+//
+// These checks are deliberately helper-level. They do not claim to verify
+// the future asm functions directly; agent-2/3 function-specific SAW drivers
+// should import ReticulumIdentity.cry and ReticulumDestination.cry, then bind
+// the relevant helper to the function contract under proof.
+
+import "ReticulumIdentity.cry";
+import "ReticulumDestination.cry";
+
+print "[reticulum_hash_helpers.saw] proving identity hash truncation KATs ...";
+prove_print z3 {{ ascending_public_key_identity_hash_kat }};
+prove_print z3 {{ zero_public_key_identity_hash_kat }};
+print "[reticulum_hash_helpers.saw] identity hash KATs: PASS.";
+
+print "[reticulum_hash_helpers.saw] proving destination material byte-concat shape ...";
+prove_print z3 {{ \(name_hash : [10][8]) (identity : [16][8]) ->
+    destination_material_name_prefix name_hash identity }};
+prove_print z3 {{ \(name_hash : [10][8]) (identity : [16][8]) ->
+    destination_material_identity_suffix name_hash identity }};
+print "[reticulum_hash_helpers.saw] destination material shape: PASS.";
+
+print "[reticulum_hash_helpers.saw] proving Reticulum name-hash KATs ...";
+prove_print z3 {{ rnstransport_nodes_name_hash_kat }};
+prove_print z3 {{ lxmf_delivery_name_hash_kat }};
+prove_print z3 {{ harness_local_name_hash_kat }};
+print "[reticulum_hash_helpers.saw] name-hash KATs: PASS.";
+
+print "[reticulum_hash_helpers.saw] proving destination-hash KATs ...";
+prove_print z3 {{ rnstransport_nodes_destination_hash_kat }};
+prove_print z3 {{ lxmf_delivery_destination_hash_kat }};
+prove_print z3 {{ harness_local_destination_hash_kat }};
+print "[reticulum_hash_helpers.saw] destination-hash KATs: PASS.";
+
+print "[reticulum_hash_helpers.saw] PASS";
