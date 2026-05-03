@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 354a345. Latest integrated slice: SX1262 reset helper. Current gates passed: `./verify sx1262_reset`, direct QEMU reset tests (`3 passed`), `make ci` (`720 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claim: SX1262 command write/read and init functions.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 7de6c5d. Latest integrated slice: SX1262 command write/read wrappers. Current gates passed: `./verify sx1262_command_write`, `./verify sx1262_command_read`, direct QEMU command tests (`5 passed`), `make ci` (`725 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claim: `sx1262_init`.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified milestone-8 `sx1262_command_write` and `sx1262_command_read`; adds bounded BUSY/NSS/SPI wrappers, shared command scratch buffers, invalid/BUSY/SPI timeout mapping, finite source proof, and direct-QEMU success/invalid/timeout/readback tests — branch: main, integrated as 7de6c5d 2026-05-03T19:42:52Z
 - [agent-1] Implement verified milestone-8 `sx1262_reset`; configures NRST/BUSY GPIOs, performs the reset pulse, waits for BUSY low with a bounded default poll budget, and adds a source contract proof plus direct-QEMU success/default/timeout tests — branch: main, integrated as 354a345 2026-05-03T19:36:10Z
 - [agent-1] Implement verified milestone-8 SPI helpers; adds SPI2 GPIO-matrix setup for Feather GPIO21/22/23, a polling CPU-buffer `spi_transfer`, deterministic qemu SPI model state, source contract proof, direct-QEMU tests, and registry/milestone DoD updates — branch: main, integrated as 2385e3d 2026-05-03T19:30:54Z
 - [agent-1] Implement verified milestone-8 LoRa GPIO helpers; adds scoped C6/QEMU GPIO configuration for SX1262 NSS/NRST outputs and DIO1/BUSY inputs, static model state, source contract proof, direct-QEMU tests, and registry/milestone DoD updates — branch: main, integrated as e5488d6 2026-05-03T19:20:04Z

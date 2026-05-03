@@ -6,6 +6,7 @@
 milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- sx1262-command-wrappers — claimed 2026-05-03T19:36:10Z, completed 2026-05-03T19:42:52Z, branch: main, integrated as 7de6c5d
 - sx1262-reset — claimed 2026-05-03T19:30:54Z, completed 2026-05-03T19:36:10Z, branch: main, integrated as 354a345
 - lora-spi-helpers — claimed 2026-05-03T19:20:04Z, completed 2026-05-03T19:30:54Z, branch: main, integrated as 2385e3d
 - lora-gpio-helpers — claimed 2026-05-03T19:12:15Z, completed 2026-05-03T19:20:04Z, branch: main, integrated as e5488d6
@@ -42,7 +43,7 @@ milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 8 (LoRa SPI Interface); eligible next claims are SX1262 command-driver slices (`sx1262_command_write`, `sx1262_command_read`, `sx1262_init`).
+- Active milestone is milestone 8 (LoRa SPI Interface); eligible next claim is `sx1262_init`, followed by packet TX/RX slices.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.
@@ -74,3 +75,4 @@ milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 - 2026-05-03T19:20:04Z — implemented verified milestone-8 LoRa GPIO helpers on main as e5488d6; gates: `./verify gpio_config_output`, `./verify gpio_config_input`, `./verify gpio_write`, `./verify gpio_read`, direct QEMU GPIO tests (`4 passed`), `make ci` (`713 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T19:30:54Z — implemented verified milestone-8 SPI helpers on main as 2385e3d; gates: `./verify spi_init`, `./verify spi_transfer`, direct QEMU SPI tests (`4 passed`), `make ci` (`717 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T19:36:10Z — implemented verified milestone-8 `sx1262_reset` helper on main as 354a345; gates: `./verify sx1262_reset`, direct QEMU reset tests (`3 passed`), `make ci` (`720 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
+- 2026-05-03T19:42:52Z — implemented verified milestone-8 `sx1262_command_write` and `sx1262_command_read` on main as 7de6c5d; gates: `./verify sx1262_command_write`, `./verify sx1262_command_read`, direct QEMU command tests (`5 passed`), `make ci` (`725 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
