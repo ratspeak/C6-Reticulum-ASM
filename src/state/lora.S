@@ -103,3 +103,9 @@ lora_interface_initialized:
 lora_interface_last_status:
         .skip   4
         .size   lora_interface_last_status, 4
+
+        .global lora_interface_tx_len
+        .type   lora_interface_tx_len, @object
+lora_interface_tx_len:
+        .skip   4
+        .size   lora_interface_tx_len, 4
