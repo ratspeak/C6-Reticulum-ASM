@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 4 is closed and milestone 5 is active through fd1544f. `announce_parse`, `announce_validate`, and `transport_path_*` are verified; current gates passed: focused `./verify transport_path_*`, `make ci` (`563 passed, 14 skipped`), qemu/C6 builds, registry, stack, and `git diff --check`. Remaining eligible milestone-5 claim: `transport_process_announce`.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 4 is closed and milestone 5 is active through a9e1ad3. All planned milestone-5 registry functions are verified; current gates passed: `./verify transport_process_announce`, `make ci` (`569 passed, 14 skipped`), qemu/C6 builds, registry, stack, and `git diff --check`. Remaining work: `_main` RX integration and transport state-machine proof/closeout.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified `transport_process_announce`; composes parse/validate/path lookup/path update, returns stable new-vs-update statuses, has direct-QEMU valid/duplicate/invalid coverage, and source contract proof — branch: main, integrated as a9e1ad3 2026-05-03T11:03:00Z
 - [agent-1] Implement verified transport path table; adds fixed RAM table state, init/update/lookup, deterministic existing/first-invalid/oldest-age replacement, direct-QEMU coverage, and finite model/source proof — branch: main, integrated as fd1544f 2026-05-03T10:46:00Z
 - [agent-1] Implement verified `announce_validate`; checks parsed struct consistency, destination hash recomputation, Ed25519 signature validation over the exact Reticulum signed-data bytes, direct-QEMU tamper coverage, and contract proof — branch: main, integrated as 2b224f9 2026-05-03T10:23:00Z
 - [agent-1] Implement verified `announce_parse`; adds `announce_rx_t` offsets, HEADER_1 announce parser, bounded app-data view semantics, direct-QEMU malformed/valid coverage, oracle MDU rejection, and finite bounds/source-shape proof — branch: main, integrated as a66fe20 2026-05-03T09:57:00Z

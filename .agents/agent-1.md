@@ -3,9 +3,10 @@
 # Codex session: 2026-05-03T06:01:49Z
 
 ## Active claim (single line, current)
-milestone-5-process-announce — claimed 2026-05-03T10:47:00Z, ETA active
+milestone-5-boot-integration — claimed 2026-05-03T11:04:00Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- transport_process_announce — claimed 2026-05-03T10:47:00Z, completed 2026-05-03T11:03:00Z, branch: main, integrated as a9e1ad3
 - transport_path_table — claimed 2026-05-03T10:24:00Z, completed 2026-05-03T10:46:00Z, branch: main, integrated as fd1544f
 - announce_validate — claimed 2026-05-03T09:58:00Z, completed 2026-05-03T10:23:00Z, branch: main, integrated as 2b224f9
 - announce_parse — claimed 2026-05-03T09:15:00Z, completed 2026-05-03T09:57:00Z, branch: main, integrated as a66fe20
@@ -19,7 +20,7 @@ milestone-5-process-announce — claimed 2026-05-03T10:47:00Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 5; next eligible claim is `transport_process_announce`.
+- Active milestone is milestone 5; function registry is complete. Remaining milestone work: `_main` RX integration and transport state-machine proof/closeout.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.
@@ -28,3 +29,4 @@ milestone-5-process-announce — claimed 2026-05-03T10:47:00Z, ETA active
 - 2026-05-03T09:57:00Z — implemented verified `announce_parse` on main as a66fe20; gates: `./verify announce_parse`, `make ci` (`544 passed, 14 skipped`), qemu/C6 builds, registry, stack, and `git diff --check`.
 - 2026-05-03T10:23:00Z — implemented verified `announce_validate` on main as 2b224f9; gates: `./verify announce_validate`, `make ci` (`557 passed, 14 skipped`), qemu/C6 builds, registry, stack, and `git diff --check`.
 - 2026-05-03T10:46:00Z — implemented verified transport path table on main as fd1544f; gates: `./verify transport_path_init`, `./verify transport_path_update`, `./verify transport_path_lookup`, `make ci` (`563 passed, 14 skipped`), qemu/C6 builds, registry, stack, and `git diff --check`.
+- 2026-05-03T11:03:00Z — implemented verified `transport_process_announce` on main as a9e1ad3; gates: `./verify transport_process_announce`, `make ci` (`569 passed, 14 skipped`), qemu/C6 builds, registry, stack, and `git diff --check`.
