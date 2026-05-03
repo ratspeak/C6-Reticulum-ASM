@@ -12,3 +12,11 @@
         .global link_table
 link_table:
         .skip LINK_TABLE_SIZE
+        .size link_table, LINK_TABLE_SIZE
+
+        .balign 4
+        .global link_session_scratch
+        .type   link_session_scratch, @object
+link_session_scratch:
+        .skip LINK_SESSION_PADDED_MAX
+        .size link_session_scratch, LINK_SESSION_PADDED_MAX

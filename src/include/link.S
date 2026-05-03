@@ -63,6 +63,12 @@
         .equ LINK_SHARED_SECRET_SIZE,         32
         .equ LINK_PRK_SIZE,                   32
         .equ LINK_KEY_MATERIAL_SIZE,          64
+        .equ LINK_SESSION_IV_SIZE,            16
+        .equ LINK_SESSION_HMAC_SIZE,          32
+        .equ LINK_SESSION_TOKEN_OVERHEAD,     48
+        .equ LINK_SESSION_PLAINTEXT_MAX,      431
+        .equ LINK_SESSION_PADDED_MAX,         432
+        .equ LINK_SESSION_TOKEN_MAX,          480
 
         .equ LINK_TABLE_CAPACITY,             4
         .equ LINK_STATUS_PENDING,             1

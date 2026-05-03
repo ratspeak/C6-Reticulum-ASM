@@ -36,7 +36,7 @@ trip through the asm stack.
 - [x] `link_derive_keys` derives deterministic session material from X25519
       shared secrets and transcript bytes using HKDF, with oracle tests against
       pyca/reference vectors.
-- [ ] `link_session_encrypt` and `link_session_decrypt` provide an AES-256-CBC
+- [x] `link_session_encrypt` and `link_session_decrypt` provide an AES-256-CBC
       plus HMAC authenticated payload path for one in-order session packet.
 - [ ] `link_process_packet` routes inbound link requests and encrypted link
       packets while preserving the milestone-5 announce RX path.
@@ -251,9 +251,11 @@ a0 = ciphertext length on success, negative errno on failure
 
 Responsibilities:
 
-1. Encrypt one in-order payload with AES-256-CBC.
-2. Authenticate header/ciphertext material with HMAC-SHA-256.
-3. Reject overflow and invalid link state.
+1. Encrypt one in-order payload as the Reticulum Token AES-256-CBC subset:
+   `IV[16] || AES-CBC(PKCS7(plaintext)) || HMAC-SHA256[32]`.
+2. Use the first 32 derived bytes as the signing key and the second 32 bytes
+   as the AES-256 key.
+3. Reject overflow and invalid link state before emitting token material.
 
 ## link_session_decrypt
 
@@ -279,8 +281,10 @@ a0 = plaintext length on success, negative errno on invalid authentication,
 Responsibilities:
 
 1. Verify HMAC before releasing plaintext.
-2. Decrypt one in-order AES-256-CBC payload.
-3. Reject tampered tag, IV, ciphertext, and wrong-link inputs.
+2. Decrypt one in-order AES-256-CBC payload into bounded scratch, validate
+   PKCS7 padding, then copy only the unpadded plaintext to the caller.
+3. Reject tampered tag, IV, ciphertext, wrong-link inputs, invalid padding,
+   and caller output overflow.
 
 ## link_process_packet
 
