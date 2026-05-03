@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through d152075. Latest integrated slice: SX1262 frame receive. Current gates passed: `./verify sx1262_poll_receive`, refreshed `./verify sx1262_send_frame` and `./verify sx1262_init`, direct QEMU RX/TX/init tests (`11 passed`), `make ci` (`736 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claim: Reticulum LoRa interface glue (`lora_interface_init`, `lora_interface_send`, `lora_interface_poll`) or LoRa state model/hardware tests.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 4e2f074. Latest integrated slice: Reticulum LoRa interface init. Current gates passed: `./verify lora_interface_init`, refreshed `./verify sx1262_init`, direct QEMU interface-init/init tests (`6 passed`), `make ci` (`739 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claim: `lora_interface_send`, `lora_interface_poll`, or LoRa state model/hardware tests.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified milestone-8 `lora_interface_init`; adds interface-ready state, records the last init status, delegates radio bring-up to `sx1262_init`, and covers success/default/error paths with finite/source proof plus direct-QEMU tests — branch: main, integrated as 4e2f074 2026-05-03T20:39:23Z
 - [agent-1] Implement verified milestone-8 `sx1262_poll_receive`; polls DIO1/IRQ status, handles CRC/header/timeout/no-packet/overflow paths, reads FIFO payload via `GetRxBufferStatus` and `ReadBuffer`, rearms continuous RX, lowers the shared static payload cap to 253 bytes for bounded TX/RX SPI transfers, and adds finite/source proof plus direct-QEMU success/no-packet/invalid/CRC/overflow tests — branch: main, integrated as d152075 2026-05-03T20:35:37Z
 - [agent-1] Implement verified milestone-8 `sx1262_send_frame`; bounds raw frame TX to the static profile, writes FIFO offset plus payload, starts TX, polls IRQ status for TX done/timeout, records TX model state, and adds finite/source proof plus direct-QEMU success/invalid/overflow/timeout tests — branch: main, integrated as 7f37d5a 2026-05-03T19:55:15Z
 - [agent-1] Implement verified milestone-8 `sx1262_init`; applies the static Reticulum-shaped LoRa bench profile, leaves the radio in standby, reads status into the qemu model, documents profile constants, and adds finite/source proof plus direct-QEMU success/default/busy-timeout tests — branch: main, integrated as d560b0d 2026-05-03T19:49:46Z
