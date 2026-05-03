@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 2385e3d. Latest integrated slice: LoRa SPI helpers. Current gates passed: focused SPI verifies, direct QEMU SPI tests (`4 passed`), `make ci` (`717 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claim: SX1262 command-driver functions.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 354a345. Latest integrated slice: SX1262 reset helper. Current gates passed: `./verify sx1262_reset`, direct QEMU reset tests (`3 passed`), `make ci` (`720 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claim: SX1262 command write/read and init functions.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified milestone-8 `sx1262_reset`; configures NRST/BUSY GPIOs, performs the reset pulse, waits for BUSY low with a bounded default poll budget, and adds a source contract proof plus direct-QEMU success/default/timeout tests — branch: main, integrated as 354a345 2026-05-03T19:36:10Z
 - [agent-1] Implement verified milestone-8 SPI helpers; adds SPI2 GPIO-matrix setup for Feather GPIO21/22/23, a polling CPU-buffer `spi_transfer`, deterministic qemu SPI model state, source contract proof, direct-QEMU tests, and registry/milestone DoD updates — branch: main, integrated as 2385e3d 2026-05-03T19:30:54Z
 - [agent-1] Implement verified milestone-8 LoRa GPIO helpers; adds scoped C6/QEMU GPIO configuration for SX1262 NSS/NRST outputs and DIO1/BUSY inputs, static model state, source contract proof, direct-QEMU tests, and registry/milestone DoD updates — branch: main, integrated as e5488d6 2026-05-03T19:20:04Z
 - [agent-1] Document milestone-8 SX1262 hardware contract; pins the Feather/SX1262 bench wiring, SPI mode and clock bounds, reset/BUSY/DIO1 command rules, qemu model surface, and hardware test plan — branch: main, integrated as 4515e82 2026-05-03T19:12:15Z
