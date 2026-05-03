@@ -11,17 +11,19 @@
 #               schedule + I/O ≈ 16K instructions)
 # @ct:          required
 # @spec:        FIPS 180-4 §6.4.2 (SHA-512 hash computation)
-# @verify:      kat-only; the FIPS 180-4 §6.4.2 round body is
-#               reduced to a memory-resident 64-bit state machine on
-#               RV32 (no native 64-bit ops available). A future
-#               Cryptol+SAW Tier A proof against the canonical hash
-#               can replace this, mirroring the sha256_compress
-#               approach; the Tier C path needs SAW + macaw-riscv per
-#               ADR-0009 §"Tier C path forward". The combined KAT
-#               drives empty / single-block / cross-block-boundary /
-#               two-padding-block / multi-block inputs against
-#               Python's hashlib.sha512.
+# @verify:      proofs/crypto/sha512/SHA512Compress.cry, proofs/crypto/sha512/sha512_compress.saw
 # @tests:       tests/crypto/sha512/test_sha512_kat.py
+#               (Tier A: SAW + Cryptol discharge the FIPS 180-4 §C.1
+#               (abc) and SHA-512("") single-block KATs symbolically
+#               over the full 80-round transform + schedule, plus the
+#               6-point K-table boundary and ROTR/ch/maj algebraic
+#               sanity checks. Tier C bridge: the QEMU pytest cross-
+#               checks the asm against hashlib.sha512 across empty /
+#               single-block / cross-block-boundary / two-padding-block
+#               / multi-block inputs — angr's pcode RV32IMC engine
+#               struggles with the (lo, hi) register-pair 64-bit ops,
+#               so binary equivalence waits on the macaw-riscv path
+#               described in ADR-0009 §"Tier C path forward".)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================

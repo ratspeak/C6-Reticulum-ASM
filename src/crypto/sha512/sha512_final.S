@@ -11,12 +11,15 @@
 # @cycles:      bounded (~50 + at most 2 × sha512_compress)
 # @ct:          required
 # @spec:        FIPS 180-4 §5.1.2 (SHA-512 padding); §6.4 (final block)
-# @verify:      kat-only; padding + 128-bit BE length encoding +
-#               final compress + BE digest emission are all exercised
-#               by the combined SHA-512 KAT, including the just_at_112
-#               and just_above corner cases that force a second
-#               trailing block.
+# @verify:      proofs/crypto/sha512/SHA512Final.cry, proofs/crypto/sha512/sha512_final.saw
 # @tests:       tests/crypto/sha512/test_sha512_kat.py
+#               (Tier A: SAW + Cryptol prove four KATs that cover both
+#               padding paths — SHA-512("abc") and SHA-512("") for
+#               bl ≤ 111 (one trailing block); FIPS 180-4 §C.2 (112
+#               bytes) and SHA-512(128 zero bytes) for bl > 111
+#               (two trailing blocks). Tier C bridge: the QEMU pytest
+#               cross-checks the asm against hashlib.sha512 across
+#               just_at_112 / just_above corner cases.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================

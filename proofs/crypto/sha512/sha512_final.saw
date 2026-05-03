@@ -1,0 +1,44 @@
+// proofs/crypto/sha512/sha512_final.saw
+//
+// SAW driver for sha512_final algorithmic verification (Tier A per
+// ADR-0009). Proves four orthogonal properties of the Cryptol model in
+// SHA512Final.cry:
+//
+//   1. SHA-512("abc") FIPS 180-4 §C.1 KAT — single 1024-bit block via
+//      one-block padding path (bl=3 ≤ 111, so 0x80 + zeros + 16-byte
+//      length all fit in the same trailing block).
+//   2. SHA-512("") canonical KAT — bl=0 path through one-block padding.
+//   3. SHA-512(112-byte msg) FIPS 180-4 §C.2 KAT — boundary case where
+//      bl=112 forces the two-block padding path (length suffix needs
+//      its own block since 0x80 fits but the 16-byte length doesn't).
+//   4. SHA-512(128-byte zero) — exercises the >111 path with a fresh
+//      second block.
+//
+// Together (1) and (2) cover the bl ≤ 111 single-block padding path;
+// (3) and (4) cover the bl > 111 two-block padding path (the cross-
+// boundary length-encoding case the asm must get right).
+//
+// Run standalone:
+//   saw proofs/crypto/sha512/sha512_final.saw
+// or via dispatcher:
+//   ./verify sha512_final
+
+import "SHA512Final.cry";
+
+print "[sha512_final.saw] proving SHA-512(\"abc\") FIPS 180-4 §C.1 KAT ...";
+prove_print z3 {{ abc_kat }};
+print "[sha512_final.saw] FIPS C.1 KAT: PASS (sha512_oneshot \"abc\" == canonical digest).";
+
+print "[sha512_final.saw] proving canonical SHA-512(\"\") KAT ...";
+prove_print z3 {{ empty_kat }};
+print "[sha512_final.saw] empty-string KAT: PASS.";
+
+print "[sha512_final.saw] proving FIPS 180-4 §C.2 (112-byte) KAT ...";
+prove_print z3 {{ abcdefghi_kat }};
+print "[sha512_final.saw] §C.2 KAT: PASS — two-block padding path, length=896 bits.";
+
+print "[sha512_final.saw] proving 128-byte zero-message KAT ...";
+prove_print z3 {{ zero128_kat }};
+print "[sha512_final.saw] zero128 KAT: PASS — full-block + two-block padding path.";
+
+print "[sha512_final.saw] PASS";

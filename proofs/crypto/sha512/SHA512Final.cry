@@ -1,0 +1,203 @@
+// proofs/crypto/sha512/SHA512Final.cry
+//
+// Cryptol algorithmic specification for sha512_final.
+//
+// FIPS 180-4 §5.1.2 specifies the SHA-512 padding rule:
+//   * Append a single 0x80 byte (a 1 bit followed by seven 0 bits).
+//   * Append k zero bytes such that the message length fits the form
+//     112 (mod 128) bytes.
+//   * Append the original message length in bits as a 128-bit big-endian
+//     integer (high 64 bits zero in practice).
+//
+// sha512_final emits the FIPS-canonical 64-byte big-endian digest of
+// the message absorbed via sha512_init / sha512_update so far. This
+// module formalises the operation in two stages:
+//
+//   1. `pad_into_blocks` : turn a partial-block-state into one or two
+//      additional 128-byte blocks of padding (one if 0x80+zeros fits at
+//      or before byte 112, otherwise two).
+//   2. `final`          : compress those blocks into the running H,
+//      then serialise H as 64 BE bytes.
+//
+// The headline correctness property is `sha512_oneshot M == fips
+// digest of M` for arbitrary message M, discharged by SAW for several
+// concrete sizes that exercise both the one-block and two-block
+// padding paths.
+
+module SHA512Final where
+
+import SHA512Compress
+import SHA512Update
+
+// ---------- BE serialise / deserialise --------------------------------
+
+// 64-bit word -> 8 big-endian bytes.
+qword_to_be : W -> [8][8]
+qword_to_be w = split w
+
+// 128-bit value -> 16 big-endian bytes.
+oword_to_be : [128] -> [16][8]
+oword_to_be q = split q
+
+// 8 64-bit words -> 64 big-endian bytes (the digest format).
+h_to_be_bytes : [8]W -> [64][8]
+h_to_be_bytes h = join [ qword_to_be w | w <- h ]
+
+// ---------- padding-aware finalisation -------------------------------
+
+// Build the padded block(s) from a partial buffer and length_bits.
+//
+// If the partial block has bl bytes (bl < 128), we append:
+//   * 0x80
+//   * zeros until exactly 112 bytes from a block boundary
+//   * 16 BE-bytes of length_bits (high 64 = 0, low 64 = length_bits)
+// If bl > 111, the 0x80 + zeros doesn't fit before byte 112 — we extend
+// to a full 128-byte block and emit a second all-zero-prefixed block
+// containing only the length suffix.
+
+// Length encoded as 128-bit BE (high 64 bits zero per FIPS 180-4 §5.1.2;
+// our messages never exceed 2^64 bits).
+length_be_bytes : [64] -> [16][8]
+length_be_bytes len = oword_to_be (zext len)
+
+// One-block padding (bl <= 111): single trailing block.
+final_block_one : SHA512Ctx -> [16]W
+final_block_one ctx = block_to_words full_block
+  where
+    bl_int = ctx.block_len
+    // bytes [0..bl_int)   come from ctx.block_buf
+    // bytes [bl_int..112) are 0x80 then zeros
+    // bytes [112..128)    are 128-bit BE length
+    full_block = [ if i < bl_int then ctx.block_buf @ i
+                   else if i == bl_int then 0x80
+                   else if i < 112 then 0
+                   else length_be_bytes ctx.length_bits @ (i - 112)
+                 | i <- [0..127] : [128][32]
+                 ]
+
+// Two-block padding (bl > 111): emit two trailing blocks. The first
+// fills with (live bytes ++ 0x80 ++ zeros) to 128; the second is
+// (zeros ++ length BE) of 128 bytes.
+final_block_two_a : SHA512Ctx -> [16]W
+final_block_two_a ctx = block_to_words full_block
+  where
+    bl_int = ctx.block_len
+    full_block = [ if i < bl_int then ctx.block_buf @ i
+                   else if i == bl_int then 0x80
+                   else 0
+                 | i <- [0..127] : [128][32]
+                 ]
+
+final_block_two_b : SHA512Ctx -> [16]W
+final_block_two_b ctx = block_to_words full_block
+  where
+    full_block = [ if i < 112 then 0 else length_be_bytes ctx.length_bits @ (i - 112)
+                 | i <- [0..127] : [128][32]
+                 ]
+
+// Final H state after running compress on all padded blocks.
+final_h : SHA512Ctx -> [8]W
+final_h ctx = if ctx.block_len <= 111
+              then compress ctx.h (final_block_one ctx)
+              else compress
+                       (compress ctx.h (final_block_two_a ctx))
+                       (final_block_two_b ctx)
+
+// FIPS-canonical 64-byte big-endian digest.
+final : SHA512Ctx -> [64][8]
+final ctx = h_to_be_bytes (final_h ctx)
+
+// ---------- one-shot SHA-512 ------------------------------------------
+
+// Convenience: sha512(M) = final (absorb init_ctx M). This is the
+// natural correctness statement against which SAW discharges KATs.
+sha512_oneshot : {n} (fin n) => [n][8] -> [64][8]
+sha512_oneshot m = final (absorb init_ctx m)
+
+// ---------- KAT properties --------------------------------------------
+
+// SHA-512("abc") FIPS 180-4 §C.1 canonical digest.
+abc_digest_bytes : [64][8]
+abc_digest_bytes =
+    [ 0xdd, 0xaf, 0x35, 0xa1, 0x93, 0x61, 0x7a, 0xba
+    , 0xcc, 0x41, 0x73, 0x49, 0xae, 0x20, 0x41, 0x31
+    , 0x12, 0xe6, 0xfa, 0x4e, 0x89, 0xa9, 0x7e, 0xa2
+    , 0x0a, 0x9e, 0xee, 0xe6, 0x4b, 0x55, 0xd3, 0x9a
+    , 0x21, 0x92, 0x99, 0x2a, 0x27, 0x4f, 0xc1, 0xa8
+    , 0x36, 0xba, 0x3c, 0x23, 0xa3, 0xfe, 0xeb, 0xbd
+    , 0x45, 0x4d, 0x44, 0x23, 0x64, 0x3c, 0xe8, 0x0e
+    , 0x2a, 0x9a, 0xc9, 0x4f, 0xa5, 0x4c, 0xa4, 0x9f
+    ]
+
+abc_kat : Bit
+abc_kat = sha512_oneshot [0x61, 0x62, 0x63] == abc_digest_bytes
+
+// SHA-512("") canonical digest.
+empty_digest_bytes : [64][8]
+empty_digest_bytes =
+    [ 0xcf, 0x83, 0xe1, 0x35, 0x7e, 0xef, 0xb8, 0xbd
+    , 0xf1, 0x54, 0x28, 0x50, 0xd6, 0x6d, 0x80, 0x07
+    , 0xd6, 0x20, 0xe4, 0x05, 0x0b, 0x57, 0x15, 0xdc
+    , 0x83, 0xf4, 0xa9, 0x21, 0xd3, 0x6c, 0xe9, 0xce
+    , 0x47, 0xd0, 0xd1, 0x3c, 0x5d, 0x85, 0xf2, 0xb0
+    , 0xff, 0x83, 0x18, 0xd2, 0x87, 0x7e, 0xec, 0x2f
+    , 0x63, 0xb9, 0x31, 0xbd, 0x47, 0x41, 0x7a, 0x81
+    , 0xa5, 0x38, 0x32, 0x7a, 0xf9, 0x27, 0xda, 0x3e
+    ]
+
+empty_kat : Bit
+empty_kat = sha512_oneshot ([] : [0][8]) == empty_digest_bytes
+
+// SHA-512 of FIPS 180-4 §C.2 (896 bits = 112 bytes,
+// "abcdefghbcdefghi...nopqrstu"). 112 bytes is the boundary case: bl=112
+// after absorb means padding goes into a SECOND block (since 112 bytes +
+// 0x80 doesn't fit with 16-byte length suffix in the same block).
+abcdefghi_msg : [112][8]
+abcdefghi_msg =
+    [ 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68
+    , 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69
+    , 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a
+    , 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b
+    , 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c
+    , 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d
+    , 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e
+    , 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f
+    , 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, 0x70
+    , 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, 0x70, 0x71
+    , 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72
+    , 0x6c, 0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72, 0x73
+    , 0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74
+    , 0x6e, 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75
+    ]
+
+abcdefghi_digest_bytes : [64][8]
+abcdefghi_digest_bytes =
+    [ 0x8e, 0x95, 0x9b, 0x75, 0xda, 0xe3, 0x13, 0xda
+    , 0x8c, 0xf4, 0xf7, 0x28, 0x14, 0xfc, 0x14, 0x3f
+    , 0x8f, 0x77, 0x79, 0xc6, 0xeb, 0x9f, 0x7f, 0xa1
+    , 0x72, 0x99, 0xae, 0xad, 0xb6, 0x88, 0x90, 0x18
+    , 0x50, 0x1d, 0x28, 0x9e, 0x49, 0x00, 0xf7, 0xe4
+    , 0x33, 0x1b, 0x99, 0xde, 0xc4, 0xb5, 0x43, 0x3a
+    , 0xc7, 0xd3, 0x29, 0xee, 0xb6, 0xdd, 0x26, 0x54
+    , 0x5e, 0x96, 0xe5, 0x5b, 0x87, 0x4b, 0xe9, 0x09
+    ]
+
+abcdefghi_kat : Bit
+abcdefghi_kat = sha512_oneshot abcdefghi_msg == abcdefghi_digest_bytes
+
+// SHA-512 of 128-byte all-zero message — exercises the >=112 path with
+// a fresh second block.
+zero128_digest_bytes : [64][8]
+zero128_digest_bytes =
+    [ 0xab, 0x94, 0x2f, 0x52, 0x62, 0x72, 0xe4, 0x56
+    , 0xed, 0x68, 0xa9, 0x79, 0xf5, 0x02, 0x02, 0x90
+    , 0x5c, 0xa9, 0x03, 0xa1, 0x41, 0xed, 0x98, 0x44
+    , 0x35, 0x67, 0xb1, 0x1e, 0xf0, 0xbf, 0x25, 0xa5
+    , 0x52, 0xd6, 0x39, 0x05, 0x1a, 0x01, 0xbe, 0x58
+    , 0x55, 0x81, 0x22, 0xc5, 0x8e, 0x3d, 0xe0, 0x7d
+    , 0x74, 0x9e, 0xe5, 0x9d, 0xed, 0x36, 0xac, 0xf0
+    , 0xc5, 0x5c, 0xd9, 0x19, 0x24, 0xd6, 0xba, 0x11
+    ]
+
+zero128_kat : Bit
+zero128_kat = sha512_oneshot (zero : [128][8]) == zero128_digest_bytes

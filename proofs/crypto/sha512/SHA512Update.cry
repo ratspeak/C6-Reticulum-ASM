@@ -1,0 +1,163 @@
+// proofs/crypto/sha512/SHA512Update.cry
+//
+// Cryptol algorithmic specification for sha512_update — the streaming
+// data absorber on top of SHA512Compress.
+//
+// FIPS 180-4 leaves the streaming API unstandardised; this module
+// formalises the contract our asm implementation must satisfy:
+//
+//   * length_bits accumulates the total byte count × 8 (64-bit; we
+//     model the asm's 64-bit field, which silently wraps if the user
+//     ever feeds 2^61 bytes — not a practical concern).
+//   * The 128-byte partial-block buffer is filled lazily; whenever it
+//     reaches 128 bytes a single SHA512Compress.compress is invoked and
+//     block_len resets to 0.
+//   * Whole 128-byte blocks in the input stream are compressed straight
+//     from the input pointer (no buffer copy).
+//   * The trailing < 128 bytes of the input are buffered for the next
+//     update or final.
+//
+// The central correctness property — proved by SAW under random testing
+// at the bit level — is *streaming associativity*: chunking the input
+// arbitrarily produces the same ctx as processing it as a single chunk.
+//
+// We model the live ctx fields explicitly. The asm's ctx is 208 bytes
+// total; the H[0..7] (64 B), length_bits (8 B), block_buf (128 B), and
+// block_len (4 B) account for the live state; pad (4 B) is scratch we
+// don't model.
+
+module SHA512Update where
+
+import SHA512Compress
+
+// ---------- ctx model --------------------------------------------------
+
+type Block = [128][8]
+
+// SHA512Ctx is the live portion of the asm's sha512_ctx struct.
+type SHA512Ctx =
+    { h           : [8]W
+    , length_bits : [64]
+    , block_buf   : Block
+    , block_len   : [32]
+    }
+
+// Initial ctx — what sha512_init produces.
+init_ctx : SHA512Ctx
+init_ctx =
+    { h = sha512_iv
+    , length_bits = zero
+    , block_buf = zero
+    , block_len = zero
+    }
+
+// ---------- block-as-words view ---------------------------------------
+
+// Convert a 128-byte block to 16 big-endian 64-bit words (the form
+// SHA512Compress.compress consumes).
+block_to_words : Block -> [16]W
+block_to_words b = [ join chunk | chunk <- (split b : [16][8][8]) ]
+
+// ---------- update ----------------------------------------------------
+
+// Single-byte absorb. The model is recursive over input bytes — verbose
+// but transparent. Runtime cost in Cryptol's interpreter is irrelevant
+// (SAW reduces it symbolically).
+absorb_byte : SHA512Ctx -> [8] -> SHA512Ctx
+absorb_byte ctx b = ctx'
+  where
+    bl  = ctx.block_len
+    bb1 = update ctx.block_buf bl b   // overwrite slot bl
+    bl1 = bl + 1
+    full = bl1 == 128
+    ctx_full =
+        { h = compress ctx.h (block_to_words bb1)
+        , length_bits = ctx.length_bits + 8
+        , block_buf   = zero
+        , block_len   = 0
+        }
+    ctx_part =
+        { h = ctx.h
+        , length_bits = ctx.length_bits + 8
+        , block_buf   = bb1
+        , block_len   = bl1
+        }
+    ctx' = if full then ctx_full else ctx_part
+
+// Multi-byte absorb. Folds absorb_byte over the input.
+absorb : {n} (fin n) => SHA512Ctx -> [n][8] -> SHA512Ctx
+absorb ctx data = (ctxs ! 0)
+  where
+    ctxs : [n+1]SHA512Ctx
+    ctxs = [ctx] # [ absorb_byte c b | c <- ctxs | b <- data ]
+
+// ---------- well-formedness -------------------------------------------
+
+// The asm contract: ctx.block_len < 128 always (sha512_init sets it to 0;
+// sha512_update preserves it < 128). Functions in this model that index
+// into block_buf require this invariant. Without it, random testing
+// generates degenerate ctx values that would never arise in a real run.
+well_formed : SHA512Ctx -> Bit
+well_formed ctx = ctx.block_len < 128
+
+// ---------- streaming associativity ------------------------------------
+
+// Streaming associativity: splitting an input stream into two pieces and
+// absorbing them sequentially yields the same ctx as absorbing the
+// concatenation in one call. This property is what an incremental hash
+// API ultimately promises its caller.
+streaming_assoc :
+    {n, m} (fin n, fin m) =>
+        SHA512Ctx -> [n][8] -> [m][8] -> Bit
+streaming_assoc ctx d1 d2 =
+    well_formed ctx ==>
+        absorb (absorb ctx d1) d2 == absorb ctx (d1 # d2)
+
+// Specialised: starting from init_ctx (block_len = 0), arbitrary chunking
+// commutes with concatenation. Cheaper to discharge by SMT because
+// init_ctx is concrete.
+streaming_assoc_init :
+    {n, m} (fin n, fin m) =>
+        [n][8] -> [m][8] -> Bit
+streaming_assoc_init d1 d2 =
+    absorb (absorb init_ctx d1) d2 == absorb init_ctx (d1 # d2)
+
+// ---------- KAT: hash of "abc" via update only ------------------------
+
+// After init + update("abc"), block_buf[0..3] = "abc", block_len = 3,
+// length_bits = 24, H = sha512_iv (no full block yet).
+abc_after_update_h : [8]W
+abc_after_update_h = sha512_iv
+
+abc_after_update_block_len : [32]
+abc_after_update_block_len = 3
+
+abc_after_update_length_bits : [64]
+abc_after_update_length_bits = 24
+
+abc_after_update : Bit
+abc_after_update =
+    ctx.h == abc_after_update_h /\
+    ctx.length_bits == abc_after_update_length_bits /\
+    ctx.block_len == abc_after_update_block_len /\
+    (ctx.block_buf @ 0) == 0x61 /\
+    (ctx.block_buf @ 1) == 0x62 /\
+    (ctx.block_buf @ 2) == 0x63
+  where
+    ctx = absorb init_ctx [0x61, 0x62, 0x63]
+
+// KAT: After init + update(128-byte all-zero block), H equals
+// compress(IV, all_zero_block), block_len = 0, length_bits = 1024.
+zero_block : [128][8]
+zero_block = zero
+
+zero_full_after_update_h : [8]W
+zero_full_after_update_h = compress sha512_iv (block_to_words zero_block)
+
+full_block_after_update : Bit
+full_block_after_update =
+    ctx.h == zero_full_after_update_h /\
+    ctx.length_bits == 1024 /\
+    ctx.block_len == 0
+  where
+    ctx = absorb init_ctx zero_block

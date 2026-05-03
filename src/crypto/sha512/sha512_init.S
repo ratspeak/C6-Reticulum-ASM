@@ -13,12 +13,13 @@
 #                 H_0..H_7 = first 64 bits of the fractional parts of the
 #                 square roots of the first 8 primes (2..19). Stored as
 #                 little-endian 32-bit half-words on RV32.
-# @verify:      kat-only; entry-point glue that copies the FIPS 180-4
-#               §5.3.5 IV table into ctx->H and zeroes length_bits +
-#               block_len. Correctness is established transitively by
-#               the SHA-512 family KAT (which only succeeds if init
-#               sets the right starting state).
+# @verify:      proofs/crypto/sha512/SHA512Init.cry, proofs/crypto/sha512/sha512_init.saw
 # @tests:       tests/crypto/sha512/test_sha512_kat.py
+#               (Tier A: SAW + Cryptol prove the FIPS 180-4 §5.3.5 IV
+#               table is bit-exact, the (lo32, hi32) RV32 word pairs
+#               line up with the asm rodata, and qword_to_le_bytes is
+#               a bijection. Tier C bridge: the QEMU pytest cross-
+#               checks the asm against hashlib.sha512 end-to-end.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================

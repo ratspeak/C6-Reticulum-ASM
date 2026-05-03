@@ -10,11 +10,15 @@
 # @cycles:      bounded (~6 + 128 cycles per buffered byte + N × sha512_compress)
 # @ct:          required
 # @spec:        FIPS 180-4 §5.2 (message length); §6.4 (block iteration)
-# @verify:      kat-only; the streaming absorber state machine
-#               (length_bits accumulator + partial-block buffer +
-#               compress dispatch) is exercised across all padding
-#               regimes by the combined SHA-512 KAT.
+# @verify:      proofs/crypto/sha512/SHA512Update.cry, proofs/crypto/sha512/sha512_update.saw
 # @tests:       tests/crypto/sha512/test_sha512_kat.py
+#               (Tier A: SAW + Cryptol prove (i) the partial-block
+#               post-condition for "abc" (block_len=3, length_bits=24,
+#               H unchanged), (ii) the full-block post-condition for
+#               128 zero bytes (one compress, length_bits=1024), and
+#               (iii) streaming associativity for small chunkings.
+#               Tier C bridge: the QEMU pytest cross-checks the asm
+#               against hashlib.sha512 across all padding regimes.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================
