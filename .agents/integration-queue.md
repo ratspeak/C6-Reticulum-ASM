@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-4] Add `proofs/crypto/x25519/x25519_montgomery_ladder.bsc` as a documented direct Binsec investigation; not appended to `@verify` because default `-sse-depth 524288` cuts the only path at depth 524299 / status unknown, while `-sse-depth 6000000` reports secure at max path depth 4788832 — branch: agent-4/x25519-montgomery-ladder-bsc, commit: 4672f2f, integrated as 496822f 2026-05-03T07:05:41Z
 - [agent-6] Add Tier D announce TX trace model `proofs/announce/announce_tx.tla` + `proofs/announce/announce_tx.cfg`; TLC passes direct `tlc proofs/announce/announce_tx.tla` — branch: agent-6/announce-tx-tla, commit: ea19c4a, integrated as e9759ce 2026-05-03T07:01:29Z
 - [agent-4] Add Tier B proof `proofs/crypto/x25519/x25519_field_inv.bsc` and append it to `src/crypto/x25519/x25519_field_inv.S` `@verify` — branch: agent-4/x25519-field-inv-bsc, commit: 5fff896, integrated as 9b0bba5 2026-05-03T07:00:27Z
 - [agent-3] Add direct-call qemu coverage for `destination_name_hash` and `destination_hash` tests; asserts asm output bytes against hashlib/upstream vectors — branch: agent-3/destination-qemu-tests, commit: 68beaa1, integrated as 1e2a711 2026-05-03T06:46:52Z
