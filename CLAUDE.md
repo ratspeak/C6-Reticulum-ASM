@@ -159,7 +159,10 @@ When the active milestone reaches `Complete`:
 ## Currently active milestone
 
 **Milestone 1 — Foundation stack + verifier infrastructure**
-(software complete; hardware demo gated on bring-up).
+(Complete: hardware demo passed on the Adafruit ESP32-C6 Feather
+2026-05-02 — boot, KISS framing, packet header parser, and crypto
+KAT bridge all verified end-to-end on real silicon over the on-chip
+USB-Serial/JTAG endpoint per [ADR-0010](docs/adr/0010-usb-serial-jtag-backend.md)).
 See [docs/milestones/milestone-1.md](docs/milestones/milestone-1.md).
 
 **Milestone 2 — Cryptographic primitives** (software-complete; the

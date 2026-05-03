@@ -30,11 +30,28 @@
         .global uart_rx_byte
         .type   uart_rx_byte, @function
 uart_rx_byte:
+        .ifdef TARGET_QEMU_VIRT
         li      t0, UART0_BASE
 1:      lbu     t1, 5(t0)               /* LSR                          */
         andi    t1, t1, UART0_LSR_DR
         beqz    t1, 1b
         lbu     a0, 0(t0)               /* RBR                          */
         ret
+        .endif
+
+        .ifdef TARGET_C6
+        /* USB Serial/JTAG RX: poll OUT_EP_DATA on EP1_CONF, then read
+         * EP1.RDWR_BYTE. The OUT FIFO advances its read pointer on
+         * every read of EP1; OUT_EP_DATA falls when the FIFO drains.
+         * 32-bit reads only (peripheral does not support sub-word
+         * accesses); the byte sits in bits [7:0]. */
+        li      t0, USJ_BASE
+1:      lw      t1, 4(t0)               /* EP1_CONF                       */
+        andi    t1, t1, USJ_OUT_EP_DATA
+        beqz    t1, 1b
+        lw      a0, 0(t0)               /* EP1.RDWR_BYTE                  */
+        andi    a0, a0, 0xff
+        ret
+        .endif
 
         .size   uart_rx_byte, . - uart_rx_byte

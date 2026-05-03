@@ -28,9 +28,21 @@
         .global uart_rx_available
         .type   uart_rx_available, @function
 uart_rx_available:
+        .ifdef TARGET_QEMU_VIRT
         li      t0, UART0_BASE
         lbu     t1, 5(t0)
         andi    a0, t1, UART0_LSR_DR
         ret
+        .endif
+
+        .ifdef TARGET_C6
+        /* USJ EP1_CONF.OUT_EP_DATA_AVAIL is bit 2; shift+mask to a 0/1
+         * return value matching the qemu-virt LSR.DR contract. */
+        li      t0, USJ_BASE
+        lw      t1, 4(t0)               /* EP1_CONF                       */
+        srli    a0, t1, 2               /* OUT_EP_DATA → bit 0            */
+        andi    a0, a0, 1
+        ret
+        .endif
 
         .size   uart_rx_available, . - uart_rx_available

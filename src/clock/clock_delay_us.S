@@ -34,6 +34,7 @@
         .global clock_delay_us
         .type   clock_delay_us, @function
 clock_delay_us:
+        .ifdef TARGET_QEMU_VIRT
         slli    a1, a0, 3                /* us * 8                       */
         slli    a2, a0, 1                /* us * 2                       */
         add     a1, a1, a2               /* delta = us * 10              */
@@ -43,5 +44,34 @@ clock_delay_us:
         sub     t2, t2, t1               /* elapsed (mod 2^32)           */
         bltu    t2, a1, 1b               /* spin while elapsed < delta   */
         ret
+        .endif
+
+        .ifdef TARGET_C6
+        /* C6 SYSTIMER ticks at 16 MHz, so delta = us * 16 = us << 4
+         * (single-shift versus the qemu-virt three-instruction *10).
+         * Each iteration re-snapshots via UPDATE/poll-VALID/read-LO
+         * because the counter is not directly memory-mapped on C6 —
+         * unlike CLINT.mtime, reads need an explicit trigger. We use
+         * t2 as the UPDATE bitmask carried across iterations and a2
+         * as a scratch for the VALID-poll result. */
+        slli    a1, a0, 4                /* delta = us * 16              */
+        li      t0, SYSTIMER_BASE
+        li      t2, SYSTIMER_UNIT0_UPDATE
+        sw      t2, 4(t0)                /* trigger snapshot             */
+1:      lw      a2, 4(t0)
+        srli    a2, a2, 29               /* VALID → bit 0                */
+        andi    a2, a2, 1
+        beqz    a2, 1b
+        lw      t1, 0x44(t0)             /* start_lo                     */
+2:      sw      t2, 4(t0)                /* re-trigger snapshot          */
+3:      lw      a2, 4(t0)
+        srli    a2, a2, 29
+        andi    a2, a2, 1
+        beqz    a2, 3b
+        lw      a2, 0x44(t0)             /* now_lo                       */
+        sub     a2, a2, t1               /* elapsed (mod 2^32)           */
+        bltu    a2, a1, 2b
+        ret
+        .endif
 
         .size   clock_delay_us, . - clock_delay_us

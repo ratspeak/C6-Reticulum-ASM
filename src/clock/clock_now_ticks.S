@@ -43,7 +43,24 @@ clock_now_ticks:
         ret
         .endif
         .ifdef TARGET_C6
-        .error "clock_now_ticks for TARGET_C6 not implemented yet"
+        /* SYSTIMER UNIT0 read protocol (TRM Ch 11): write the UPDATE bit
+         * to OP_REG to snapshot the running counter into VALUE_HI/VALUE_LO,
+         * poll VALID, then read both halves. The hi/lo pair is atomic
+         * because the snapshot is taken in a single hardware cycle —
+         * no rollover-recheck loop needed.
+         *
+         * VALID is bit 29 (mask 0x20000000); andi has only 12 bits of
+         * immediate, so we shift-then-mask to test it. */
+        li      t0, SYSTIMER_BASE
+        li      t1, SYSTIMER_UNIT0_UPDATE
+        sw      t1, 4(t0)               /* OP_REG := UPDATE              */
+1:      lw      t1, 4(t0)
+        srli    t2, t1, 29              /* VALID → bit 0                 */
+        andi    t2, t2, 1
+        beqz    t2, 1b
+        lw      a1, 0x40(t0)            /* VALUE_HI                      */
+        lw      a0, 0x44(t0)            /* VALUE_LO                      */
+        ret
         .endif
 
         .size   clock_now_ticks, . - clock_now_ticks

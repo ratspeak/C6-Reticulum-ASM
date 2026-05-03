@@ -11,7 +11,9 @@
 # Targets (target-side, requires riscv64-elf-binutils + qemu, see ADR-0008):
 #   make build [TARGET=qemu-virt|c6]  assemble + link → build/firmware.elf
 #   make emu                          run firmware.elf in qemu-system-riscv32
-#   make flash                        TODO once esptool path is wired
+#   make image                        TARGET=c6 only — wraps ELF in ESP image format
+#   make flash                        TARGET=c6 only — esptool write_flash 0x0
+#   make monitor                      open serial monitor on the C6 USB-Serial/JTAG
 #   make clean                        rm -rf build/
 
 PYTHON      := python3
@@ -48,7 +50,15 @@ BIN         := $(BUILD_DIR)/firmware.bin
 ASFLAGS     := $(ARCH_FLAGS) $(ASDEFS) -I src/include
 LDFLAGS     := -nostdlib -static --no-warn-rwx-segments
 
-.PHONY: help test tools-test registry spec verify verify-all ci build emu flash clean
+.PHONY: help test tools-test registry spec verify verify-all ci build emu image flash monitor clean
+
+# C6 hardware bring-up. Override on the command line if your board enumerates
+# at a different /dev/cu.* path or you want a faster flashing baud.
+ESPTOOL     ?= esptool.py
+ESP_PORT    ?= /dev/cu.usbmodem4101
+ESP_BAUD    ?= 460800
+ESP_CHIP    ?= esp32c6
+IMAGE_BIN   := build/c6/firmware.image.bin
 
 help:
 	@echo "Targets:"
@@ -61,7 +71,9 @@ help:
 	@echo "  ci             equivalent to: registry + test"
 	@echo "  build [TARGET=qemu-virt|c6]   assemble + link"
 	@echo "  emu            run firmware.elf in qemu-system-riscv32"
-	@echo "  flash          TODO: esptool path not wired yet"
+	@echo "  image          (TARGET=c6) wrap ELF in ESP image header"
+	@echo "  flash          (TARGET=c6) esptool write_flash 0x0 \$$IMAGE_BIN"
+	@echo "  monitor        open the C6 USB Serial/JTAG (115200, ESP_PORT=$(ESP_PORT))"
 	@echo "  clean          remove build/"
 
 test:
@@ -110,9 +122,37 @@ emu: build
 	$(QEMU) -machine virt -cpu rv32 -bios none -kernel $(ELF) \
 	        -nographic -no-reboot -d guest_errors
 
-flash:
-	@echo "TODO: esptool flash path not wired yet (needs C6 image header per docs/hardware/image-header.md)"
-	@false
+# --- C6 hardware bring-up -------------------------------------------------
+# `image` produces an ESP image-format binary that the C6 mask-ROM second-stage
+# loader can consume from flash offset 0x0. esptool's elf2image walks PT_LOAD
+# program headers, segregates IRAM vs DRAM segments, prepends the image header
+# (magic 0xE9, segment count, entry-point address), and appends the SHA-256
+# integrity hash. We pass --flash_size 4MB to match the ESP32-C6FH4 part on
+# the Adafruit Feather (4 MB embedded NOR flash).
+image: build
+ifneq ($(TARGET),c6)
+	$(error make image only works with TARGET=c6, got '$(TARGET)')
+endif
+	# DIO + 40 MHz are the conservative defaults that match the Adafruit
+	# Feather ESP32-C6's factory flash configuration. QIO at boot returns
+	# garbage data on this board — empirically the ROM's segment-data XOR
+	# walk reads 0x00 throughout, producing calculated == seed (0xef) and
+	# a checksum mismatch. Higher speeds / QIO can be re-enabled once the
+	# bootloader-equivalent code reconfigures the SPI controller.
+	$(ESPTOOL) --chip $(ESP_CHIP) elf2image --flash-size 4MB \
+	           --flash-mode dio --flash-freq 40m \
+	           --output $(IMAGE_BIN) $(ELF)
+
+flash: image
+	$(ESPTOOL) --chip $(ESP_CHIP) --port $(ESP_PORT) --baud $(ESP_BAUD) \
+	           write_flash 0x0 $(IMAGE_BIN)
+
+# Convenience: open a serial monitor. Uses miniterm.py (ships with pyserial,
+# which is an esptool dependency, so it is always available alongside esptool).
+# Ctrl-] to exit. The C6's USB Serial/JTAG ignores baud rate; 115200 matches
+# what the host driver advertises.
+monitor:
+	$(PYTHON) -m serial.tools.miniterm --raw --eol LF $(ESP_PORT) 115200
 
 clean:
 	rm -rf build/

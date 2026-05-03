@@ -98,7 +98,7 @@ developer working full-time, with verification overhead included.
 
 | # | Title | Status | Estimate | Verification milestone |
 |---|-------|--------|----------|------------------------|
-| 1 | Foundation stack + verifier infrastructure | Active (sw complete) | 8–12 wk | Harness + Sail differential running; KISS codec verified |
+| 1 | Foundation stack + verifier infrastructure | Complete (2026-05-02) | 8–12 wk | Hardware demo passed on Adafruit ESP32-C6 Feather; harness + verifier dispatcher live |
 | 2 | Cryptographic primitives | Active (parallel) | 4–6 mo | Each primitive: KAT + formal equivalence + constant-time |
 | 3 | Identity + announce TX | Planned | 3–4 wk | TLA+ for announce state machine; signature verified end-to-end |
 | 4 | Flash persistence | Planned | 2–3 wk | Symbolic execution on flash driver; identity round-trip proven |

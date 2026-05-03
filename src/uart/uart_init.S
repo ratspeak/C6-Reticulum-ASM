@@ -34,7 +34,11 @@ uart_init:
         ret
         .endif
         .ifdef TARGET_C6
-        .error "uart_init for TARGET_C6 not implemented yet"
+        /* The USB Serial/JTAG peripheral comes up enabled and clocked by
+         * the mask-ROM stage (the ROM uses it for its own boot messages),
+         * so no register programming is required to use it from our side.
+         * GPIO16/17 UART0 lands when a wired dongle is on bench. */
+        ret
         .endif
 
         .size   uart_init, . - uart_init
