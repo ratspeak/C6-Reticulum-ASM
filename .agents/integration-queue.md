@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through eaecabf. Latest integrated slice: milestone-7 closeout and SX1262 LoRa SPI activation. Current gates passed: `./verify --module resource`, `make ci` (`709 passed, 14 skipped`), qemu/C6 builds, hardware suite `14 passed`, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claim: `docs/hardware/lora.md` and GPIO/SPI foundation functions.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 4515e82. Latest integrated slice: SX1262 hardware contract. Current gates passed: `make registry`, `git diff --check`, and prior milestone boundary gates (`./verify --module resource`, `make ci` with `709 passed, 14 skipped`, qemu/C6 builds, hardware suite `14 passed`, stack max 2304/16384). Eligible next milestone-8 claim: GPIO/SPI foundation functions.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Document milestone-8 SX1262 hardware contract; pins the Feather/SX1262 bench wiring, SPI mode and clock bounds, reset/BUSY/DIO1 command rules, qemu model surface, and hardware test plan — branch: main, integrated as 4515e82 2026-05-03T19:12:15Z
 - [agent-1] Close milestone 7 Resource / Channel and activate milestone 8 LoRa SPI Interface; marks all M7 DoD items complete, adds ADR-0011 for the SX1262 target, creates `docs/milestones/milestone-8.md`, and registers planned GPIO/SPI/SX1262/LoRa functions — branch: main, integrated as eaecabf 2026-05-03T19:08:56Z
 - [agent-1] Add milestone-7 resource/channel state TLA+ model; covers advertise, accept part, duplicate part, complete transfer, reject, and channel envelope accept traces, and wires the model into `resource_process_plaintext` verification — branch: main, integrated as 5c6dc60 2026-05-03T19:02:42Z
 - [agent-1] Implement verified `resource_process_plaintext`; dispatches decrypted link plaintext for CHANNEL, RESOURCE_ADV, and RESOURCE contexts through the verified channel envelope, advertisement parser, and reassembly update path, with direct-QEMU dispatch tests plus source contract proof — branch: main, integrated as c0ccf76 2026-05-03T19:00:33Z
