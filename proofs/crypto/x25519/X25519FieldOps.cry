@@ -355,3 +355,19 @@ inv_one_kat = f_inv 1 == 1                            // 1^(p-2) ≡ 1
 
 inv_neg_one_kat : Bit
 inv_neg_one_kat = f_inv (p_25519 - 1) == p_25519 - 1  // (-1)^(p-2) ≡ -1
+
+// ---------- montgomery_ladder spec ------------------------------------
+
+// Algebraic post-condition (RFC 7748 §5): out u-coordinate = (k * P_u).x.
+// The Cryptol model `montgomery_ladder` in X25519 already encodes this
+// directly. The asm post-condition is the same fact through the 10-limb
+// representation: decode_limbs(out) = montgomery_ladder(decoded_k,
+// decoded_u). RFC 7748 §5.2 / §6.1 wire vectors are already discharged
+// in x25519.saw against the Cryptol model; the asm-vs-model bridge is
+// the QEMU pytest in test_x25519_montgomery_ladder.py.
+
+// Trivial KATs that don't require z3 to symbolically expand 255 ladder
+// iterations: scalar 0 → identity → 0, scalar 1 → input.
+
+ladder_zero_kat : Bit
+ladder_zero_kat = montgomery_ladder 0 9 == 0

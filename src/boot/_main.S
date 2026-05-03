@@ -122,6 +122,10 @@
         .ascii "x25519\tfield_inv\thex="
 .Lx25519_finv_tag_end:
         .equ   .Lx25519_finv_tag_len, .Lx25519_finv_tag_end - .Lx25519_finv_tag
+.Lx25519_ladder_tag:
+        .ascii "x25519\tladder\thex="
+.Lx25519_ladder_tag_end:
+        .equ   .Lx25519_ladder_tag_len, .Lx25519_ladder_tag_end - .Lx25519_ladder_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -196,6 +200,8 @@ _main:
         beq     t1, t2, .Lx25519_fsq_kat
         li      t2, 0x69
         beq     t1, t2, .Lx25519_finv_kat
+        li      t2, 0x4C
+        beq     t1, t2, .Lx25519_ladder_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -693,6 +699,33 @@ _main:
         call    uart_tx_byte
         la      a0, .Lx25519_finv_tag
         li      a1, .Lx25519_finv_tag_len
+        call    log_str
+        la      a0, x25519_field_buf
+        li      a1, 40
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Lx25519_ladder_kat:
+        /* x25519_montgomery_ladder: 'L' || k_bytes[32] || u_limbs[40] →
+         * emits 80 hex chars (40 bytes of result limbs). The driver assumes
+         * k_bytes is already clamped per RFC 7748 §5 (caller's job; mirrors
+         * the production scalar_mult flow which calls decode_scalar first). */
+        la      a0, x25519_field_buf
+        la      a1, kiss_buf
+        addi    a1, a1, 1               /* &k_bytes                    */
+        addi    a2, a1, 32              /* &u_limbs                    */
+        call    x25519_montgomery_ladder
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lx25519_ladder_tag
+        li      a1, .Lx25519_ladder_tag_len
         call    log_str
         la      a0, x25519_field_buf
         li      a1, 40
