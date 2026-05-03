@@ -39,7 +39,7 @@ else
 endif
 
 BUILD_DIR   := build/$(TARGET)
-SRC_DIRS    := src/boot src/clock src/uart src/log src/kiss src/packet src/state src/crypto/sha256 src/crypto/sha512 src/crypto/hmac src/crypto/hkdf src/crypto/aes src/crypto/x25519 src/crypto/rng
+SRC_DIRS    := src/boot src/clock src/uart src/log src/kiss src/packet src/state src/crypto/sha256 src/crypto/sha512 src/crypto/hmac src/crypto/hkdf src/crypto/aes src/crypto/x25519 src/crypto/rng src/crypto/ed25519
 SRCS        := $(wildcard $(addsuffix /*.S,$(SRC_DIRS)))
 OBJS        := $(patsubst src/%.S,$(BUILD_DIR)/%.o,$(SRCS))
 ELF         := $(BUILD_DIR)/firmware.elf

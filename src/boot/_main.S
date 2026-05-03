@@ -146,6 +146,14 @@
         .ascii "x25519\tkeypair_sk\thex="
 .Lx25519_kp_sk_tag_end:
         .equ   .Lx25519_kp_sk_tag_len, .Lx25519_kp_sk_tag_end - .Lx25519_kp_sk_tag
+.Led25519_sc_red_tag:
+        .ascii "ed25519\tsc_reduce\thex="
+.Led25519_sc_red_tag_end:
+        .equ   .Led25519_sc_red_tag_len, .Led25519_sc_red_tag_end - .Led25519_sc_red_tag
+.Led25519_sc_madd_tag:
+        .ascii "ed25519\tsc_muladd\thex="
+.Led25519_sc_madd_tag_end:
+        .equ   .Led25519_sc_madd_tag_len, .Led25519_sc_madd_tag_end - .Led25519_sc_madd_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -231,6 +239,10 @@ _main:
         beq     t1, t2, .Lrng_kat
         li      t2, 0x6B                /* 'k' for x25519_keypair         */
         beq     t1, t2, .Lx25519_keypair_kat
+        li      t2, 0x52                /* 'R' for ed25519_sc_reduce      */
+        beq     t1, t2, .Led25519_sc_red_kat
+        li      t2, 0x61                /* 'a' for ed25519_sc_muladd      */
+        beq     t1, t2, .Led25519_sc_madd_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -789,6 +801,55 @@ _main:
         call    log_str
         la      a0, x25519_field_buf
         li      a1, 40
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Led25519_sc_madd_kat:
+        /* ed25519_sc_muladd: 'a' || a[32] || b[32] || c[32] →
+         * 64 hex of (a*b + c) mod L. */
+        la      a0, x25519_field_buf    /* spare 40-byte buf, low 32 used */
+        la      a1, kiss_buf
+        addi    a1, a1, 1
+        addi    a2, a1, 32
+        addi    a3, a1, 64
+        call    ed25519_sc_muladd
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Led25519_sc_madd_tag
+        li      a1, .Led25519_sc_madd_tag_len
+        call    log_str
+        la      a0, x25519_field_buf
+        li      a1, 32
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Led25519_sc_red_kat:
+        /* ed25519_sc_reduce: 'R' || in_bytes[64] → 64 hex of scalar mod L. */
+        la      a0, x25519_field_buf    /* spare 40-byte buf, low 32 used */
+        la      a1, kiss_buf
+        addi    a1, a1, 1
+        call    ed25519_sc_reduce
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Led25519_sc_red_tag
+        li      a1, .Led25519_sc_red_tag_len
+        call    log_str
+        la      a0, x25519_field_buf
+        li      a1, 32
         call    log_hex_buf
         li      a0, 13
         call    uart_tx_byte
