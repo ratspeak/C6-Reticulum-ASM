@@ -17,7 +17,7 @@
 #               weight 19, since 2^255 ≡ 19 mod p_25519) followed by
 #               `freduce_coefficients` (two carry passes, with the
 #               limb 9 → limb 0 ×19 fold between/after each).
-# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_mul.saw
+# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_mul.saw, proofs/crypto/x25519/x25519_field_mul.bsc
 # @tests:       tests/crypto/x25519/test_x25519_field_mul.py
 #               (Tier C bridge: the angr pcode RV32IMC engine miscompiles
 #               64-bit mul/mulh/add-with-carry chains (same blocker as

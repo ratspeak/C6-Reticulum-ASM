@@ -1,0 +1,24 @@
+# Binsec/Rel constant-time check for x25519_field_mul (Tier B per ADR-0009).
+#
+# x25519_field_mul performs the full radix-2^25.5 field multiplication:
+# 10x10 signed limb products, fixed degree folding by 19, two fixed carry
+# propagation passes, and fixed-offset output stores. Both input field
+# elements are secret during the X25519 Montgomery ladder. Output values may
+# depend on those secrets, but control flow and memory-access addresses must
+# not.
+
+starting from <x25519_field_mul> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # out (40 bytes)
+  a1 := 0x80001000          # a   (40 bytes)
+  a2 := 0x80002000          # b   (40 bytes)
+  for i<32> in 0 to 9 do
+    @[a1 + i * 4, 4] := secret as a_limb
+    @[a2 + i * 4, 4] := secret as b_limb
+  end
+end
+
+halt at <x25519_field_mul> return
+
+explore all
