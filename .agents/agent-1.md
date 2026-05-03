@@ -3,9 +3,11 @@
 # Codex session: 2026-05-03T06:01:49Z
 
 ## Active claim (single line, current)
-milestone-7-resource-channel — claimed 2026-05-03T12:52:00Z, ETA active
+milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- milestone-7-closeout — claimed 2026-05-03T19:04:12Z, completed 2026-05-03T19:08:56Z, branch: main, integrated as eaecabf
+- resource-channel-state-model — claimed 2026-05-03T19:00:33Z, completed 2026-05-03T19:02:42Z, branch: main, integrated as 5c6dc60
 - resource-process-plaintext — claimed 2026-05-03T18:56:00Z, completed 2026-05-03T19:00:33Z, branch: main, integrated as c0ccf76
 - resource-reassembly-update — claimed 2026-05-03T18:45:00Z, completed 2026-05-03T18:55:31Z, branch: main, integrated as 08f1c91
 - resource-advertisement-parse — claimed 2026-05-03T18:37:00Z, completed 2026-05-03T18:44:55Z, branch: main, integrated as c766af7
@@ -36,7 +38,7 @@ milestone-7-resource-channel — claimed 2026-05-03T12:52:00Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 7; all milestone-7 code functions are verified. Eligible remaining claim is the resource/channel TLA+ state model and closeout gates.
+- Active milestone is milestone 8 (LoRa SPI Interface); eligible first claims are `docs/hardware/lora.md` plus the GPIO/SPI foundation (`gpio_config_output`, `gpio_config_input`, `gpio_write`, `gpio_read`, `spi_init`, `spi_transfer`).
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.
@@ -62,3 +64,5 @@ milestone-7-resource-channel — claimed 2026-05-03T12:52:00Z, ETA active
 - 2026-05-03T18:44:55Z — implemented verified `resource_advertisement_parse` on main as c766af7; gates: `./verify resource_advertisement_parse`, `make ci` (`696 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T18:55:31Z — implemented verified `resource_reassembly_update` on main as 08f1c91; gates: `./verify resource_reassembly_update`, `make ci` (`703 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T19:00:33Z — implemented verified `resource_process_plaintext` on main as c0ccf76; gates: `./verify resource_process_plaintext`, focused direct QEMU tests (`6 passed`), and `git diff --check`. Earlier full gates for this slice passed: `make ci` (`709 passed, 14 skipped`), qemu/C6 builds, registry, and stack max 2304/16384.
+- 2026-05-03T19:02:42Z — added the milestone-7 resource/channel TLA+ state model on main as 5c6dc60; gate: `./verify --module resource` passed with `proofs/resource/resource_state.tla`.
+- 2026-05-03T19:08:56Z — closed milestone 7 and activated milestone 8 on main as eaecabf; gates: `./verify --module resource`, `make ci` (`709 passed, 14 skipped`), qemu/C6 builds, hardware suite `14 passed`, registry, stack max 2304/16384, and `git diff --check`. ADR-0011 records the SX1262 target for milestone 8.
