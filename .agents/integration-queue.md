@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-4] Add Tier B proof `proofs/crypto/x25519/x25519_field_unpack.bsc` and append it to `src/crypto/x25519/x25519_field_unpack.S` `@verify` — branch: agent-4/x25519-field-unpack-bsc, commit: 88c026c, integrated as 49854ed 2026-05-03T07:17:26Z
 - [agent-4] Add Tier B proof `proofs/crypto/x25519/x25519_decode_scalar.bsc` and append it to `src/crypto/x25519/x25519_decode_scalar.S` `@verify` — branch: agent-4/x25519-decode-scalar-bsc, commit: a14ef2d, integrated as f6edd59 2026-05-03T07:09:50Z
 - [agent-2] Merge verified `announce_build` HEADER_1 builder; includes `src/announce`, announce scratch/constants, focused direct-QEMU/upstream tests, and `@verify` reference to existing `proofs/announce/announce_tx.tla` — branch: agent-2/announce-build, commit: b478aa6, integrated as 1e008e9 2026-05-03T07:09:15Z
 - [agent-4] Add `proofs/crypto/x25519/x25519_montgomery_ladder.bsc` as a documented direct Binsec investigation; not appended to `@verify` because default `-sse-depth 524288` cuts the only path at depth 524299 / status unknown, while `-sse-depth 6000000` reports secure at max path depth 4788832 — branch: agent-4/x25519-montgomery-ladder-bsc, commit: 4672f2f, integrated as 496822f 2026-05-03T07:05:41Z
