@@ -297,7 +297,7 @@ Reticulum identity: keypair generation, persistence, hash derivation.
 
 | Function | Status | Owner | Depends-on | ADRs | Spec |
 |----------|--------|-------|-----------|------|------|
-| `identity_hash` | ☐ planned |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#identity_hash) |
+| `identity_hash` | ◉ verified |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#identity_hash) |
 | `identity_create` | ☐ planned |  | `identity_hash`, `x25519_keypair`, `ed25519_keypair`, `rng_bytes` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#identity_create) |
 | `identity_save` | ☐ planned |  | `flash_*`, `identity_create` | — | (milestone 4) |
 | `identity_load` | ☐ planned |  | `flash_*` | — | (milestone 4) |

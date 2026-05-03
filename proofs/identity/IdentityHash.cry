@@ -1,0 +1,53 @@
+// proofs/identity/IdentityHash.cry
+//
+// Cryptol algorithmic specification for identity_hash.
+//
+// Reticulum's identity hash is the truncated hash of the 64-byte public
+// key returned by Identity.get_public_key():
+//
+//     SHA256(public_key)[0:16]
+//
+// The SHA-256 one-shot model is imported from the already verified
+// milestone-2 SHA256Final module.
+
+module IdentityHash where
+
+import SHA256Final
+
+identity_hash : [64][8] -> [16][8]
+identity_hash public_key = take`{16} (sha256_oneshot public_key)
+
+identity_hash_is_sha256_prefix : [64][8] -> Bit
+identity_hash_is_sha256_prefix public_key =
+    identity_hash public_key == take`{16} (sha256_oneshot public_key)
+
+zero_public_key_hash : [16][8]
+zero_public_key_hash =
+    [ 0xf5, 0xa5, 0xfd, 0x42, 0xd1, 0x6a, 0x20, 0x30
+    , 0x27, 0x98, 0xef, 0x6e, 0xd3, 0x09, 0x97, 0x9b
+    ]
+
+zero_public_key_kat : Bit
+zero_public_key_kat = identity_hash (zero : [64][8]) == zero_public_key_hash
+
+seq_public_key : [64][8]
+seq_public_key = [ b | b <- [0x00 .. 0x3f] : [64][8] ]
+
+seq_public_key_hash : [16][8]
+seq_public_key_hash =
+    [ 0xfd, 0xea, 0xb9, 0xac, 0xf3, 0x71, 0x03, 0x62
+    , 0xbd, 0x26, 0x58, 0xcd, 0xc9, 0xa2, 0x9e, 0x8f
+    ]
+
+seq_public_key_kat : Bit
+seq_public_key_kat = identity_hash seq_public_key == seq_public_key_hash
+
+ff_public_key_hash : [16][8]
+ff_public_key_hash =
+    [ 0x86, 0x67, 0xe7, 0x18, 0x29, 0x4e, 0x9e, 0x0d
+    , 0xf1, 0xd3, 0x06, 0x00, 0xba, 0x3e, 0xeb, 0x20
+    ]
+
+ff_public_key_kat : Bit
+ff_public_key_kat = identity_hash (repeat 0xff : [64][8]) == ff_public_key_hash
+

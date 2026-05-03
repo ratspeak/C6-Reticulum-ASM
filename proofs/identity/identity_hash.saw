@@ -1,0 +1,26 @@
+// proofs/identity/identity_hash.saw
+//
+// SAW driver for identity_hash algorithmic verification (Tier A per
+// ADR-0009). The obligation is exactly Reticulum's truncated hash:
+// SHA256(public_key[64])[0:16].
+
+import "IdentityHash.cry";
+
+print "[identity_hash.saw] proving symbolic SHA-256 prefix property ...";
+prove_print z3 {{ \(public_key : [64][8]) -> identity_hash_is_sha256_prefix public_key }};
+print "[identity_hash.saw] symbolic prefix property: PASS.";
+
+print "[identity_hash.saw] proving zero public-key KAT ...";
+prove_print z3 {{ zero_public_key_kat }};
+print "[identity_hash.saw] zero public-key KAT: PASS.";
+
+print "[identity_hash.saw] proving sequential public-key KAT ...";
+prove_print z3 {{ seq_public_key_kat }};
+print "[identity_hash.saw] sequential public-key KAT: PASS.";
+
+print "[identity_hash.saw] proving all-0xff public-key KAT ...";
+prove_print z3 {{ ff_public_key_kat }};
+print "[identity_hash.saw] all-0xff public-key KAT: PASS.";
+
+print "[identity_hash.saw] PASS";
+
