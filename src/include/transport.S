@@ -1,6 +1,8 @@
 /* Milestone-5 in-RAM transport path table constants. */
 
         .equ TRANSPORT_OK,                    0
+        .equ TRANSPORT_STATUS_ACCEPTED,       0
+        .equ TRANSPORT_STATUS_UPDATED,        1
         .equ TRANSPORT_ERR_INVAL,            -1
         .equ TRANSPORT_ERR_NOT_FOUND,        -2
 

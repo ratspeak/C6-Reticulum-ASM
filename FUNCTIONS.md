@@ -336,7 +336,7 @@ Announce processing, path table, destination cache. Reticulum's routing layer.
 | `transport_path_init` | ◉ verified |  | — | 0001, 0002, 0005, 0009 | [milestone-5](docs/milestones/milestone-5.md#transport_path_init) |
 | `transport_path_update` | ◉ verified |  | `transport_path_init`, `clock_now_ms` | 0001, 0002, 0005, 0009 | [milestone-5](docs/milestones/milestone-5.md#transport_path_update) |
 | `transport_path_lookup` | ◉ verified |  | `transport_path_init` | 0001, 0002, 0005, 0009 | [milestone-5](docs/milestones/milestone-5.md#transport_path_lookup) |
-| `transport_process_announce` | ☐ planned |  | `announce_validate`, `transport_path_update` | 0001, 0002, 0004, 0005, 0006, 0009 | [milestone-5](docs/milestones/milestone-5.md#transport_process_announce) |
+| `transport_process_announce` | ◉ verified |  | `announce_validate`, `transport_path_update` | 0001, 0002, 0004, 0005, 0006, 0009 | [milestone-5](docs/milestones/milestone-5.md#transport_process_announce) |
 
 ## Module: `link`
 
