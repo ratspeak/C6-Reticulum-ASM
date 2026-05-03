@@ -1,7 +1,8 @@
 # Milestone 5: Transport RX
 
-- **Status:** Active
+- **Status:** Complete
 - **Started:** 2026-05-03
+- **Completed:** 2026-05-03
 - **Estimate:** 4-6 weeks
 
 ## Goal
@@ -25,28 +26,28 @@ traffic yet.
 
 ## Definition of Done
 
-- [ ] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-5 function with
+- [x] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-5 function with
       a source, tests, verifier artifact, and status `verified`.
-- [ ] `announce_parse` accepts well-formed non-ratchet HEADER_1 announces and
+- [x] `announce_parse` accepts well-formed non-ratchet HEADER_1 announces and
       rejects malformed flags, hops/context shape, short payloads, over-MDU
       packets, and truncated signatures without copying out of bounds.
-- [ ] `announce_validate` recomputes `identity_hash`, destination hash, and
+- [x] `announce_validate` recomputes `identity_hash`, destination hash, and
       Ed25519 signature validity for inbound announces, with negative tests for
       tampered destination hash, public key, name hash, random hash, signature,
       and app data.
-- [ ] `transport_path_init`, `transport_path_update`, and
+- [x] `transport_path_init`, `transport_path_update`, and
       `transport_path_lookup` maintain a fixed-capacity path table with
       deterministic replacement and no heap allocation.
-- [ ] `transport_process_announce` validates a parsed announce, updates or
+- [x] `transport_process_announce` validates a parsed announce, updates or
       creates the path-table entry keyed by destination hash, and returns a
       stable status code for accepted, duplicate, invalid, and full-table
       cases.
-- [ ] `_main` routes inbound Reticulum announce packets through
+- [x] `_main` routes inbound Reticulum announce packets through
       `transport_process_announce` while preserving existing packet parser logs
       and the milestone-3 local `N` announce command.
-- [ ] A TLA+ transport state model accepts every observable asm trace for
+- [x] A TLA+ transport state model accepts every observable asm trace for
       accept, reject, update, duplicate, and eviction cases.
-- [ ] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
+- [x] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
       `pytest --hardware tests/hardware/`, and `./verify <fn>` pass for every
       function added or modified in this milestone.
 
@@ -331,3 +332,31 @@ runtime logs should remain status-only.
 | Path-table eviction policy becomes incompatible with later forwarding | Keep replacement deterministic and documented; persistence and multi-interface metrics are deferred until after this RAM table is proven. |
 | Signature verification cost makes RX sluggish on C6 | Start with correctness; measure hardware KISS RX latency and defer batching/queueing until the transport state machine exists. |
 | Logs accidentally expose peer public keys or app data | Default logs are status-only; tests parse emitted KISS/packet bytes rather than adding verbose runtime logs. |
+
+## Retrospective
+
+Milestone 5 completed as a tight vertical slice rather than the original
+4-6 week estimate because the milestone-3 announce builder, Ed25519 verifier,
+and milestone-4 flash/hardware baseline were already stable. The largest design
+choice was to keep duplicate and eviction paths status-equivalent in runtime
+logs (`transport.path_updated`) while retaining a positive return status from
+`transport_process_announce` for callers that need to distinguish an existing
+destination.
+
+The path table remains RAM-only and intentionally small (`8` entries). That
+keeps replacement deterministic and easy to prove, but persistence and richer
+metrics must wait until later transport milestones. The TLA+ model tracks new,
+duplicate, reject, and eviction state even when the observable log trace is the
+same for accepted cases.
+
+Final gates on 2026-05-03:
+
+- `./verify announce_parse`, `./verify announce_validate`,
+  `./verify transport_path_init`, `./verify transport_path_update`,
+  `./verify transport_path_lookup`, `./verify transport_process_announce`, and
+  `./verify _main` passed.
+- `make ci` passed with `572 passed, 14 skipped`.
+- `make build TARGET=qemu-virt` and `make build TARGET=c6` passed.
+- `pytest --hardware tests/hardware/ -q -p no:cacheprovider` passed with
+  `14 passed`.
+- Stack maximum after boot integration: `2304 / 16384` bytes.
