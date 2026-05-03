@@ -1,0 +1,152 @@
+// proofs/destination/DestinationHash.cry
+//
+// Cryptol model for Reticulum destination hashes.
+//
+// Upstream RNS/Destination.py derives:
+//   name_hash        = SHA256(expanded_name_utf8_without_identity_suffix)[0:10]
+//   destination_hash = SHA256(name_hash || identity_hash)[0:16]
+//
+// The concrete KATs below were generated from the vendored upstream
+// Reticulum reference under ../upstream/Reticulum.
+
+module DestinationHash where
+
+import SHA256Final
+
+// ---------- Reticulum truncation helpers ------------------------------
+
+destination_name_hash : {n} (fin n) => [n][8] -> [10][8]
+destination_name_hash name_bytes = take`{10} (sha256_oneshot name_bytes)
+
+destination_hash : [10][8] -> [16][8] -> [16][8]
+destination_hash name_hash identity_hash =
+    take`{16} (sha256_oneshot (name_hash # identity_hash))
+
+destination_name_hash_truncates : {n} (fin n) => [n][8] -> Bit
+destination_name_hash_truncates name_bytes =
+    destination_name_hash name_bytes == take`{10} (sha256_oneshot name_bytes)
+
+destination_hash_truncates : [10][8] -> [16][8] -> Bit
+destination_hash_truncates name_hash identity_hash =
+    destination_hash name_hash identity_hash ==
+        take`{16} (sha256_oneshot (name_hash # identity_hash))
+
+// ---------- Upstream vector material ----------------------------------
+
+rnstransport_nodes_name : [18][8]
+rnstransport_nodes_name =
+    [ 0x72, 0x6e, 0x73, 0x74, 0x72, 0x61, 0x6e, 0x73
+    , 0x70, 0x6f, 0x72, 0x74, 0x2e, 0x6e, 0x6f, 0x64
+    , 0x65, 0x73
+    ]
+
+rnstransport_nodes_name_hash : [10][8]
+rnstransport_nodes_name_hash =
+    [ 0xdd, 0x9b, 0x8e, 0xa0, 0xcb, 0xef, 0xfd, 0xd9
+    , 0x63, 0x9f
+    ]
+
+rnstransport_nodes_identity_hash : [16][8]
+rnstransport_nodes_identity_hash =
+    [ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+    , 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+    ]
+
+rnstransport_nodes_destination_hash : [16][8]
+rnstransport_nodes_destination_hash =
+    [ 0xc5, 0x00, 0xd5, 0x6c, 0xe1, 0x7a, 0x69, 0x93
+    , 0xc6, 0x44, 0xe9, 0xb8, 0x65, 0xf1, 0xd8, 0xa3
+    ]
+
+lxmf_delivery_name : [13][8]
+lxmf_delivery_name =
+    [ 0x6c, 0x78, 0x6d, 0x66, 0x2e, 0x64, 0x65, 0x6c
+    , 0x69, 0x76, 0x65, 0x72, 0x79
+    ]
+
+lxmf_delivery_name_hash : [10][8]
+lxmf_delivery_name_hash =
+    [ 0x6e, 0xc6, 0x0b, 0xc3, 0x18, 0xe2, 0xc0, 0xf0
+    , 0xd9, 0x08
+    ]
+
+lxmf_delivery_identity_hash : [16][8]
+lxmf_delivery_identity_hash =
+    [ 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77
+    , 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
+    ]
+
+lxmf_delivery_destination_hash : [16][8]
+lxmf_delivery_destination_hash =
+    [ 0x82, 0xde, 0x33, 0xc3, 0xaa, 0x80, 0x11, 0x0d
+    , 0x9e, 0x5a, 0xf2, 0x0b, 0x6b, 0x7e, 0xda, 0x4f
+    ]
+
+riscv_c6_harness_name : [16][8]
+riscv_c6_harness_name =
+    [ 0x72, 0x69, 0x73, 0x63, 0x76, 0x2e, 0x63, 0x36
+    , 0x2e, 0x68, 0x61, 0x72, 0x6e, 0x65, 0x73, 0x73
+    ]
+
+riscv_c6_harness_name_hash : [10][8]
+riscv_c6_harness_name_hash =
+    [ 0x9c, 0xc3, 0xf1, 0xc3, 0xaf, 0x95, 0xbd, 0xc9
+    , 0x62, 0xb3
+    ]
+
+riscv_c6_harness_identity_hash : [16][8]
+riscv_c6_harness_identity_hash =
+    [ 0xf0, 0xe1, 0xd2, 0xc3, 0xb4, 0xa5, 0x96, 0x87
+    , 0x78, 0x69, 0x5a, 0x4b, 0x3c, 0x2d, 0x1e, 0x0f
+    ]
+
+riscv_c6_harness_destination_hash : [16][8]
+riscv_c6_harness_destination_hash =
+    [ 0xe4, 0x9a, 0x90, 0x7f, 0x32, 0x4d, 0x9f, 0xd7
+    , 0x5a, 0x6d, 0x75, 0xe6, 0x43, 0x78, 0x6b, 0xda
+    ]
+
+empty_name_hash : [10][8]
+empty_name_hash =
+    [ 0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14
+    , 0x9a, 0xfb
+    ]
+
+// ---------- KAT properties --------------------------------------------
+
+rnstransport_nodes_name_hash_kat : Bit
+rnstransport_nodes_name_hash_kat =
+    destination_name_hash rnstransport_nodes_name ==
+        rnstransport_nodes_name_hash
+
+lxmf_delivery_name_hash_kat : Bit
+lxmf_delivery_name_hash_kat =
+    destination_name_hash lxmf_delivery_name == lxmf_delivery_name_hash
+
+riscv_c6_harness_name_hash_kat : Bit
+riscv_c6_harness_name_hash_kat =
+    destination_name_hash riscv_c6_harness_name ==
+        riscv_c6_harness_name_hash
+
+empty_name_hash_kat : Bit
+empty_name_hash_kat =
+    destination_name_hash ([] : [0][8]) == empty_name_hash
+
+rnstransport_nodes_destination_hash_kat : Bit
+rnstransport_nodes_destination_hash_kat =
+    destination_hash
+        rnstransport_nodes_name_hash
+        rnstransport_nodes_identity_hash ==
+        rnstransport_nodes_destination_hash
+
+lxmf_delivery_destination_hash_kat : Bit
+lxmf_delivery_destination_hash_kat =
+    destination_hash lxmf_delivery_name_hash lxmf_delivery_identity_hash ==
+        lxmf_delivery_destination_hash
+
+riscv_c6_harness_destination_hash_kat : Bit
+riscv_c6_harness_destination_hash_kat =
+    destination_hash
+        riscv_c6_harness_name_hash
+        riscv_c6_harness_identity_hash ==
+        riscv_c6_harness_destination_hash

@@ -1,0 +1,20 @@
+// proofs/destination/destination_hash.saw
+//
+// SAW driver for destination_hash algorithmic verification. KATs are
+// generated from upstream RNS.Destination.hash(identity_hash, app, *aspects)
+// where identity_hash is supplied as the 16-byte Reticulum identity-hash
+// form accepted by the Python reference.
+
+import "DestinationHash.cry";
+
+print "[destination_hash.saw] proving upstream Reticulum destination-hash KATs ...";
+prove_print z3 {{ rnstransport_nodes_destination_hash_kat }};
+prove_print z3 {{ lxmf_delivery_destination_hash_kat }};
+prove_print z3 {{ riscv_c6_harness_destination_hash_kat }};
+print "[destination_hash.saw] destination-hash KATs: PASS.";
+
+print "[destination_hash.saw] proving 16-byte truncation identity over symbolic inputs ...";
+prove_print z3 {{ \(nh : [10][8]) (ih : [16][8]) -> destination_hash_truncates nh ih }};
+print "[destination_hash.saw] truncation identity: PASS.";
+
+print "[destination_hash.saw] PASS";

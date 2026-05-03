@@ -1,0 +1,24 @@
+// proofs/destination/destination_name_hash.saw
+//
+// SAW driver for destination_name_hash algorithmic verification.
+// Discharges upstream Reticulum KATs for rnstransport.nodes,
+// lxmf.delivery, a harness-local name, and the legal zero-length hash-layer
+// boundary. Also proves the 10-byte truncation identity over representative
+// symbolic name lengths.
+
+import "DestinationHash.cry";
+
+print "[destination_name_hash.saw] proving upstream Reticulum name-hash KATs ...";
+prove_print z3 {{ rnstransport_nodes_name_hash_kat }};
+prove_print z3 {{ lxmf_delivery_name_hash_kat }};
+prove_print z3 {{ riscv_c6_harness_name_hash_kat }};
+prove_print z3 {{ empty_name_hash_kat }};
+print "[destination_name_hash.saw] name-hash KATs: PASS.";
+
+print "[destination_name_hash.saw] proving 10-byte truncation identity ...";
+prove_print z3 {{ \(m : [1][8]) -> destination_name_hash_truncates m }};
+prove_print z3 {{ \(m : [18][8]) -> destination_name_hash_truncates m }};
+prove_print z3 {{ \(m : [64][8]) -> destination_name_hash_truncates m }};
+print "[destination_name_hash.saw] truncation identity: PASS.";
+
+print "[destination_name_hash.saw] PASS";

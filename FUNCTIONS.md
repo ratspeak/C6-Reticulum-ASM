@@ -308,8 +308,8 @@ Destination hash derivation. Used by announce TX and later by inbound announce v
 
 | Function | Status | Owner | Depends-on | ADRs | Spec |
 |----------|--------|-------|-----------|------|------|
-| `destination_name_hash` | ☐ planned |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#destination_name_hash) |
-| `destination_hash` | ☐ planned |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#destination_hash) |
+| `destination_name_hash` | ◉ verified |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#destination_name_hash) |
+| `destination_hash` | ◉ verified |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#destination_hash) |
 
 ## Module: `announce`
 
