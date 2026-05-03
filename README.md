@@ -1,45 +1,66 @@
 # RISC-V-C6
+#### Do not take this project seriously, it's the result of having spare LLM compute and wanting to test its capability. Zero guarantees.
 
-Pure-assembly port of the Reticulum Network Stack to the ESP32-C6 (RV32IMAC).
+Pure RV32IMAC assembly firmware for experimenting with Reticulum on the
+Adafruit ESP32-C6 Feather.
 
-This is a multi-year, formally-verified, agent-driven asm project. The scope is exhaustive:
-every Reticulum function the chip needs to perform, written from scratch in RISC-V assembly,
-with mathematical correctness proofs per function before integration.
+This is a research and bring-up project. It is not a production Reticulum node,
+not a drop-in RNode replacement, and not a general ESP32-C6 SDK project.
 
-## Quick orientation
+## Current State
 
-If you are an agent or contributor opening this repo for the first time, read in this order:
+The repo currently has assembly implementations for:
 
-1. **[CLAUDE.md](CLAUDE.md)** — operating instructions for any agent or human contributor. Read in full before any work.
-2. **[MASTER_PLAN.md](MASTER_PLAN.md)** — vision, scope, milestone roadmap, success criteria.
-3. **[docs/adr/](docs/adr/)** — architecture decisions, in numbered order. All Accepted ADRs are binding.
-4. **[FUNCTIONS.md](FUNCTIONS.md)** — the function registry. The single source of truth for what exists, what is planned, and what is verified.
-5. **[docs/milestones/](docs/milestones/)** — per-milestone specifications. Start with the active milestone.
+- boot, clock, UART, logging, KISS framing, and packet helpers
+- SHA-256, SHA-512, HMAC, HKDF, AES-256-CBC, X25519, Ed25519, and RNG/DRBG
+- identity creation, destination hashes, announce build/send, announce parse/validate
+- flash-backed identity persistence
+- basic transport path handling
+- link/session helpers
+- resource/channel helpers
+- SX1262 GPIO/SPI/LoRa interface foundation
+- early LXMF payload/message-id/delivery-announce helpers
 
-## Repository layout
+The current active work is the LXMF foundation. See
+[FUNCTIONS.md](FUNCTIONS.md) for the live function registry.
 
+## Hardware
+
+Primary target:
+
+- Adafruit ESP32-C6 Feather
+- Wio-SX1262 V1.0 header carrier for LoRa testing
+
+The LoRa wiring is still bench-specific and experimental.
+
+## Verification
+
+The project uses layered verification, not a blanket proof of the whole
+firmware. Depending on the function, coverage may include Python/KAT tests,
+qemu tests, Cryptol/SAW specs, Binsec constant-time checks, angr/pypcode bounded
+checks, and TLA+ state models.
+
+The future `macaw-riscv`/SAW ELF-lifting path is documented, but not in use yet.
+
+## Basic Commands
+
+```sh
+make ci
+./verify --all
+make build TARGET=qemu-virt
+make build TARGET=c6
 ```
-RISC-V-C6/
-├── CLAUDE.md              Operating instructions for agents
-├── MASTER_PLAN.md         Multi-year strategic plan
-├── FUNCTIONS.md           Function registry (the tracker)
-├── README.md              This file
-├── docs/
-│   ├── adr/               Architecture Decision Records
-│   └── milestones/        Per-milestone specifications
-├── src/                   Assembly sources (one function per file)
-├── tests/                 Test harness (Python, host-side)
-├── proofs/                Formal verification scripts and specs (renamed from verify/, see ADR-0008)
-├── references/            Vendored reference specs (RFCs, FIPS, papers, upstream Python)
-└── toolchain/             Toolchain configuration, linker scripts, board configs
+
+Hardware tests require a connected board:
+
+```sh
+python3 -m pytest --hardware --hardware-port /dev/cu.usbmodem4101 tests/hardware/ -q
 ```
 
-## Hardware target
+## Repository Map
 
-- **Adafruit ESP32-C6 Feather** (4 MB flash, 320 KB HP SRAM, 16 KB LP SRAM, no PSRAM)
-- ESP32-C6 SoC: single-core RV32IMAC @ 160 MHz, WiFi 6, BLE 5, 802.15.4
-
-## Status
-
-Project initialized. No assembly written yet. See [FUNCTIONS.md](FUNCTIONS.md) for current
-inventory and [docs/milestones/milestone-1.md](docs/milestones/milestone-1.md) for the active work.
+- [FUNCTIONS.md](FUNCTIONS.md) - function registry and verification status
+- [src/](src/) - assembly sources
+- [tests/](tests/) - Python test harness
+- [proofs/](proofs/) - verification artifacts
+- [toolchain/](toolchain/) - linker scripts and toolchain notes

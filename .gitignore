@@ -10,6 +10,14 @@
 build/
 out/
 
+# Local coordination / internal docs
+.agents/
+/CLAUDE.md
+/CODEX_HANDOFF.md
+/MASTER_PLAN.md
+/docs/
+/references/
+
 # Verification outputs (regenerated, not committed)
 proofs/output/
 proofs/cache/
