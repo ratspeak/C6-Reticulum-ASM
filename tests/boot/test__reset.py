@@ -8,7 +8,8 @@ that hold by virtue of the linker placement and the asm prologue:
 * `_reset` is the first symbol placed in .text (linker script `KEEP`).
 * The first instruction sequence sets `sp` (auipc/addi pair) and `gp`
   (auipc/addi pair) before any function call. Concretely we confirm the
-  disassembly contains references to `__stack_top` and `__global_pointer$`.
+  disassembly contains a stack-top reference and that the `gp` addend, when
+  objdump emits a resolved address, resolves to `__global_pointer$`.
 * `_reset` ends with a `jal` (call) to `_main` followed by a halt loop.
 
 These checks fail loudly if the prologue is reordered or a symbol is
@@ -65,8 +66,16 @@ def test_reset_sets_sp_and_gp_before_calling_main(
 
     # 2. gp set second
     assert "gp," in instructions[2] and "auipc" in instructions[2], instructions[2]
-    assert "gp," in instructions[3] and "addi" in instructions[3], instructions[3]
-    assert "__global_pointer$" in instructions[3]
+    gp_addi = instructions[3]
+    assert "gp," in gp_addi and "addi" in gp_addi, gp_addi
+    # objdump annotates the addend with any symbol at the resolved address.
+    # If __global_pointer$ aliases a data symbol, the data symbol name can win.
+    if "#" in gp_addi:
+        m = re.search(r"#\s*([0-9a-f]+)", gp_addi)
+        assert m, gp_addi
+        assert int(m.group(1), 16) == build.symbol_address(
+            artifacts.elf, "__global_pointer$"
+        )
 
     # 3. call _main
     call_line = next(line for line in instructions if "_main" in line)
