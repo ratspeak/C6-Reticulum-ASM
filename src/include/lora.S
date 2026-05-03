@@ -8,17 +8,27 @@
         .equ LORA_ERR_INVAL,               -3
         .equ LORA_ERR_SPI_TIMEOUT,         -4
         .equ LORA_ERR_SPI,                 -5
+        .equ LORA_ERR_OVERFLOW,            -6
+        .equ LORA_ERR_TX_TIMEOUT,          -7
+        .equ LORA_ERR_NO_PACKET,           -8
+        .equ LORA_ERR_CRC,                 -9
+        .equ LORA_ERR_NOT_INITIALIZED,     -10
 
         .equ SX1262_RESET_LOW_US,           100
         .equ SX1262_RESET_SETTLE_US,        100
         .equ SX1262_BUSY_POLL_DELAY_US,     10
         .equ SX1262_BUSY_TIMEOUT_DEFAULT,   10000
         .equ SX1262_COMMAND_TIMEOUT_DEFAULT, 10000
+        .equ SX1262_TX_TIMEOUT_DEFAULT,     10000
+        .equ SX1262_TX_POLL_DELAY_US,       1000
 
         .equ SX1262_CMD_CLEAR_IRQ_STATUS,   0x02
         .equ SX1262_CMD_SET_DIO_IRQ_PARAMS, 0x08
+        .equ SX1262_CMD_WRITE_BUFFER,       0x0e
+        .equ SX1262_CMD_GET_IRQ_STATUS,     0x12
         .equ SX1262_CMD_GET_STATUS,         0xc0
         .equ SX1262_CMD_SET_STANDBY,        0x80
+        .equ SX1262_CMD_SET_TX,             0x83
         .equ SX1262_CMD_SET_REGULATOR_MODE, 0x96
         .equ SX1262_CMD_CALIBRATE_IMAGE,    0x98
         .equ SX1262_CMD_SET_DIO2_RF_SWITCH, 0x9d
@@ -41,7 +51,7 @@
         .equ SX1262_BENCH_RF_FREQ_WORD,     0x36333333
         .equ SX1262_BENCH_TX_POWER_DBM,     7
         .equ SX1262_BENCH_PREAMBLE_SYMBOLS, 12
-        .equ SX1262_BENCH_PAYLOAD_MAX,      255
+        .equ SX1262_BENCH_PAYLOAD_MAX,      254
 
         .equ SX1262_PA_DUTY_CYCLE,          0x04
         .equ SX1262_PA_HP_MAX,              0x07
@@ -58,3 +68,8 @@
         .equ SX1262_IMAGE_CAL_863_870_1,    0xd7
         .equ SX1262_IMAGE_CAL_863_870_2,    0xdb
         .equ SX1262_IRQ_MASK_BENCH,         0x0263
+        .equ SX1262_IRQ_TX_DONE,            0x0001
+        .equ SX1262_IRQ_RX_DONE,            0x0002
+        .equ SX1262_IRQ_HEADER_ERR,         0x0020
+        .equ SX1262_IRQ_CRC_ERR,            0x0040
+        .equ SX1262_IRQ_TIMEOUT,            0x0200

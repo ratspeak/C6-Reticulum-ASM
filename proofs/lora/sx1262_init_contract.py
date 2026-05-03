@@ -43,7 +43,7 @@ def prove_profile_constants() -> None:
     require(LORA["SX1262_BENCH_RF_FREQ_WORD"] == expected_word, "RF frequency word mismatch")
     require(LORA["SX1262_BENCH_TX_POWER_DBM"] == 7, "bench TX power mismatch")
     require(LORA["SX1262_BENCH_PREAMBLE_SYMBOLS"] == 12, "bench preamble mismatch")
-    require(LORA["SX1262_BENCH_PAYLOAD_MAX"] == 255, "bench payload cap mismatch")
+    require(LORA["SX1262_BENCH_PAYLOAD_MAX"] == 254, "bench payload cap mismatch")
     require(LORA["SX1262_LORA_SF8"] == 8, "spreading factor mismatch")
     require(LORA["SX1262_LORA_BW_125_KHZ"] == 4, "SX1262 125 kHz bandwidth enum mismatch")
     require(LORA["SX1262_LORA_CR_4_5"] == 1, "SX1262 CR 4/5 enum mismatch")
