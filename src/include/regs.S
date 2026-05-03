@@ -122,4 +122,15 @@
         .equ    LP_WDT_SWD_WPROTECT, LP_WDT_BASE + 0x20
         .equ    WDT_WKEY,           0x50D83AA1
         .equ    LP_WDT_SWD_DISABLE, 0x40000000  /* bit 30 of SWD_CONFIG */
+
+        /* On-chip RNG. The LPPERI block exposes the hardware RNG as a
+         * single 32-bit register. The mask ROM enables the LP-peripheral
+         * clock for its own boot work, so we can read directly without a
+         * peripheral-clock-enable dance. Per the C6 TRM the analog noise
+         * source feeds the PRNG continuously; reading consumes no entropy.
+         * Without WiFi/BLE the RNG output is pseudo-random with a
+         * hardware-seeded state — adequate as a milestone-2 RNG until the
+         * production HMAC-DRBG (NIST SP 800-90A) lands. */
+        .equ    LPPERI_BASE,        0x600B2800
+        .equ    LPPERI_RNG_DATA,    LPPERI_BASE + 0x08
         .endif

@@ -42,12 +42,14 @@ Each function entry has:
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Hardware bring-up landed 2026-05-02: `clock_init`, `clock_now_ticks`, `clock_delay_us`,
-  `uart_init`, `uart_tx_byte`, `uart_rx_byte`, `uart_rx_available` each grew a `TARGET_C6`
-  path alongside the existing qemu-virt path. The qemu-virt verifier obligation is
-  unchanged; the TARGET_C6 paths are exercised end-to-end by the milestone-1 hardware
-  demo (boot, KISS framing, packet header parser, SHA-256 KAT trigger — all verified on
-  the Adafruit ESP32-C6 Feather over the on-chip USB-Serial/JTAG endpoint per
-  [ADR-0010](docs/adr/0010-usb-serial-jtag-backend.md)).
+  `uart_init`, `uart_tx_byte`, `uart_rx_byte`, `uart_rx_available`, plus `rng_bytes` each
+  grew a `TARGET_C6` path alongside the existing qemu-virt path. The qemu-virt verifier
+  obligation is unchanged; the TARGET_C6 paths are exercised end-to-end by the milestone-1
+  hardware demo (boot, KISS framing, packet header parser) and the milestone-2 KAT bridge
+  (SHA-256, SHA-512, AES-256, X25519 scalar_mult, Ed25519 sign/verify/tamper-rejection,
+  hardware-RNG entropy properties) over the on-chip USB-Serial/JTAG endpoint per
+  [ADR-0010](docs/adr/0010-usb-serial-jtag-backend.md). 12 hardware tests pass in ~6 s
+  (run with `pytest --hardware tests/hardware/`).
 - Total functions registered: **39** (excludes wildcard placeholders like `x25519_field_*`)
 - Verified: 78 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 12 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + RNG (deterministic-fake) — all under ADR-0009)
 - Tier A coverage extended: the SHA-512 family (`sha512_init`, `sha512_compress`, `sha512_update`, `sha512_final`) now carries a Cryptol+SAW Tier A proof alongside the QEMU/hashlib KAT bridge. The SAW drivers discharge FIPS 180-4 §C.1 + §C.2 KATs symbolically over the 80-round transform + 16-word schedule, plus K-table constants, ROTR/ch/maj algebraic sanity, streaming associativity (small chunkings), and both padding paths (bl ≤ 111 single-block + bl > 111 two-block).

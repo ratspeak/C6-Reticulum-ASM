@@ -2,8 +2,11 @@
 
 - **Status:** Software-complete; Tier A landed for the entire crypto
   stack except the three Ed25519 end-to-end glue functions
-  (`keypair`, `sign`, `verify`); Tier B (Binsec/Rel ct on RV32 ELFs)
-  is the remaining sub-project.
+  (`keypair`, `sign`, `verify`); raw on-chip RNG wired for TARGET_C6
+  (replaces the deterministic-fake on real silicon, validated by
+  tests/hardware/test_rng.py); Tier B (Binsec/Rel ct on RV32 ELFs)
+  and the production HMAC-DRBG seeded from the raw RNG remain the
+  open sub-projects.
 - **Started:** 2026-05-02
 - **Software-complete:** 2026-05-02
 - **Tier A complete:** 2026-05-02 (sha-256 / sha-512 / hmac / hkdf /

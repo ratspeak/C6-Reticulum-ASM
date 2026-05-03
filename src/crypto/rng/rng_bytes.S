@@ -3,30 +3,49 @@
 # @module:      crypto/rng
 # @inputs:      a0 = out ptr (caller-owned, len bytes)
 #               a1 = len     (number of bytes to emit; may be 0)
-# @outputs:     out[0..len-1] filled with rng_counter-driven bytes:
-#                 block_i = sha256(DETERMINISTIC_FAKE_RNG || counter_le32)
-#                 counter ← counter + 1 after each emitted block.
-#               When len % 32 != 0, the last block is truncated to the
-#               remaining byte count.
+# @outputs:     TARGET_QEMU_VIRT:
+#                 out[0..len-1] = sha256(DETERMINISTIC_FAKE_RNG || counter_le32)
+#                 with counter incremented per 32-byte block. Output is
+#                 fully reproducible from the seed string + counter — the
+#                 deterministic-fake CSPRNG documented below.
+#               TARGET_C6:
+#                 out[0..len-1] streamed from the LPPERI on-chip RNG (one
+#                 32-bit read every ~64 CPU cycles per the esp-idf
+#                 hw_random.c inter-read guidance). Without WiFi/BLE the
+#                 PRNG state is hardware-seeded but not continuously
+#                 reseeded; quality is adequate as a milestone-2 RNG and
+#                 vastly better than the qemu-virt deterministic-fake.
+#                 The production HMAC-DRBG (NIST SP 800-90A) seeded by
+#                 this hardware source is the future replacement.
 # @clobbers:    t0..t6, a0..a7, ra, s0..s4
 # @preserves:   sp, gp, all other callee-saved
-# @stack:       176
-# @cycles:      bounded (≈ ceil(len / 32) × sha256_compress)
+# @stack:       176        (TARGET_QEMU_VIRT path; the TARGET_C6 path is
+#                          a leaf with @stack = 0, but the static analyzer
+#                          uses worst-case which is the qemu sha256 frame.)
+# @cycles:      bounded (TARGET_QEMU_VIRT: ≈ ceil(len/32) × sha256_compress;
+#               TARGET_C6: ≈ len × 80 — one 32-bit RNG read + ~64-cycle
+#               settle-delay every 4 bytes)
 # @ct:          required
-# @spec:        DETERMINISTIC fake CSPRNG for QEMU bring-up. Replaced by
-#               an HMAC-DRBG (NIST SP 800-90A) seeded from the on-chip
-#               TRNG in production. The fake output is reproducible from
-#               the seed string and the counter, which makes it
-#               adequate for KAT-style testing of higher-level crypto
-#               (notably x25519_keypair) without committing to a full
-#               DRBG implementation in this milestone.
-# @verify:      kat-only; deterministic fake CSPRNG. The QEMU pytest
-#               compares the emitted bytes against a Python sha256-of-
-#               (seed || counter_le32) oracle for several lengths
-#               covering full and partial blocks. Once the production
-#               HMAC-DRBG (NIST SP 800-90A) replaces this back-end we
-#               will add a Cryptol/SAW algebraic equivalence proof
-#               against the SHA-256 model already landed.
+# @spec:        Two backends selected by build-target:
+#               * TARGET_QEMU_VIRT: deterministic-fake CSPRNG for the
+#                 emulator bring-up (no hardware RNG modeled by qemu).
+#                 Output reproducible from seed+counter — adequate for
+#                 KAT-style testing of higher-level crypto without
+#                 committing to a full DRBG.
+#               * TARGET_C6: ESP32-C6 TRM Ch 38 on-chip RNG via
+#                 LPPERI_RNG_DATA at 0x600B2808. esp-idf hw_random.c is
+#                 the reference for the inter-read settle delay (~16 APB
+#                 cycles per word; we use ~64 CPU cycles which is a
+#                 conservative 4× at 80 MHz CPU / 20 MHz APB).
+# @verify:      kat-only on the qemu-virt path: the existing tests
+#               (tests/crypto/rng/test_rng_*.py) compare emitted bytes
+#               against a Python sha256(seed || counter_le32) oracle.
+#               TARGET_C6 path validated by tests/hardware/test_rng.py
+#               (entropy properties: distinct outputs, no all-zero, no
+#               all-0xff, byte-distribution sanity). Once HMAC-DRBG
+#               replaces the hardware-RNG-direct path, a Cryptol/SAW
+#               algebraic equivalence proof against the SHA-256 model
+#               will close the formal-verification gap.
 # @tests:       tests/crypto/rng/test_rng_bytes.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
@@ -50,6 +69,7 @@
  * FRAME below.)
  */
 
+        .include "regs.S"
         .include "rng.S"
         .include "sha256.S"
 
@@ -67,6 +87,44 @@
         .global rng_bytes
         .type   rng_bytes, @function
 rng_bytes:
+        .ifdef TARGET_C6
+        /* Hardware RNG path — leaf, no spill. Read LPPERI_RNG_DATA in
+         * 32-bit chunks, emit 4 bytes per read, then settle for ~64 CPU
+         * cycles before the next read (esp-idf's hw_random.c uses ~16
+         * APB cycles between reads to avoid draining entropy faster than
+         * the analog noise source can replenish; 64 CPU cycles is a 4×
+         * margin at 80 MHz CPU / 20 MHz APB). */
+        beqz    a1, .Lhw_done
+        li      t0, LPPERI_RNG_DATA
+        mv      t1, a0                  /* out cursor                     */
+        mv      t2, a1                  /* remaining bytes                */
+.Lhw_word:
+        lw      t3, 0(t0)               /* 4 bytes of entropy             */
+        li      t4, 4                   /* bytes left in this word        */
+.Lhw_byte:
+        beqz    t2, .Lhw_done
+        beqz    t4, .Lhw_settle
+        sb      t3, 0(t1)
+        srli    t3, t3, 8
+        addi    t1, t1, 1
+        addi    t2, t2, -1
+        addi    t4, t4, -1
+        j       .Lhw_byte
+.Lhw_settle:
+        /* ~64-cycle delay before next RNG read. The loop body is 2
+         * instructions; 32 iterations gives ~64 cycles plus 1 cycle of
+         * branch mispredict per iteration on simple in-order cores
+         * (≈ 96 wall cycles in practice — within margin). */
+        li      t4, 32
+.Lhw_settle_loop:
+        addi    t4, t4, -1
+        bnez    t4, .Lhw_settle_loop
+        j       .Lhw_word
+.Lhw_done:
+        ret
+        .endif
+
+        .ifdef TARGET_QEMU_VIRT
         addi    sp, sp, -FRAME
         sw      ra, RA_OFF(sp)
         sw      s0, S0_OFF(sp)
@@ -142,5 +200,6 @@ rng_bytes:
         lw      ra, RA_OFF(sp)
         addi    sp, sp, FRAME
         ret
+        .endif
 
         .size   rng_bytes, . - rng_bytes
