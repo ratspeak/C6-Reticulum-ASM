@@ -29,7 +29,8 @@ SRAM and keeps the public project API bounded to the reserved identity region.
   documents the ROM entry addresses used by the asm backend:
   `esp_rom_spiflash_erase_sector = 0x40000144`,
   `esp_rom_spiflash_write = 0x4000014c`, and
-  `esp_rom_spiflash_read = 0x40000150`.
+  `esp_rom_spiflash_read = 0x40000150`, plus
+  `esp_rom_spiflash_config_param = 0x40000160`.
 - [ESP-IDF ESP32-C6 ROM SPI flash header](https://raw.githubusercontent.com/espressif/esp-idf/v6.0/components/esp_rom/esp32c6/include/esp32c6/rom/spi_flash.h):
   documents that ROM flash read/write use flash byte offsets but require
   4-byte-aligned addresses, buffers, and lengths.
@@ -47,8 +48,9 @@ SRAM and keeps the public project API bounded to the reserved identity region.
   at boot. No production code is intended to execute from flash while the
   milestone-4 flash routines run.
 - The TARGET_C6 flash backend executes from HP SRAM and calls the ROM
-  `esp_rom_spiflash_read`, `esp_rom_spiflash_write`, and
-  `esp_rom_spiflash_erase_sector` helpers directly.
+  `esp_rom_spiflash_config_param`, `esp_rom_spiflash_read`,
+  `esp_rom_spiflash_write`, and `esp_rom_spiflash_erase_sector` helpers
+  directly.
 - Sector erase granularity for the contract is 4 KiB. Erase offsets and lengths
   must be multiples of `0x1000`.
 - SPI NOR flash writes may only change erased `1` bits to programmed `0` bits.
@@ -109,8 +111,9 @@ the first page must remain `0xff` after `identity_save`.
   reserved-sector offset. These constants must stay sourced from the ESP-IDF
   ESP32-C6 ROM linker map, not from ad hoc reverse-engineering.
 - `flash_init` must validate that the reserved absolute offset and size are
-  sector-aligned, and must reject any detected failure to read the top of the
-  4 MiB chip address space.
+  sector-aligned, configure the ROM flash descriptor for the 4 MiB / 64 KiB /
+  4 KiB / 256-byte geometry used by this project, and reject any detected
+  failure to read the top of the 4 MiB chip address space.
 - `flash_read(offset, out, len)` may read any byte range inside the 4 KiB
   region. Zero-length reads are no-ops. The TARGET_C6 wrapper may split
   unaligned public reads into aligned 4-byte ROM reads through static SRAM
@@ -194,4 +197,5 @@ between.
 
 The hardware test in `tests/hardware/test_flash_persistence.py` implements this
 flow and is opt-in behind `pytest --hardware` because it requires the physical
-Feather and erases the reserved identity sector.
+Feather and erases the reserved identity sector. It passed on the local Feather
+at `/dev/cu.usbmodem4101` on 2026-05-03.

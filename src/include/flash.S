@@ -11,11 +11,14 @@
         .equ FLASH_IDENTITY_RECORD_OFFSET,  0
 
         .equ FLASH_C6_CHIP_SIZE,            0x00400000
+        .equ FLASH_C6_BLOCK_SIZE,           0x00010000
         .equ FLASH_C6_IDENTITY_ABS_OFFSET,  0x003ff000
+        .equ FLASH_C6_STATUS_MASK,          0x0000ffff
 
         .equ ESP_ROM_SPIFLASH_ERASE_SECTOR, 0x40000144
         .equ ESP_ROM_SPIFLASH_WRITE,        0x4000014c
         .equ ESP_ROM_SPIFLASH_READ,         0x40000150
+        .equ ESP_ROM_SPIFLASH_CONFIG_PARAM, 0x40000160
 
         .equ FLASH_OK,                      0
         .equ FLASH_ERR_INVAL,               -1

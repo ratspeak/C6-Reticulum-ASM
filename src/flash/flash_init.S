@@ -3,10 +3,10 @@
 # @module:      flash
 # @inputs:      (none)
 # @outputs:     a0 = 0 on success, negative errno on failure
-# @clobbers:    a0..a2, t0..t4
+# @clobbers:    a0..a5, t0..t4
 # @preserves:   sp, gp, ra, all callee-saved
 # @stack:       16
-# @cycles:      bounded (one 4096-byte model init on qemu; one ROM read on C6)
+# @cycles:      bounded (one 4096-byte model init on qemu; two ROM calls on C6)
 # @ct:          not-required
 # @spec:        milestone-4 flash_init; qemu-virt model / TARGET_C6 reserved flash validation
 # @verify:      proofs/flash/flash_qemu_model.py
@@ -42,6 +42,16 @@ flash_init:
 
         addi    sp, sp, -16
         sw      ra, 12(sp)
+        li      a0, 0                   /* device ID not used by us      */
+        li      a1, FLASH_C6_CHIP_SIZE
+        li      a2, FLASH_C6_BLOCK_SIZE
+        li      a3, FLASH_SECTOR_SIZE
+        li      a4, FLASH_PAGE_SIZE
+        li      a5, FLASH_C6_STATUS_MASK
+        li      t0, ESP_ROM_SPIFLASH_CONFIG_PARAM
+        jalr    ra, 0(t0)
+        bnez    a0, .Lfi_c6_restore_fail
+
         li      a0, FLASH_C6_CHIP_SIZE - 4
         la      a1, flash_c6_word_scratch
         li      a2, 4
@@ -57,6 +67,11 @@ flash_init:
 .Lfi_c6_fail:
         li      a0, FLASH_ERR_INVAL
         ret
+
+.Lfi_c6_restore_fail:
+        lw      ra, 12(sp)
+        addi    sp, sp, 16
+        j       .Lfi_c6_fail
         .else
         la      t0, flash_model_initialized
         lw      t1, 0(t0)

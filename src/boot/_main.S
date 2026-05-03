@@ -31,6 +31,9 @@
  *                    log_event("identity\\tcreated");
  *                else:
  *                    log_event("identity\\tloaded");
+ *                on flash error:
+ *                    log_event("identity\\tload_error" or "identity\\tsave_error");
+ *                    log_event("announce\\terror");
  *                log_event("identity\\tready");
  *                announce_send(identity_current, frame+1, frame+11, len-11);
  *            ok = packet_parse_header(kiss_buf, kiss_buf_len, packet_struct);
@@ -80,6 +83,14 @@
         .ascii "identity\tcreated"
 .Lidentity_created_tag_end:
         .equ   .Lidentity_created_tag_len, .Lidentity_created_tag_end - .Lidentity_created_tag
+.Lidentity_load_error_tag:
+        .ascii "identity\tload_error"
+.Lidentity_load_error_tag_end:
+        .equ   .Lidentity_load_error_tag_len, .Lidentity_load_error_tag_end - .Lidentity_load_error_tag
+.Lidentity_save_error_tag:
+        .ascii "identity\tsave_error"
+.Lidentity_save_error_tag_end:
+        .equ   .Lidentity_save_error_tag_len, .Lidentity_save_error_tag_end - .Lidentity_save_error_tag
 .Lannounce_err_tag:
         .ascii "announce\terror"
 .Lannounce_err_tag_end:
@@ -1122,13 +1133,13 @@ _main:
         call    identity_load
         beqz    a0, .Lannounce_identity_loaded
         li      t0, IDENTITY_ERR_MISSING
-        bne     a0, t0, .Lannounce_send_bad
+        bne     a0, t0, .Lannounce_identity_load_error
 
         la      a0, identity_current
         call    identity_create
         la      a0, identity_current
         call    identity_save
-        bltz    a0, .Lannounce_send_bad
+        bltz    a0, .Lannounce_identity_save_error
         la      a0, .Lidentity_created_tag
         li      a1, .Lidentity_created_tag_len
         call    log_event
@@ -1154,6 +1165,18 @@ _main:
         call    announce_send
         bltz    a0, .Lannounce_send_bad
         j       .Lloop
+
+.Lannounce_identity_load_error:
+        la      a0, .Lidentity_load_error_tag
+        li      a1, .Lidentity_load_error_tag_len
+        call    log_event
+        j       .Lannounce_send_bad
+
+.Lannounce_identity_save_error:
+        la      a0, .Lidentity_save_error_tag
+        li      a1, .Lidentity_save_error_tag_len
+        call    log_event
+        j       .Lannounce_send_bad
 
 .Lannounce_send_bad:
         la      a0, .Lannounce_err_tag

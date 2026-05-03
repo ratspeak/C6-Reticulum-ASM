@@ -40,7 +40,7 @@ keeps the milestone-3 announce path stable across resets.
 - [x] `_main` loads an existing identity before creating a new one, emits
       `identity.loaded` or `identity.created`, and still sends an upstream-valid
       announce over KISS.
-- [ ] On TARGET_C6 hardware, an identity saved before reset is loaded after
+- [x] On TARGET_C6 hardware, an identity saved before reset is loaded after
       reset and has the same identity hash.
 - [x] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and
       `./verify <fn>` pass for every function added or modified in this
@@ -171,8 +171,8 @@ Verification:
 - Symbolic execution over the qemu-virt model for bounds checks and the
   no-0-to-1 write rule.
 - TARGET_C6 ROM-helper backend builds into the C6 image, and
-  `tests/hardware/test_flash_persistence.py` implements the erase/write/read
-  reset-retention flow. Physical bench execution is still pending.
+  `tests/hardware/test_flash_persistence.py` passes the erase/write/read
+  reset-retention flow on the physical Feather.
 
 ## Identity Record
 
