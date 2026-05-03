@@ -42,7 +42,7 @@ Each function entry has:
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **39** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 68 (milestone 1 software side + entire milestone-2 crypto stack so far: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 2 Ed25519 scalar functions + RNG (deterministic-fake) — all under ADR-0009)
+- Verified: 75 (milestone 1 software side + entire milestone-2 crypto stack so far: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 9 Ed25519 functions (scalar arith, point ops, scalarmult, compress, keypair, sign — all match pyca/cryptography under QEMU) + RNG (deterministic-fake) — all under ADR-0009)
 - Tested (KAT-only, formal verifier pending): SHA-512 family (4 functions; KAT-only against hashlib.sha512 across empty/single-block/cross-boundary/multi-block inputs while the Cryptol+SAW Tier A model is a follow-up).
 - Planned: Ed25519 (3) + `uart_isr` (hw). The X25519 stack and the QEMU-bring-up RNG are complete; SHA-512 lands as the Ed25519 dependency. The production ESP32-C6 RNG (HMAC-DRBG seeded from the on-chip TRNG) replaces the deterministic-fake at hardware bring-up time. `decode_u` removed from the registry — `field_unpack`'s limb 9 mask already drops bit 255 (the RFC 7748 high-bit mask), so a separate decode_u is redundant in our representation.
 - `x25519_field_mul121665` and `x25519_field_mul` both rely on a QEMU-pytest Tier C path rather than angr: the pcode RV32IMC engine mistranslates the `mul + mulh + add-with-carry` 64-bit accumulator chain (40-of-40 random inputs disagreed in earlier runs against a hand-written Python asm-level simulator that mirrors the asm verbatim). The X25519 dispatcher tag `'F'` (added in this commit) drives `x25519_field_mul` under qemu-system-riscv32 and compares to the algebraic-spec-validated Python oracle. Same Tier C-future resolution (SAW + macaw-riscv per ADR-0009); QEMU plumbing for `x25519_field_mul121665` is a follow-up since its asm is also covered by transitivity through the simulator.
@@ -236,9 +236,13 @@ SHA-256).
 |----------|--------|-----------|------|------|
 | `ed25519_sc_reduce` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
 | `ed25519_sc_muladd` | ◉ verified | `ed25519_sc_reduce` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_keypair` | ☐ planned | `sha512_*`, `ed25519_scalarmult_base`, `rng_bytes` | 0006, 0009 | (milestone 2) |
-| `ed25519_sign` | ☐ planned | `ed25519_keypair`, `ed25519_sc_muladd`, `sha512_*` | 0006, 0009 | (milestone 2) |
-| `ed25519_verify` | ☐ planned | `ed25519_keypair`, `ed25519_point_*`, `sha512_*` | 0006, 0009 | (milestone 2) |
+| `ed25519_point_add` | ◉ verified | `x25519_field_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_point_double` | ◉ verified | `x25519_field_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_scalarmult` | ◉ verified | `ed25519_point_add`, `ed25519_point_double` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_point_compress` | ◉ verified | `x25519_field_inv`, `x25519_field_mul`, `x25519_field_pack` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_keypair` | ◉ verified | `sha512_*`, `ed25519_scalarmult`, `ed25519_point_compress`, `rng_bytes` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_sign` | ◉ verified | `ed25519_scalarmult`, `ed25519_point_compress`, `ed25519_sc_reduce`, `ed25519_sc_muladd`, `sha512_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_verify` | ☐ planned | `ed25519_point_decompress`, `ed25519_scalarmult`, `sha512_*` | 0006, 0009 | (milestone 2) |
 
 ## Module: `crypto/rng`
 
