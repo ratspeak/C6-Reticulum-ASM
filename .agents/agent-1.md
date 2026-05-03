@@ -6,6 +6,7 @@
 milestone-6-link-establishment — claimed 2026-05-03T11:42:00Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- link-key-derivation — claimed 2026-05-03T11:50:00Z, completed 2026-05-03T11:58:00Z, branch: main, integrated as 9d97944
 - link-request-subset — claimed 2026-05-03T11:42:00Z, completed 2026-05-03T11:50:00Z, branch: main, integrated as beef415
 - milestone-5-closeout — claimed 2026-05-03T11:18:00Z, completed 2026-05-03T11:41:00Z, branch: main, integrated as 7bfa97b
 - milestone-5-boot-integration — claimed 2026-05-03T11:04:00Z, completed 2026-05-03T11:17:00Z, branch: main, integrated as b50122d
@@ -36,3 +37,4 @@ milestone-6-link-establishment — claimed 2026-05-03T11:42:00Z, ETA active
 - 2026-05-03T11:17:00Z — wired `_main` announce RX integration on main as b50122d; gates: `./verify _main`, `make ci` (`572 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T11:41:00Z — closed milestone 5 and activated milestone 6 on main as 7bfa97b; gates: all milestone-5 focused `./verify` targets, `make ci` (`572 passed, 14 skipped`), qemu/C6 builds, hardware suite `14 passed`, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T11:50:00Z — implemented verified milestone-6 link request subset on main as beef415; gates: `./verify link_request_build`, `./verify link_request_parse`, `make ci` (`598 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
+- 2026-05-03T11:58:00Z — implemented verified `link_derive_keys` on main as 9d97944; gates: `./verify link_derive_keys`, `make ci` (`606 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
