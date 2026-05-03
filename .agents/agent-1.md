@@ -6,6 +6,7 @@
 milestone-7-resource-channel — claimed 2026-05-03T12:52:00Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- resource-process-plaintext — claimed 2026-05-03T18:56:00Z, completed 2026-05-03T19:00:33Z, branch: main, integrated as c0ccf76
 - resource-reassembly-update — claimed 2026-05-03T18:45:00Z, completed 2026-05-03T18:55:31Z, branch: main, integrated as 08f1c91
 - resource-advertisement-parse — claimed 2026-05-03T18:37:00Z, completed 2026-05-03T18:44:55Z, branch: main, integrated as c766af7
 - resource-part-parse — claimed 2026-05-03T18:33:00Z, completed 2026-05-03T18:36:58Z, branch: main, integrated as e0e4b31
@@ -35,7 +36,7 @@ milestone-7-resource-channel — claimed 2026-05-03T12:52:00Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 7; eligible remaining claim is `resource_process_plaintext`.
+- Active milestone is milestone 7; all milestone-7 code functions are verified. Eligible remaining claim is the resource/channel TLA+ state model and closeout gates.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.
@@ -60,3 +61,4 @@ milestone-7-resource-channel — claimed 2026-05-03T12:52:00Z, ETA active
 - 2026-05-03T18:36:58Z — implemented verified `resource_part_parse` on main as e0e4b31; gates: `./verify resource_part_parse`, `make ci` (`679 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T18:44:55Z — implemented verified `resource_advertisement_parse` on main as c766af7; gates: `./verify resource_advertisement_parse`, `make ci` (`696 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T18:55:31Z — implemented verified `resource_reassembly_update` on main as 08f1c91; gates: `./verify resource_reassembly_update`, `make ci` (`703 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
+- 2026-05-03T19:00:33Z — implemented verified `resource_process_plaintext` on main as c0ccf76; gates: `./verify resource_process_plaintext`, focused direct QEMU tests (`6 passed`), and `git diff --check`. Earlier full gates for this slice passed: `make ci` (`709 passed, 14 skipped`), qemu/C6 builds, registry, and stack max 2304/16384.
