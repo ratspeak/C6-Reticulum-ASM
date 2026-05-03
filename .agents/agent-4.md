@@ -3,7 +3,7 @@
 # Codex session: 2026-05-03T06:23:11Z
 
 ## Active claim (single line, current)
-none — available
+x25519_field_inv-bsc — claimed 2026-05-03T06:56:28Z, ETA 2h
 
 ## Recent claims (rolling, last 10)
 - x25519_field_mul-bsc — claimed 2026-05-03T06:40:58Z, completed 2026-05-03T06:44:10Z, branch: agent-4/x25519-field-mul-bsc, commit: 5466201
@@ -20,3 +20,4 @@ none — available
 - 2026-05-03T06:27:36Z — integrated `x25519_field_sq` on main as 902dbeb; coordinator reran `./verify x25519_field_sq`, `make registry`, and `make stack`.
 - 2026-05-03T06:40:58Z — claimed `x25519_field_mul` Tier B Binsec/Rel backfill; touch only proof script and `@verify` line.
 - 2026-05-03T06:45:29Z — integrated `x25519_field_mul` on main as 404102b; coordinator reran `./verify x25519_field_mul`, `make registry`, `make stack`, and spec parse.
+- 2026-05-03T06:56:28Z — claimed `x25519_field_inv` Tier B Binsec/Rel backfill; touch only proof script and `@verify` line.

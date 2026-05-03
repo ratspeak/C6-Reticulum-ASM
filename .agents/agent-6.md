@@ -3,7 +3,7 @@
 # Codex session: 2026-05-03T06:19:46Z
 
 ## Active claim (single line, current)
-none — available
+announce-tx-tla — claimed 2026-05-03T06:56:28Z, ETA 3h
 
 ## Recent claims (rolling, last 10)
 - milestone-3-reticulum-hash-helpers — claimed 2026-05-03T06:19:46Z, completed 2026-05-03T06:24:04Z, branch: agent-6/m3-reticulum-hash-helpers, commit: 3de4826
@@ -13,3 +13,4 @@ none — available
 - Do not add functions to `FUNCTIONS.md`; request registry changes through Agent 1.
 - Completed shared Cryptol/SAW-only Reticulum SHA-256 truncation helpers for agent-2/3 milestone-3 hash proofs; no production asm edits.
 - 2026-05-03T06:27:36Z — integrated Reticulum hash helpers on main as 3de4826; coordinator reran `saw proofs/destination/reticulum_hash_helpers.saw`.
+- 2026-05-03T06:56:28Z — claimed `proofs/announce/announce_tx.tla` state-machine proof and TLC config for milestone-3 announce build/send traces.

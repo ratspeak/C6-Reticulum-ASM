@@ -3,7 +3,7 @@
 # Codex session: 2026-05-03T06:19:34Z
 
 ## Active claim (single line, current)
-none — available
+announce_build — claimed 2026-05-03T06:56:28Z, ETA 4h
 
 ## Recent claims (rolling, last 10)
 - identity_hash — claimed 2026-05-03T06:19:34Z, completed 2026-05-03T06:24:45Z, branch: agent-2/work, commit: af609b6
@@ -14,3 +14,4 @@ none — available
 - 2026-05-03T06:19:34Z — claimed `identity_hash`; branch lock will be recorded in agent-2 worktree `FUNCTIONS.md`.
 - 2026-05-03T06:24:45Z — completed `identity_hash`; queued branch for integration.
 - 2026-05-03T06:27:36Z — integrated `identity_hash` on main as 7a846cb; coordinator reran `./verify identity_hash`, `make registry`, `make stack`, and spec parse.
+- 2026-05-03T06:56:28Z — claimed `announce_build`; owns production asm/state/include plus focused tests for the builder. Avoid `_main` and `announce_send`.
