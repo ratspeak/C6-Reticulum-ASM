@@ -42,9 +42,9 @@ Each function entry has:
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **39** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 62 (milestone 1 software side + entire milestone-2 crypto stack so far: SHA-256 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + RNG (deterministic-fake) — all under ADR-0009)
-- Tested (KAT-only, formal verifier pending): 0
-- Planned: Ed25519 (3) + `uart_isr` (hw). The X25519 stack and the QEMU-bring-up RNG are complete; the production ESP32-C6 RNG (HMAC-DRBG seeded from the on-chip TRNG) replaces the deterministic-fake at hardware bring-up time. `decode_u` removed from the registry — `field_unpack`'s limb 9 mask already drops bit 255 (the RFC 7748 high-bit mask), so a separate decode_u is redundant in our representation.
+- Verified: 66 (milestone 1 software side + entire milestone-2 crypto stack so far: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + RNG (deterministic-fake) — all under ADR-0009)
+- Tested (KAT-only, formal verifier pending): SHA-512 family (4 functions; KAT-only against hashlib.sha512 across empty/single-block/cross-boundary/multi-block inputs while the Cryptol+SAW Tier A model is a follow-up).
+- Planned: Ed25519 (3) + `uart_isr` (hw). The X25519 stack and the QEMU-bring-up RNG are complete; SHA-512 lands as the Ed25519 dependency. The production ESP32-C6 RNG (HMAC-DRBG seeded from the on-chip TRNG) replaces the deterministic-fake at hardware bring-up time. `decode_u` removed from the registry — `field_unpack`'s limb 9 mask already drops bit 255 (the RFC 7748 high-bit mask), so a separate decode_u is redundant in our representation.
 - `x25519_field_mul121665` and `x25519_field_mul` both rely on a QEMU-pytest Tier C path rather than angr: the pcode RV32IMC engine mistranslates the `mul + mulh + add-with-carry` 64-bit accumulator chain (40-of-40 random inputs disagreed in earlier runs against a hand-written Python asm-level simulator that mirrors the asm verbatim). The X25519 dispatcher tag `'F'` (added in this commit) drives `x25519_field_mul` under qemu-system-riscv32 and compares to the algebraic-spec-validated Python oracle. Same Tier C-future resolution (SAW + macaw-riscv per ADR-0009); QEMU plumbing for `x25519_field_mul121665` is a follow-up since its asm is also covered by transitivity through the simulator.
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
@@ -142,6 +142,20 @@ proof + KAT + constant-time required.
 | `sha256_compress` | ◉ verified | `sha256_init` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
 | `sha256_update` | ◉ verified | `sha256_init`, `sha256_compress` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
 | `sha256_final` | ◉ verified | `sha256_update` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
+
+## Module: `crypto/sha512`
+
+SHA-512 implementation. Foundation for Ed25519 (RFC 8032 §5.1.6). Per
+ADR-0006: equivalence proof + KAT + constant-time required (Cryptol/SAW
+Tier A is a follow-up; KAT-only here while the 64-bit-on-RV32 emulation
+matures — see ADR-0009 §"Tier C path forward").
+
+| Function | Status | Depends-on | ADRs | Spec |
+|----------|--------|-----------|------|------|
+| `sha512_init` | ◉ verified | — | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `sha512_compress` | ◉ verified | `sha512_init` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `sha512_update` | ◉ verified | `sha512_compress` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `sha512_final` | ◉ verified | `sha512_update`, `sha512_compress` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
 
 ## Module: `crypto/hmac`
 

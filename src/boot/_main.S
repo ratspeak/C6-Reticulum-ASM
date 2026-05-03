@@ -62,6 +62,10 @@
         .ascii "sha256\tdigest\thex="
 .Lsha256_tag_end:
         .equ   .Lsha256_tag_len, .Lsha256_tag_end - .Lsha256_tag
+.Lsha512_tag:
+        .ascii "sha512\tdigest\thex="
+.Lsha512_tag_end:
+        .equ   .Lsha512_tag_len, .Lsha512_tag_end - .Lsha512_tag
 .Lhmac_tag:
         .ascii "hmac\ttag\thex="
 .Lhmac_tag_end:
@@ -187,6 +191,8 @@ _main:
         lbu     t1, 0(t0)
         li      t2, 0x53
         beq     t1, t2, .Lsha256_kat
+        li      t2, 0x68                /* 'h' for sha512                */
+        beq     t1, t2, .Lsha512_kat
         li      t2, 0x48
         beq     t1, t2, .Lhmac_kat
         li      t2, 0x45
@@ -265,6 +271,37 @@ _main:
         call    log_str
         la      a0, sha256_digest_buf
         li      a1, 32
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Lsha512_kat:
+        /* sha512: 'h' || data → emits 128 hex of digest. */
+        la      a0, sha512_ctx
+        call    sha512_init
+        la      a0, sha512_ctx
+        la      a1, kiss_buf
+        addi    a1, a1, 1
+        la      t0, kiss_buf_len
+        lw      a2, 0(t0)
+        addi    a2, a2, -1
+        call    sha512_update
+        la      a0, sha512_ctx
+        la      a1, sha512_digest_buf
+        call    sha512_final
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lsha512_tag
+        li      a1, .Lsha512_tag_len
+        call    log_str
+        la      a0, sha512_digest_buf
+        li      a1, 64
         call    log_hex_buf
         li      a0, 13
         call    uart_tx_byte
