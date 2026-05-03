@@ -126,16 +126,18 @@ State lives in `src/state/identity.S`; constants live in
 
 ```
 IDENTITY_OFF_X25519_SK        0   // 32 bytes
-IDENTITY_OFF_X25519_PK       32   // 32 bytes
-IDENTITY_OFF_ED25519_SK      64   // 32 bytes seed
+IDENTITY_OFF_ED25519_SK      32   // 32 bytes seed
+IDENTITY_OFF_X25519_PK       64   // 32 bytes
 IDENTITY_OFF_ED25519_PK      96   // 32 bytes
 IDENTITY_OFF_HASH           128   // 16 bytes
 IDENTITY_T_SIZE             160   // 16-byte aligned
 ```
 
-The canonical public-key byte range is `[32, 128)`. The canonical private-key
-byte range is `[0, 32) || [64, 96)`. The 16 bytes at `[144, 160)` are reserved
-and zeroed by `identity_create`.
+The canonical private-key byte range is `[0, 64)`. The canonical public-key
+byte range is `[64, 128)`. These ranges intentionally match upstream
+`Identity.get_private_key()` and `Identity.get_public_key()` byte order:
+`x25519 || ed25519`. The 16 bytes at `[144, 160)` are reserved and zeroed by
+`identity_create`.
 
 ## identity_create
 
@@ -156,9 +158,9 @@ identity_t filled
 
 Responsibilities:
 
-1. Call `x25519_keypair(pk_out=out+32, sk_out=out+0)`.
-2. Call `ed25519_keypair(sk_out=out+64, pk_out=out+96)`.
-3. Call `identity_hash(public_key_ptr=out+32, hash_out=out+128)`.
+1. Call `x25519_keypair(pk_out=out+64, sk_out=out+0)`.
+2. Call `ed25519_keypair(sk_out=out+32, pk_out=out+96)`.
+3. Call `identity_hash(public_key_ptr=out+64, hash_out=out+128)`.
 4. Zero reserved bytes `[144, 160)`.
 
 Verification:
