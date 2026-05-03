@@ -3,7 +3,7 @@
 # Codex session: 2026-05-03T06:23:11Z
 
 ## Active claim (single line, current)
-none — available
+x25519_field_pack-bsc — claimed 2026-05-03T07:17:58Z, ETA 2h
 
 ## Recent claims (rolling, last 10)
 - x25519_field_unpack-bsc — claimed 2026-05-03T07:11:04Z, completed 2026-05-03T07:17:26Z, branch: agent-4/x25519-field-unpack-bsc, commit: 88c026c, integrated as 49854ed
@@ -32,3 +32,4 @@ none — available
 - 2026-05-03T07:09:50Z — integrated `x25519_decode_scalar` Tier B proof on main as f6edd59; coordinator reran `./verify x25519_decode_scalar`, `make registry`, `make stack`, and spec parse.
 - 2026-05-03T07:11:04Z — claimed `x25519_field_unpack` Tier B Binsec/Rel backfill; touch only `proofs/crypto/x25519/x25519_field_unpack.bsc` and the function's `@verify` line if proof succeeds.
 - 2026-05-03T07:17:26Z — integrated `x25519_field_unpack` Tier B proof on main as 49854ed; coordinator reran `./verify x25519_field_unpack`, `make registry`, `make stack`, and spec parse.
+- 2026-05-03T07:17:58Z — claimed `x25519_field_pack` Tier B Binsec/Rel investigation/backfill; touch only `proofs/crypto/x25519/x25519_field_pack.bsc` and the function's `@verify` line if proof succeeds.
