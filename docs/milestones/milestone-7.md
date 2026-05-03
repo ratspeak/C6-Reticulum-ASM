@@ -34,7 +34,7 @@ small in-RAM reassembly window.
 - [ ] `resource_advertisement_parse` accepts the strict Reticulum resource
       advertisement subset selected for this milestone and rejects unsupported
       msgpack keys, over-MDU advertisements, and inconsistent sizes.
-- [ ] `resource_part_parse` extracts one resource part from decrypted link
+- [x] `resource_part_parse` extracts one resource part from decrypted link
       plaintext, checks caller length bounds, and computes the map-hash used
       to infer the part position from the advertised receive window.
 - [ ] `resource_reassembly_init` and `resource_reassembly_update` maintain a
@@ -116,6 +116,15 @@ Responsibilities:
    active advertisement window.
 3. Hash each received part with SHA-256 truncated to the resource map-hash
    width selected for this milestone.
+
+Verified parser shape:
+
+1. `resource_part_parse(part_ptr, part_len, random_hash, out)` accepts parts up
+   to the active link plaintext MDU and stores a non-copying payload view.
+2. Empty parts may use a null payload pointer; non-empty parts reject null
+   payload pointers.
+3. The parser stores `SHA256(part_payload || random_hash)[0:4]`, matching
+   upstream `Resource.MAPHASH_LEN == 4`.
 
 ## Reassembly Window
 

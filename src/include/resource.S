@@ -48,3 +48,11 @@
         .equ RESOURCE_REASM_OFF_HASHMAP,          60
         .equ RESOURCE_REASM_ENTRY_SIZE,           316
         .equ RESOURCE_REASM_TABLE_SIZE,           RESOURCE_REASSEMBLY_CAPACITY * RESOURCE_REASM_ENTRY_SIZE
+
+        .equ RESOURCE_PART_MAX_LEN,               LINK_SESSION_PLAINTEXT_MAX
+
+        /* resource_part_t struct offsets (12 bytes total). */
+        .equ RESOURCE_PART_OFF_PAYLOAD_LEN,       0
+        .equ RESOURCE_PART_OFF_PAYLOAD_PTR,       4
+        .equ RESOURCE_PART_OFF_MAPHASH,           8
+        .equ RESOURCE_PART_T_SIZE,                12
