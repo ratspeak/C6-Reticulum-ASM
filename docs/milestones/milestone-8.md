@@ -28,7 +28,7 @@ receive one packet at a time without heap allocation.
 
 - [ ] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-8 function with
       a source, tests, verifier artifact, and status `verified`.
-- [ ] `docs/hardware/lora.md` pins the SX1262 module wiring, voltage
+- [x] `docs/hardware/lora.md` pins the SX1262 module wiring, voltage
       assumptions, reset/BUSY/DIO1 semantics, SPI mode, clock bounds, and
       reference provenance before production asm depends on those values.
 - [ ] GPIO helpers configure and sample the exact C6 pins used for SX1262
