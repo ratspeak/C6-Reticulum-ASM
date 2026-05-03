@@ -19,7 +19,7 @@
 #               a^(p_25519 - 2). The chain is data-independent (the
 #               control flow depends only on the public exponent
 #               p_25519 - 2), so the function is constant-time.
-# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_inv.saw
+# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_inv.saw, proofs/crypto/x25519/x25519_field_inv.bsc
 # @tests:       tests/crypto/x25519/test_x25519_field_inv.py
 #               (Tier C bridge: QEMU pytest drives field_inv on multiple
 #               concrete a values; Python verifies the round-trip
