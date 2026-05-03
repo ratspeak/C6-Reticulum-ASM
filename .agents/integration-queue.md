@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through e5488d6. Latest integrated slice: LoRa GPIO helpers. Current gates passed: focused GPIO verifies, direct QEMU GPIO tests (`4 passed`), `make ci` (`713 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claim: SPI foundation functions (`spi_init`, `spi_transfer`).
+- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 2385e3d. Latest integrated slice: LoRa SPI helpers. Current gates passed: focused SPI verifies, direct QEMU SPI tests (`4 passed`), `make ci` (`717 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2304/16384, and `git diff --check`. Eligible next milestone-8 claim: SX1262 command-driver functions.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified milestone-8 SPI helpers; adds SPI2 GPIO-matrix setup for Feather GPIO21/22/23, a polling CPU-buffer `spi_transfer`, deterministic qemu SPI model state, source contract proof, direct-QEMU tests, and registry/milestone DoD updates — branch: main, integrated as 2385e3d 2026-05-03T19:30:54Z
 - [agent-1] Implement verified milestone-8 LoRa GPIO helpers; adds scoped C6/QEMU GPIO configuration for SX1262 NSS/NRST outputs and DIO1/BUSY inputs, static model state, source contract proof, direct-QEMU tests, and registry/milestone DoD updates — branch: main, integrated as e5488d6 2026-05-03T19:20:04Z
 - [agent-1] Document milestone-8 SX1262 hardware contract; pins the Feather/SX1262 bench wiring, SPI mode and clock bounds, reset/BUSY/DIO1 command rules, qemu model surface, and hardware test plan — branch: main, integrated as 4515e82 2026-05-03T19:12:15Z
 - [agent-1] Close milestone 7 Resource / Channel and activate milestone 8 LoRa SPI Interface; marks all M7 DoD items complete, adds ADR-0011 for the SX1262 target, creates `docs/milestones/milestone-8.md`, and registers planned GPIO/SPI/SX1262/LoRa functions — branch: main, integrated as eaecabf 2026-05-03T19:08:56Z
