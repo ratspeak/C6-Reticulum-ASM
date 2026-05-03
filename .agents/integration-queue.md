@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 7 is active through 5b8a70c. Latest integrated slice: verified channel envelope build/parse. Current gates passed: `./verify channel_envelope_build`, `./verify channel_envelope_parse`, `make ci` (`667 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-7 claims: `resource_advertisement_parse`, `resource_part_parse`, `resource_reassembly_init`, `resource_reassembly_update`, `resource_process_plaintext`.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 7 is active through d034722. Latest integrated slice: verified resource reassembly init. Current gates passed: `./verify resource_reassembly_init`, `make ci` (`671 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-7 claims: `resource_advertisement_parse`, `resource_part_parse`, `resource_reassembly_update`, `resource_process_plaintext`.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified `resource_reassembly_init`; adds fixed resource receive-table constants/state, clears the 2-entry/64-part map-hash window table, corrects milestone docs to reflect upstream RESOURCE part index inference, and covers the initializer with direct-QEMU tests plus a source contract proof — branch: main, integrated as d034722 2026-05-03T18:32:55Z
 - [agent-1] Implement verified milestone-7 channel envelopes; adds resource constants, build/parse for upstream `msgtype || sequence || length || payload`, direct-QEMU boundary coverage, and source contract proof — branch: main, integrated as 5b8a70c 2026-05-03T13:18:00Z
 - [agent-1] Close milestone 6 Link Establishment and activate milestone 7 Resource / Channel; marks all M6 DoD items complete, adds the milestone-7 spec, updates roadmap/current-milestone docs, and registers planned resource/channel functions — branch: main, integrated as b1ef640 2026-05-03T13:05:00Z
 - [agent-1] Add milestone-6 link state TLA+ model; covers request accept, duplicate, reject, timeout, encrypted packet accept, and encrypted packet reject traces, and wires the model into `link_process_packet` verification — branch: main, integrated as d2dc272 2026-05-03T12:56:00Z
