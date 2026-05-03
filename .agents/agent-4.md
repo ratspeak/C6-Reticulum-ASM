@@ -3,7 +3,7 @@
 # Codex session: 2026-05-03T06:23:11Z
 
 ## Active claim (single line, current)
-none — available
+x25519_field_unpack-bsc — claimed 2026-05-03T07:11:04Z, ETA 1h
 
 ## Recent claims (rolling, last 10)
 - x25519_decode_scalar-bsc — claimed 2026-05-03T07:06:31Z, completed 2026-05-03T07:09:50Z, branch: agent-4/x25519-decode-scalar-bsc, commit: a14ef2d, integrated as f6edd59
@@ -29,3 +29,4 @@ none — available
 - 2026-05-03T07:05:41Z — integrated `proofs/crypto/x25519/x25519_montgomery_ladder.bsc` as documentation only on main as 496822f. Existing dispatcher depth reports unknown; direct 6,000,000-depth run reports secure. Do not append to `@verify` until the harness supports a per-proof depth override or higher bound.
 - 2026-05-03T07:06:31Z — claimed `x25519_decode_scalar` Tier B Binsec/Rel backfill; touch only `proofs/crypto/x25519/x25519_decode_scalar.bsc` and the function's `@verify` line if proof succeeds.
 - 2026-05-03T07:09:50Z — integrated `x25519_decode_scalar` Tier B proof on main as f6edd59; coordinator reran `./verify x25519_decode_scalar`, `make registry`, `make stack`, and spec parse.
+- 2026-05-03T07:11:04Z — claimed `x25519_field_unpack` Tier B Binsec/Rel backfill; touch only `proofs/crypto/x25519/x25519_field_unpack.bsc` and the function's `@verify` line if proof succeeds.
