@@ -2,8 +2,8 @@
 # @function:    _main
 # @module:      boot
 # @inputs:      (none; entered from _reset)
-# @outputs:     (does not return; runs the KISS → packet bridge)
-# @clobbers:    a0, a1, a2, t0..t6, ra
+# @outputs:     (does not return; runs the KISS → packet/announce bridge)
+# @clobbers:    a0..a7, t0..t6, ra
 # @preserves:   sp, gp, s0..s11
 # @stack:       16
 # @cycles:      unbounded
@@ -24,6 +24,10 @@
  *        status = kiss_decode_byte(byte);
  *        if status == 1:                    // frame complete
  *            log_event("kiss\\trx_frame");
+ *            if frame[0] == 'N':
+ *                identity_create(identity_current);
+ *                log_event("identity\\tready");
+ *                announce_send(identity_current, frame+1, frame+11, len-11);
  *            ok = packet_parse_header(kiss_buf, kiss_buf_len, packet_struct);
  *            if ok == 0: log_event("packet\\tparsed");
  *            else:        log_event("packet\\trejected");
@@ -58,6 +62,14 @@
         .ascii "packet\trejected"
 .Lpkt_bad_tag_end:
         .equ   .Lpkt_bad_tag_len, .Lpkt_bad_tag_end - .Lpkt_bad_tag
+.Lidentity_ready_tag:
+        .ascii "identity\tready"
+.Lidentity_ready_tag_end:
+        .equ   .Lidentity_ready_tag_len, .Lidentity_ready_tag_end - .Lidentity_ready_tag
+.Lannounce_err_tag:
+        .ascii "announce\terror"
+.Lannounce_err_tag_end:
+        .equ   .Lannounce_err_tag_len, .Lannounce_err_tag_end - .Lannounce_err_tag
 .Lsha256_tag:
         .ascii "sha256\tdigest\thex="
 .Lsha256_tag_end:
@@ -265,6 +277,8 @@ _main:
         beq     t1, t2, .Led25519_sign_kat
         li      t2, 0x79                /* 'y' for ed25519_verify         */
         beq     t1, t2, .Led25519_verify_kat
+        li      t2, 0x4E                /* 'N' for milestone-3 announce TX */
+        beq     t1, t2, .Lannounce_send_cmd
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -1076,6 +1090,40 @@ _main:
         call    uart_tx_byte
         li      a0, 10
         call    uart_tx_byte
+        j       .Lloop
+
+.Lannounce_send_cmd:
+        /* Milestone-3 announce TX command:
+         *   'N' || name_hash[10] || app_data[*]
+         * The identity is generated into static state, then announce_send
+         * emits announce.built / kiss.tx_frame and the KISS frame itself.
+         */
+        la      t0, kiss_buf_len
+        lw      t1, 0(t0)
+        li      t2, 11
+        bltu    t1, t2, .Lannounce_send_bad
+
+        la      a0, identity_current
+        call    identity_create
+        la      a0, .Lidentity_ready_tag
+        li      a1, .Lidentity_ready_tag_len
+        call    log_event
+
+        la      t0, kiss_buf
+        la      a0, identity_current
+        addi    a1, t0, 1               /* name_hash                    */
+        addi    a2, t0, 11              /* app_data                     */
+        la      t1, kiss_buf_len
+        lw      a3, 0(t1)
+        addi    a3, a3, -11             /* app_data_len                 */
+        call    announce_send
+        bltz    a0, .Lannounce_send_bad
+        j       .Lloop
+
+.Lannounce_send_bad:
+        la      a0, .Lannounce_err_tag
+        li      a1, .Lannounce_err_tag_len
+        call    log_event
         j       .Lloop
 
 .Lpkt_bad:
