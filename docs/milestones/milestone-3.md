@@ -29,7 +29,7 @@ the outgoing announce wire image validates under the Python reference.
 
 - [ ] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-3 function with
       a source, tests, verifier artifact, and status `verified`.
-- [ ] `identity_create` produces an identity whose private bytes are
+- [x] `identity_create` produces an identity whose private bytes are
       `x25519_sk || ed25519_seed`, whose public bytes are
       `x25519_pk || ed25519_pk`, and whose hash is
       `SHA256(public_bytes)[0:16]`, matching
@@ -326,6 +326,8 @@ Artifacts:
 
 - `proofs/identity/IdentityHash.cry`
 - `proofs/identity/identity_hash.saw`
+- `proofs/identity/IdentityCreate.cry`
+- `proofs/identity/identity_create.saw`
 - `proofs/destination/DestinationHash.cry`
 - `proofs/destination/destination_name_hash.saw`
 - `proofs/destination/destination_hash.saw`

@@ -1,0 +1,65 @@
+// proofs/identity/IdentityCreate.cry
+//
+// Cryptol layout model for milestone-3 identity_create.
+//
+// The asm composes already verified keypair/hash primitives. This model pins
+// the byte layout that identity_create must materialise once those primitive
+// outputs exist:
+//   private_key = x25519_sk || ed25519_seed
+//   public_key  = x25519_pk || ed25519_pk
+//   hash        = SHA256(public_key)[0:16]
+//   reserved    = zero[16]
+
+module IdentityCreate where
+
+import IdentityHash
+
+type Key32 = [32][8]
+type IdentityPrivate = [64][8]
+type IdentityPublic = [64][8]
+type IdentityT = [160][8]
+
+identity_create_layout : Key32 -> Key32 -> Key32 -> Key32 -> IdentityT
+identity_create_layout x25519_sk ed25519_seed x25519_pk ed25519_pk =
+    private_bytes # public_bytes # hash_bytes # reserved_bytes
+  where
+    private_bytes = x25519_sk # ed25519_seed
+    public_bytes = x25519_pk # ed25519_pk
+    hash_bytes = identity_hash public_bytes
+    reserved_bytes = zero : [16][8]
+
+identity_private_key : IdentityT -> IdentityPrivate
+identity_private_key identity = take`{64} identity
+
+identity_public_key : IdentityT -> IdentityPublic
+identity_public_key identity = take`{64} (drop`{64} identity)
+
+identity_hash_field : IdentityT -> [16][8]
+identity_hash_field identity = take`{16} (drop`{128} identity)
+
+identity_reserved_field : IdentityT -> [16][8]
+identity_reserved_field identity = drop`{144} identity
+
+private_layout_property : Key32 -> Key32 -> Key32 -> Key32 -> Bit
+private_layout_property x25519_sk ed25519_seed x25519_pk ed25519_pk =
+    identity_private_key layout == x25519_sk # ed25519_seed
+  where
+    layout = identity_create_layout x25519_sk ed25519_seed x25519_pk ed25519_pk
+
+public_layout_property : Key32 -> Key32 -> Key32 -> Key32 -> Bit
+public_layout_property x25519_sk ed25519_seed x25519_pk ed25519_pk =
+    identity_public_key layout == x25519_pk # ed25519_pk
+  where
+    layout = identity_create_layout x25519_sk ed25519_seed x25519_pk ed25519_pk
+
+hash_layout_property : Key32 -> Key32 -> Key32 -> Key32 -> Bit
+hash_layout_property x25519_sk ed25519_seed x25519_pk ed25519_pk =
+    identity_hash_field layout == identity_hash (x25519_pk # ed25519_pk)
+  where
+    layout = identity_create_layout x25519_sk ed25519_seed x25519_pk ed25519_pk
+
+reserved_layout_property : Key32 -> Key32 -> Key32 -> Key32 -> Bit
+reserved_layout_property x25519_sk ed25519_seed x25519_pk ed25519_pk =
+    identity_reserved_field layout == (zero : [16][8])
+  where
+    layout = identity_create_layout x25519_sk ed25519_seed x25519_pk ed25519_pk

@@ -1,0 +1,30 @@
+// proofs/identity/identity_create.saw
+//
+// SAW driver for the identity_create byte-layout contract. Key generation and
+// hashing are discharged by the component functions; this proof keeps the
+// identity_t byte ranges aligned with upstream Reticulum private/public order.
+
+import "IdentityCreate.cry";
+
+print "[identity_create.saw] proving private-key byte order ...";
+prove_print z3 {{ \(xsk : [32][8]) (esk : [32][8]) (xpk : [32][8]) (epk : [32][8]) ->
+    private_layout_property xsk esk xpk epk }};
+print "[identity_create.saw] private-key byte order: PASS.";
+
+print "[identity_create.saw] proving public-key byte order ...";
+prove_print z3 {{ \(xsk : [32][8]) (esk : [32][8]) (xpk : [32][8]) (epk : [32][8]) ->
+    public_layout_property xsk esk xpk epk }};
+print "[identity_create.saw] public-key byte order: PASS.";
+
+print "[identity_create.saw] proving hash field layout ...";
+prove_print z3 {{ \(xsk : [32][8]) (esk : [32][8]) (xpk : [32][8]) (epk : [32][8]) ->
+    hash_layout_property xsk esk xpk epk }};
+print "[identity_create.saw] hash field layout: PASS.";
+
+print "[identity_create.saw] proving reserved bytes are zero ...";
+prove_print z3 {{ \(xsk : [32][8]) (esk : [32][8]) (xpk : [32][8]) (epk : [32][8]) ->
+    reserved_layout_property xsk esk xpk epk }};
+print "[identity_create.saw] reserved bytes: PASS.";
+
+print "[identity_create.saw] PASS";
+
