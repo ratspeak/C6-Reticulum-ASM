@@ -3,7 +3,7 @@
 # Codex session: 2026-05-03T06:23:11Z
 
 ## Active claim (single line, current)
-none — available
+x25519_montgomery_ladder-bsc — claimed 2026-05-03T07:02:28Z, ETA 3h
 
 ## Recent claims (rolling, last 10)
 - x25519_field_inv-bsc — claimed 2026-05-03T06:56:28Z, completed 2026-05-03T06:59:17Z, branch: agent-4/x25519-field-inv-bsc, commit: 5fff896
@@ -23,3 +23,4 @@ none — available
 - 2026-05-03T06:45:29Z — integrated `x25519_field_mul` on main as 404102b; coordinator reran `./verify x25519_field_mul`, `make registry`, `make stack`, and spec parse.
 - 2026-05-03T06:56:28Z — claimed `x25519_field_inv` Tier B Binsec/Rel backfill; touch only proof script and `@verify` line.
 - 2026-05-03T07:00:27Z — integrated `x25519_field_inv` on main as 9b0bba5; coordinator reran `./verify x25519_field_inv`, `make registry`, `make stack`, and spec parse.
+- 2026-05-03T07:02:28Z — claimed `x25519_montgomery_ladder` Tier B Binsec/Rel investigation/backfill; touch only proof script and `@verify` line if proof succeeds.
