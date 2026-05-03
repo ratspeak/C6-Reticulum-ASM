@@ -26,6 +26,7 @@ src/
 ├── log/
 ├── kiss/
 ├── packet/
+├── announce/                   (added in milestone 3)
 ├── crypto/                     (added in milestone 2)
 │   ├── sha256/
 │   ├── hmac/
@@ -35,6 +36,7 @@ src/
 │   ├── ed25519/
 │   └── rng/
 ├── identity/                   (added in milestone 3)
+├── destination/                (added in milestone 3)
 ├── flash/                      (added in milestone 4)
 ├── transport/                  (added in milestone 5)
 ├── link/                       (added in milestone 6)

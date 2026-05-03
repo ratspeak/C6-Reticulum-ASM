@@ -37,10 +37,10 @@ the outgoing announce wire image validates under the Python reference.
 - [x] `destination_name_hash` and `destination_hash` match
       `upstream/Reticulum/RNS/Destination.py` for at least
       `rnstransport.nodes`, `lxmf.delivery`, and one harness-local test name.
-- [ ] `announce_build` emits a HEADER_1 announce with flags `0x01`, hops `0`,
+- [x] `announce_build` emits a HEADER_1 announce with flags `0x01`, hops `0`,
       context `0x00`, destination hash bytes, and announce payload
       `public_key || name_hash || random_hash || signature || app_data`.
-- [ ] The signature verifies with upstream `RNS.Identity.validate_announce()`
+- [x] The signature verifies with upstream `RNS.Identity.validate_announce()`
       for app-data-empty and app-data-present announces.
 - [ ] `announce_send` KISS-frames the raw announce packet and writes it through
       the existing `uart_tx_bytes` path under qemu-virt.
@@ -365,7 +365,7 @@ spec. The identity and destination hash foundation is now verified:
 - `destination_name_hash`
 - `destination_hash`
 
-The current sprint is `announce_build`. It is the next dependency gate:
-`announce_send` stays blocked until the raw announce builder produces upstream-
+The current sprint is `announce_send`. `announce_build` now produces upstream-
 valid HEADER_1 announce packets for empty app data, non-empty app data,
-exact-capacity output, and one-byte-short overflow.
+exact-capacity output, and one-byte-short overflow; the remaining milestone
+gate is the KISS-framed TX path and its emitted trace.

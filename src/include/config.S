@@ -16,6 +16,9 @@
         .equ UART0_TX_RING_SIZE,    1024
         .equ UART0_RX_RING_SIZE,    1024
 
+/* Reticulum maximum data unit used by packet/announce buffer sizing. */
+        .equ RETICULUM_MDU,         484
+
 /* KISS decoder maximum frame size (per milestone-1 §kiss). Reticulum's
  * MDU is 484 bytes; we leave headroom for KISS escapes (worst case 2x). */
         .equ KISS_MAX_FRAME,        1024
