@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 74772d8. Latest integrated slice: LoRa interface state model. Current gates passed: project-local TLC for `proofs/lora/lora_interface_state.tla`, `./verify lora_interface_init`, `./verify lora_interface_send`, `./verify lora_interface_poll`, `make ci` (`751 passed, 14 skipped`), qemu/C6 builds, `make registry`, stack max 2496/16384, and `git diff --check`. Eligible next milestone-8 claim: hardware reset/readback tests.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 63f8f1d. Latest integrated slice: SX1262 hardware readback smoke test and boot diagnostics. Current software gates passed: `./verify _main`, default hardware smoke skip (`1 skipped`), harness tests (`37 passed`), `make ci` (`751 passed, 15 skipped`), qemu/C6 builds, `make registry`, stack max 2496/16384, and `git diff --check`. Hardware gate attempted: `pytest --hardware tests/hardware/test_lora_sx1262.py -q -p no:cacheprovider` failed with `lora.init_error code=fffffffe` (`LORA_ERR_BUSY_TIMEOUT`), so reset/readback remains blocked on SX1262 BUSY/power/wiring.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Add SX1262 hardware reset/readback smoke test anchor; `_main` now logs `lora.ready status=<byte>` or `lora.init_error code=<u32>`, `HwTarget` preserves boot output for hardware assertions, and the new hardware test checks `GetStatus` chip mode reports STBY_RC — branch: main, integrated as 63f8f1d 2026-05-03T21:07:02Z; bench run currently fails with `LORA_ERR_BUSY_TIMEOUT`
 - [agent-1] Add milestone-8 LoRa interface TLA+ state model; covers reset/configure/idle, init error, TX done, TX timeout with recovery, RX frame, and RX error with recovery, and wires the model into `lora_interface_init`, `lora_interface_send`, and `lora_interface_poll` verification — branch: main, integrated as 74772d8 2026-05-03T21:02:38Z
 - [agent-1] Wire native LoRa boot-loop polling; `_main` now initializes `lora_interface_init`, emits `lora.ready`/`lora.init_error`, uses `uart_rx_available` before the existing KISS pump, polls one LoRa frame while idle, logs received LoRa frames, and `sx1262_poll_receive` now avoids repeated `SetRx` commands while continuous RX is already armed — branch: main, integrated as e141f56 2026-05-03T20:57:47Z
 - [agent-1] Implement verified milestone-8 `lora_interface_poll`; polls one SX1262 RX frame into static interface storage, returns radio errors without dispatch, forwards received raw packets through `link_process_packet` with `TRANSPORT_INTERFACE_LORA`, records receive/dispatch status, and covers dispatch/no-packet/not-ready/CRC/dispatch-error paths with finite/source proof plus direct-QEMU tests — branch: main, integrated as 1aa351c 2026-05-03T20:50:41Z

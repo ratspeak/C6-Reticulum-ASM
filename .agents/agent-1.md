@@ -6,6 +6,7 @@
 milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- lora-hardware-readback-smoke — claimed 2026-05-03T21:02:38Z, completed 2026-05-03T21:07:02Z, branch: main, integrated as 63f8f1d; hardware blocked by BUSY timeout
 - lora-interface-state-model — claimed 2026-05-03T20:57:47Z, completed 2026-05-03T21:02:38Z, branch: main, integrated as 74772d8
 - main-native-lora-poll — claimed 2026-05-03T20:50:41Z, completed 2026-05-03T20:57:47Z, branch: main, integrated as e141f56
 - lora-interface-poll — claimed 2026-05-03T20:46:20Z, completed 2026-05-03T20:50:41Z, branch: main, integrated as 1aa351c
@@ -51,7 +52,7 @@ milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 8 (LoRa SPI Interface); eligible next claim is hardware reset/readback tests.
+- Active milestone is milestone 8 (LoRa SPI Interface); remaining blocker is physical SX1262 reset/readback, currently failing with `LORA_ERR_BUSY_TIMEOUT` on BUSY.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.
@@ -92,3 +93,4 @@ milestone-8-lora-spi — claimed 2026-05-03T19:09:05Z, ETA active
 - 2026-05-03T20:50:41Z — implemented verified milestone-8 `lora_interface_poll` on main as 1aa351c; gates: `./verify lora_interface_poll`, refreshed `./verify lora_interface_send` and `./verify sx1262_poll_receive`, direct QEMU interface-poll/send/RX tests (`14 passed`), `make ci` (`748 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Native LoRa interface functions are now all verified; hardware and TLA+ milestone gates remain open.
 - 2026-05-03T20:57:47Z — wired native LoRa boot polling on main as e141f56; `_main` initializes `lora_interface_init`, logs `lora.ready`/`lora.init_error`, preserves USB/KISS via `uart_rx_available`, polls `lora_interface_poll` while idle, and `sx1262_poll_receive` now avoids repeated `SetRx` while RX is already armed. Gates: `./verify _main`, `./verify sx1262_poll_receive`, refreshed `./verify sx1262_send_frame`, `./verify sx1262_init`, `./verify lora_interface_poll`, and `./verify lora_interface_send`, clock timestamp tests (`5 passed`), `make ci` (`751 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2496/16384, and `git diff --check`.
 - 2026-05-03T21:02:38Z — added milestone-8 LoRa interface state model on main as 74772d8; covers reset/configure/idle, init error, TX done, TX timeout recovery, RX frame, and RX error recovery, and wires TLC into `lora_interface_init`, `lora_interface_send`, and `lora_interface_poll`. Gates: project-local TLC for `proofs/lora/lora_interface_state.tla`, `./verify lora_interface_init`, `./verify lora_interface_send`, `./verify lora_interface_poll`, `make ci` (`751 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2496/16384, and `git diff --check`.
+- 2026-05-03T21:07:02Z — added SX1262 hardware reset/readback smoke test anchor on main as 63f8f1d; `_main` logs `lora.ready status=<byte>` or `lora.init_error code=<u32>`, `HwTarget` preserves boot output, and `tests/hardware/test_lora_sx1262.py` asserts STBY_RC mode from `GetStatus`. Software gates: `./verify _main`, default hardware smoke skip (`1 skipped`), harness tests (`37 passed`), `make ci` (`751 passed, 15 skipped`), qemu/C6 builds, registry, stack max 2496/16384, and `git diff --check`. Hardware gate attempted and failed: `pytest --hardware tests/hardware/test_lora_sx1262.py -q -p no:cacheprovider` reports `lora.init_error code=fffffffe` (`LORA_ERR_BUSY_TIMEOUT`), indicating BUSY stayed high or the radio power/ground/BUSY wiring is not correct.
