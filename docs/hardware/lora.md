@@ -83,6 +83,25 @@ also a strapping pin.
 - RF regional compliance is not implemented in milestone 8. Bench tests must
   use a locally legal frequency and power setting selected outside the driver.
 
+## Static Bench Profile
+
+The first driver profile mirrors the Reticulum RNode example shape while
+remaining explicit in asm constants:
+
+- Frequency: `867200000` Hz, encoded for SX1262 `SetRfFrequency` as
+  `0x36333333`.
+- Bandwidth: `125000` Hz (`SX1262_LORA_BW_125_KHZ`).
+- Spreading factor: SF8.
+- Coding rate: CR 4/5, corresponding to Reticulum `codingrate = 5`.
+- TX power: `7` dBm with a 200 us ramp.
+- Preamble: 12 symbols.
+- Explicit LoRa header, CRC enabled, standard IQ.
+- Payload cap: 255 bytes, the SX1262 LoRa packet payload limit for this
+  profile. Upper layers must still respect Reticulum's interface MDU.
+
+`sx1262_init` applies this profile and returns the chip to standby. It does not
+enter TX or continuous RX by itself.
+
 ## SPI Contract
 
 - The production driver uses ESP32-C6 SPI2, not SPI0/SPI1. SPI0/SPI1 are left

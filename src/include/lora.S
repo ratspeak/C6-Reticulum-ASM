@@ -14,3 +14,47 @@
         .equ SX1262_BUSY_POLL_DELAY_US,     10
         .equ SX1262_BUSY_TIMEOUT_DEFAULT,   10000
         .equ SX1262_COMMAND_TIMEOUT_DEFAULT, 10000
+
+        .equ SX1262_CMD_CLEAR_IRQ_STATUS,   0x02
+        .equ SX1262_CMD_SET_DIO_IRQ_PARAMS, 0x08
+        .equ SX1262_CMD_GET_STATUS,         0xc0
+        .equ SX1262_CMD_SET_STANDBY,        0x80
+        .equ SX1262_CMD_SET_REGULATOR_MODE, 0x96
+        .equ SX1262_CMD_CALIBRATE_IMAGE,    0x98
+        .equ SX1262_CMD_SET_DIO2_RF_SWITCH, 0x9d
+        .equ SX1262_CMD_SET_PA_CONFIG,      0x95
+        .equ SX1262_CMD_SET_RXTX_FALLBACK,  0x93
+        .equ SX1262_CMD_SET_RF_FREQUENCY,   0x86
+        .equ SX1262_CMD_SET_PACKET_TYPE,    0x8a
+        .equ SX1262_CMD_SET_TX_PARAMS,      0x8e
+        .equ SX1262_CMD_SET_MOD_PARAMS,     0x8b
+        .equ SX1262_CMD_SET_PACKET_PARAMS,  0x8c
+        .equ SX1262_CMD_SET_BUFFER_BASE,    0x8f
+
+        .equ SX1262_STANDBY_RC,             0x00
+        .equ SX1262_REGULATOR_DCDC,         0x01
+        .equ SX1262_DIO2_RF_SWITCH_ENABLE,  0x01
+        .equ SX1262_FALLBACK_STDBY_RC,      0x20
+        .equ SX1262_PACKET_TYPE_LORA,       0x01
+
+        .equ SX1262_BENCH_FREQUENCY_HZ,     867200000
+        .equ SX1262_BENCH_RF_FREQ_WORD,     0x36333333
+        .equ SX1262_BENCH_TX_POWER_DBM,     7
+        .equ SX1262_BENCH_PREAMBLE_SYMBOLS, 12
+        .equ SX1262_BENCH_PAYLOAD_MAX,      255
+
+        .equ SX1262_PA_DUTY_CYCLE,          0x04
+        .equ SX1262_PA_HP_MAX,              0x07
+        .equ SX1262_PA_DEVICE_SEL_SX1262,   0x00
+        .equ SX1262_PA_LUT,                 0x01
+        .equ SX1262_RAMP_200_US,            0x04
+        .equ SX1262_LORA_SF8,               0x08
+        .equ SX1262_LORA_BW_125_KHZ,        0x04
+        .equ SX1262_LORA_CR_4_5,            0x01
+        .equ SX1262_LORA_LDRO_OFF,          0x00
+        .equ SX1262_LORA_HEADER_EXPLICIT,   0x00
+        .equ SX1262_LORA_CRC_ON,            0x01
+        .equ SX1262_LORA_IQ_STANDARD,       0x00
+        .equ SX1262_IMAGE_CAL_863_870_1,    0xd7
+        .equ SX1262_IMAGE_CAL_863_870_2,    0xdb
+        .equ SX1262_IRQ_MASK_BENCH,         0x0263
