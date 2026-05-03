@@ -54,7 +54,7 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
   (run with `pytest --hardware tests/hardware/`).
 - Total functions registered: **95** (excludes placeholder rows like
   "(functions added when milestone N is activated)")
-- Verified: 92 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 11 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + production HMAC-DRBG-SHA-256 RNG (NIST SP 800-90A Rev. 1 §10.1.2; `rng_entropy` raw-source layer + `hmac_drbg_update` + `rng_init` + `rng_bytes` together discharge the canonical NIST CAVP DRBGVS COUNT=0 KAT symbolically; on TARGET_C6 the entropy source is the on-chip LPPERI hardware RNG) + milestone-3 identity/destination/announce TX helpers (`identity_create`, `identity_hash`, `destination_name_hash`, `destination_hash`, `announce_build`, `announce_send`) + milestone-4 qemu flash model (`flash_init`, `flash_read`, `flash_write_page`, `flash_erase_sector`) — all under ADR-0009)
+- Verified: 94 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 11 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + production HMAC-DRBG-SHA-256 RNG (NIST SP 800-90A Rev. 1 §10.1.2; `rng_entropy` raw-source layer + `hmac_drbg_update` + `rng_init` + `rng_bytes` together discharge the canonical NIST CAVP DRBGVS COUNT=0 KAT symbolically; on TARGET_C6 the entropy source is the on-chip LPPERI hardware RNG) + milestone-3 identity/destination/announce TX helpers (`identity_create`, `identity_hash`, `destination_name_hash`, `destination_hash`, `announce_build`, `announce_send`) + milestone-4 qemu flash model (`flash_init`, `flash_read`, `flash_write_page`, `flash_erase_sector`) + milestone-4 identity persistence (`identity_save`, `identity_load`) — all under ADR-0009)
 - Tier A coverage extended: the SHA-512 family (`sha512_init`, `sha512_compress`, `sha512_update`, `sha512_final`) now carries a Cryptol+SAW Tier A proof alongside the QEMU/hashlib KAT bridge. The SAW drivers discharge FIPS 180-4 §C.1 + §C.2 KATs symbolically over the 80-round transform + 16-word schedule, plus K-table constants, ROTR/ch/maj algebraic sanity, streaming associativity (small chunkings), and both padding paths (bl ≤ 111 single-block + bl > 111 two-block).
 - Tier A coverage extended: the Ed25519 lower stack (8 of 11 functions: `sc_reduce`, `sc_muladd`, `point_add`, `point_double`, `scalarmult`, `point_compress`, `point_decompress`, `field_pow_p5d8`) now carries a Cryptol+SAW Tier A proof — `Ed25519Scalar.cry` (sc_reduce/sc_muladd boundary KATs vs (a*b+c) mod L), `Ed25519Point.cry` (BBJLP add/double on edwards25519: identity, additive inverse, double=add-at-equal, commutativity sanity), `Ed25519Encoding.cry` (compress(B) RFC vector, decompress(B) round-trip, scalarmult bit-pattern KATs, sqrt(-1)^2 = -1).
 - Tier B (Binsec/Rel constant-time) coverage landed 2026-05-02 for the
@@ -80,7 +80,7 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
 - Tested: 0
 - In progress: 0
-- Planned: 3 (`uart_isr`, milestone-4 identity persistence)
+- Planned: 1 (`uart_isr`)
 
 The end-to-end milestone-1 demo path is observable: KISS-framed Reticulum
 packets sent to qemu's stdin produce `boot.ready`, `kiss.rx_frame`, and
@@ -301,8 +301,8 @@ Reticulum identity: keypair generation, persistence, hash derivation.
 |----------|--------|-------|-----------|------|------|
 | `identity_hash` | ◉ verified |  | `sha256_*` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#identity_hash) |
 | `identity_create` | ◉ verified |  | `identity_hash`, `x25519_keypair`, `ed25519_keypair`, `rng_bytes` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#identity_create) |
-| `identity_save` | ☐ planned |  | `flash_*`, `identity_hash`, `sha256_*` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#identity_save) |
-| `identity_load` | ☐ planned |  | `flash_*`, `identity_hash`, `sha256_*` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#identity_load) |
+| `identity_save` | ◉ verified |  | `flash_*`, `identity_hash`, `sha256_*` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#identity_save) |
+| `identity_load` | ◉ verified |  | `flash_*`, `identity_hash`, `sha256_*` | 0001, 0002, 0005, 0006, 0009 | [milestone-4](docs/milestones/milestone-4.md#identity_load) |
 
 ## Module: `destination`
 
