@@ -47,7 +47,7 @@ compatibility mode.
       existing Ed25519 identity stack.
 - [ ] `lxmf_message_pack` and `lxmf_message_parse` round-trip Python LXMF
       direct/opportunistic KATs, including malformed/truncated/oversize rejection.
-- [ ] `lxmf_delivery_announce_build` emits the upstream delivery app-data subset
+- [x] `lxmf_delivery_announce_build` emits the upstream delivery app-data subset
       `msgpack([display_name_or_nil, stamp_cost_or_nil])`.
 - [ ] `lxmf_inbound_dispatch` accepts one payload delivered by an established
       Reticulum Link as Direct, or one non-link Opportunistic packet payload,

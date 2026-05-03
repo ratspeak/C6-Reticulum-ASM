@@ -6,6 +6,7 @@
 milestone-9-lxmf-foundation — claimed 2026-05-03T21:49:00Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- lxmf-delivery-announce-build — claimed 2026-05-03T21:49:00Z, completed 2026-05-03T21:56:31Z, branch: main, current slice; implemented verified upstream-compatible LXMF delivery announce app-data
 - milestone-8-closeout-and-milestone-9-activation — claimed 2026-05-03T21:49:00Z, completed 2026-05-03T21:49:00Z, branch: main, current closeout; closed LoRa SPI Interface and activated LXMF Foundation spec/registry
 - lora-hardware-closeout — claimed 2026-05-03T21:41:48Z, completed 2026-05-03T21:46:28Z, branch: main, committed; hardware reset/readback and full hardware suite pass on `/dev/cu.usbmodem4101`
 - lora-v1-header-wiring-contract — claimed 2026-05-03T21:34:00Z, completed 2026-05-03T21:41:48Z, branch: main, integrated in current wiring-contract correction; hardware now blocked by USB enumeration, not confirmed radio wiring

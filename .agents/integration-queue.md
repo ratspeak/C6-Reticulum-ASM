@@ -2,14 +2,15 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 9 is active after closing milestone 8. Latest integrated slice: milestone-8 closeout and milestone-9 LXMF Foundation activation. Current baseline gates passed before milestone-9 activation: concrete `./verify --module interface/gpio`, `interface/spi`, and `interface/lora`; `pytest --hardware --hardware-port /dev/cu.usbmodem4101 tests/hardware/ -q -p no:cacheprovider` (`15 passed`); `make ci` (`751 passed, 15 skipped`); qemu/C6 builds; stack max 2496/16384; and `git diff --check`. USB endpoint is `/dev/cu.usbmodem4101` (`ESP32-C6FH4`, MAC `98:88:e0:ff:fe:61:14:e4`).
+- parallel session live — 2026-05-03T06:18:00Z; milestone 9 is active after closing milestone 8. Latest integrated slice: verified `lxmf_delivery_announce_build` for LXMF delivery announce app-data. Current baseline gates passed before milestone-9 activation: concrete `./verify --module interface/gpio`, `interface/spi`, and `interface/lora`; `pytest --hardware --hardware-port /dev/cu.usbmodem4101 tests/hardware/ -q -p no:cacheprovider` (`15 passed`); `make ci` (`751 passed, 15 skipped`); qemu/C6 builds; stack max 2496/16384; and `git diff --check`. USB endpoint is `/dev/cu.usbmodem4101` (`ESP32-C6FH4`, MAC `98:88:e0:ff:fe:61:14:e4`).
 
 ## Pending
 
-- none
+- lxmf-payload-codec — next milestone-9 slice; build strict bounded msgpack payload build/parse for `[timestamp, title, content, fields]`
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified `lxmf_delivery_announce_build`; adds LXMF constants, Makefile source inclusion, upstream-compatible msgpack delivery announce app-data for nil/bin8 display names and nil/fixint/uint8 stamp costs, direct-QEMU tests, and a source/upstream-vector verifier — branch: main, current slice 2026-05-03T21:56:31Z
 - [agent-1] Close milestone 8 LoRa SPI Interface and activate milestone 9 LXMF Foundation; marks M8 complete with hardware evidence, creates `docs/milestones/milestone-9.md`, and registers planned LXMF envelope/router foundation functions — branch: main, current closeout 2026-05-03T21:49:00Z
 - [agent-1] Close SX1262 hardware reset/readback blocker on the Wio-SX1262 V1.0 header carrier; `/dev/cu.usbmodem4101` enumerates as the C6 USB JTAG/serial endpoint and the full hardware suite now passes with the radio attached — branch: main, committed 2026-05-03T21:46:28Z
 - [agent-1] Add SX1262 hardware reset/readback smoke test anchor; `_main` now logs `lora.ready status=<byte>` or `lora.init_error code=<u32>`, `HwTarget` preserves boot output for hardware assertions, and the new hardware test checks `GetStatus` chip mode reports STBY_RC — branch: main, integrated as 63f8f1d 2026-05-03T21:07:02Z; initial bench run failed with `LORA_ERR_BUSY_TIMEOUT` before V1.0 carrier wiring correction
