@@ -31,7 +31,7 @@ small in-RAM reassembly window.
       upstream `msgtype[2] || sequence[2] || length[2] || payload` envelope
       shape and reject malformed lengths without reading outside the caller
       buffer.
-- [ ] `resource_advertisement_parse` accepts the strict Reticulum resource
+- [x] `resource_advertisement_parse` accepts the strict Reticulum resource
       advertisement subset selected for this milestone and rejects unsupported
       msgpack keys, over-MDU advertisements, and inconsistent sizes.
 - [x] `resource_part_parse` extracts one resource part from decrypted link
@@ -99,6 +99,15 @@ Responsibilities:
 2. Reject unsupported msgpack encodings and inconsistent part/hashmap lengths.
 3. Leave compression, encryption, split resources, request/response flags, and
    metadata handling deferred unless explicitly enabled by tests.
+
+Verified strict subset:
+
+1. Accept only upstream msgpack map order `t,d,n,h,r,o,i,l,q,f,m`.
+2. Accept only encrypted, single-segment, non-request/non-response
+   advertisements: `q == nil`, `f == 1`, `i == 1`, `l == 1`.
+3. Limit receive advertisements to 64 parts and 256 hashmap bytes, with
+   `len(hashmap) == part_count * Resource.MAPHASH_LEN`.
+4. Require `original_hash == resource_hash` for this single-segment subset.
 
 ## Resource Parts
 

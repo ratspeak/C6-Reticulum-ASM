@@ -56,3 +56,24 @@
         .equ RESOURCE_PART_OFF_PAYLOAD_PTR,       4
         .equ RESOURCE_PART_OFF_MAPHASH,           8
         .equ RESOURCE_PART_T_SIZE,                12
+
+        .equ RESOURCE_ADV_MSGPACK_FIELDS,         11
+        .equ RESOURCE_ADV_FLAGS_ENCRYPTED,        1
+        .equ RESOURCE_ADV_MAX_PARTS,              RESOURCE_REASSEMBLY_MAX_PARTS
+        .equ RESOURCE_ADV_MAX_HASHMAP_BYTES,      RESOURCE_REASM_HASHMAP_BYTES
+        .equ RESOURCE_ADV_MAX_RAW_LEN,            LINK_SESSION_PLAINTEXT_MAX
+
+        /* resource_advertisement_t struct offsets (104 bytes total). */
+        .equ RESOURCE_ADV_OFF_RAW_LEN,            0
+        .equ RESOURCE_ADV_OFF_TRANSFER_SIZE,      4
+        .equ RESOURCE_ADV_OFF_DATA_SIZE,          8
+        .equ RESOURCE_ADV_OFF_PART_COUNT,         12
+        .equ RESOURCE_ADV_OFF_FLAGS,              16
+        .equ RESOURCE_ADV_OFF_SEGMENT_INDEX,      20
+        .equ RESOURCE_ADV_OFF_TOTAL_SEGMENTS,     24
+        .equ RESOURCE_ADV_OFF_RESOURCE_HASH,      28
+        .equ RESOURCE_ADV_OFF_RANDOM_HASH,        60
+        .equ RESOURCE_ADV_OFF_ORIGINAL_HASH,      64
+        .equ RESOURCE_ADV_OFF_HASHMAP_LEN,        96
+        .equ RESOURCE_ADV_OFF_HASHMAP_PTR,        100
+        .equ RESOURCE_ADV_T_SIZE,                 104
