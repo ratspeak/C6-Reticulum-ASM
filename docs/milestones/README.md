@@ -13,8 +13,8 @@ spec for each milestone.
 | 1 | Foundation stack + verifier infrastructure | Complete (2026-05-02) | [milestone-1.md](milestone-1.md) |
 | 2 | Cryptographic primitives | Complete (2026-05-02) | [milestone-2.md](milestone-2.md) |
 | 3 | Identity + announce TX | Complete (2026-05-03) | [milestone-3.md](milestone-3.md) |
-| 4 | Flash persistence | Active (2026-05-03) | [milestone-4.md](milestone-4.md) |
-| 5 | Transport RX | Planned | (spec written when activated) |
+| 4 | Flash persistence | Complete (2026-05-03) | [milestone-4.md](milestone-4.md) |
+| 5 | Transport RX | Active (2026-05-03) | [milestone-5.md](milestone-5.md) |
 | 6 | Link establishment | Planned | (spec written when activated) |
 | 7 | Resource / channel | Planned | (spec written when activated) |
 | 8 | LoRa SPI interface | Planned | (spec written when activated) |

@@ -1,7 +1,8 @@
 # Milestone 4: Flash persistence
 
-- **Status:** Active
+- **Status:** Complete
 - **Started:** 2026-05-03
+- **Completed:** 2026-05-03
 - **Estimate:** 2-3 weeks
 
 ## Goal
@@ -276,3 +277,22 @@ The announce sender must use the persisted identity when one exists.
 | A power loss during erase/write can destroy the only identity copy | Single-slot storage is acceptable for milestone 4; the record checksum makes corruption detectable, and multi-slot wear leveling is deferred explicitly. |
 | QEMU cannot prove real reset retention | Require a TARGET_C6 hardware reset-retention test in addition to qemu-virt semantics. |
 | Identity persistence may accidentally log secret bytes | Keep logs to status events only and include no key material or hashes beyond existing public identity hash tests. |
+
+## Retrospective
+
+Milestone 4 closed faster than estimated because the flash scope stayed narrow:
+one identity sector, one record page, and no wear-leveling. The qemu model and
+Python proof were enough to pin the public flash contract before the C6 backend
+landed.
+
+The physical C6 run caught the important hardware gap: the ROM flash helpers
+reject reads until the ROM flash descriptor is configured by
+`esp_rom_spiflash_config_param`. `flash_init` now installs the 4 MiB / 64 KiB /
+4 KiB / 256-byte geometry before read/write/erase calls. The hardware
+reset-retention test erases only `0x003ff000..0x003fffff`, creates and saves an
+identity, resets without reflashing, and validates that the second announce uses
+the same public identity.
+
+Single-slot erase-then-write remains acceptable for this milestone. Multi-slot
+wear leveling, destination-cache persistence, and path-cache persistence should
+wait until the transport table semantics are stable in milestone 5.
