@@ -6,10 +6,11 @@
 
 ## Pending
 
-- none
+- [agent-3] Add direct-call qemu coverage for `destination_name_hash` and `destination_hash` tests; asserts asm output bytes against hashlib/upstream vectors — branch: agent-3/destination-qemu-tests, commit: 68beaa1
 
 ## Resolved (rolling, last 20)
 
+- [agent-4] Add Tier B proof `proofs/crypto/x25519/x25519_field_mul.bsc` and append it to `src/crypto/x25519/x25519_field_mul.S` `@verify` — branch: agent-4/x25519-field-mul-bsc, commit: 5466201, integrated as 404102b 2026-05-03T06:45:29Z
 - [agent-5] Merge milestone-3 Python oracle/test helpers for identity layout/hash, destination hash, HEADER_1 announce bytes, and pyca/upstream announce signature validation — branch: agent-5/work, commit: 4d26af0, integrated as 01c0301 2026-05-03T06:33:11Z
 - [agent-3] Merge verified destination hash helpers `destination_name_hash` and `destination_hash` with upstream Reticulum vectors and Tier A Cryptol/SAW proofs — branch: agent-3/work, commit: d8b82ca, integrated as 2d53456 2026-05-03T06:33:11Z
 - [agent-2] Merge verified `identity_hash` (SHA256(public_key[64])[0:16]) with QEMU pytest vectors and Tier A Cryptol/SAW proof — branch: agent-2/work, commit: af609b6, integrated as 7a846cb 2026-05-03T06:27:36Z

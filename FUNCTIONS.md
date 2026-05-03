@@ -63,12 +63,12 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
   aes_mixcolumns/invmixcolumns, aes_addroundkey, aes_subword,
   aes256_key_expand, aes256_encrypt_block / aes256_decrypt_block,
   aes256_cbc_encrypt / aes256_cbc_decrypt) plus sha256_compress
-  (representative SHA-256 family) and three X25519 functions
-  (x25519_cswap, x25519_field_add, x25519_field_sub). All discharge a
+  (representative SHA-256 family) and six X25519 functions
+  (x25519_cswap, x25519_field_add, x25519_field_sub,
+  x25519_field_mul, x25519_field_sq, x25519_field_mul121665). All discharge a
   `secure` verdict from binsec -checkct against the qemu-virt RV32IMC
   ELF with full path coverage. The remaining Tier B sweep across X25519
-  heavy field ops (`field_mul`, `field_sq`, `field_mul121665`,
-  `field_inv`, `montgomery_ladder`, `scalar_mult`, `keypair`),
+  heavy field ops (`field_inv`, `montgomery_ladder`, `scalar_mult`, `keypair`),
   Ed25519, SHA-512, HMAC, HKDF is tracked as a follow-up sub-project;
   their CT obligation is currently discharged by source-level review
   against `@ct: required` and composition through proven-CT primitives.
