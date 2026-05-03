@@ -91,6 +91,13 @@ Each link entry stores at least:
 Replacement and expiration rules are finalized in the first implementation
 slice, before link packets can be accepted.
 
+`link_handshake_init` implements the first table mutation path:
+existing destination entries are refreshed in place, otherwise the first
+invalid slot is used, otherwise the entry with the largest unsigned
+`now_ms - last_seen_ms` age is evicted. New initiator entries store local
+X25519 public/private bytes, local Ed25519 link-signing public/private bytes,
+status `PENDING`, mode `AES-256-CBC`, and clear remote/key fields.
+
 ## link_request_build
 
 Module: `link`.
@@ -165,7 +172,8 @@ a0 = raw packet length on success, negative errno on failure
 
 Responsibilities:
 
-1. Allocate or update a pending link entry for the destination.
+1. Allocate or update a pending link entry for the destination using the
+   deterministic existing, first-invalid, oldest-age replacement rule.
 2. Generate local X25519 and Ed25519 ephemeral key material.
 3. Emit a link request packet using `link_request_build`.
 

@@ -60,3 +60,24 @@
         .equ LINK_SHARED_SECRET_SIZE,         32
         .equ LINK_PRK_SIZE,                   32
         .equ LINK_KEY_MATERIAL_SIZE,          64
+
+        .equ LINK_TABLE_CAPACITY,             4
+        .equ LINK_STATUS_PENDING,             1
+        .equ LINK_STATUS_ESTABLISHED,         2
+
+        .equ LINK_ENTRY_OFF_VALID,            0
+        .equ LINK_ENTRY_OFF_STATUS,           1
+        .equ LINK_ENTRY_OFF_MODE,             2
+        .equ LINK_ENTRY_OFF_RESERVED,         3
+        .equ LINK_ENTRY_OFF_LAST_SEEN,        4
+        .equ LINK_ENTRY_OFF_DEST_HASH,        8
+        .equ LINK_ENTRY_OFF_LOCAL_X25519_PUB, 24
+        .equ LINK_ENTRY_OFF_LOCAL_X25519_SK,  56
+        .equ LINK_ENTRY_OFF_LOCAL_ED25519_PUB, 88
+        .equ LINK_ENTRY_OFF_LOCAL_ED25519_SK, 120
+        .equ LINK_ENTRY_OFF_REMOTE_X25519_PUB, 152
+        .equ LINK_ENTRY_OFF_REMOTE_ED25519_PUB, 184
+        .equ LINK_ENTRY_OFF_LINK_ID,          216
+        .equ LINK_ENTRY_OFF_KEY_MATERIAL,     232
+        .equ LINK_ENTRY_SIZE,                 296
+        .equ LINK_TABLE_SIZE,                 LINK_TABLE_CAPACITY * LINK_ENTRY_SIZE
