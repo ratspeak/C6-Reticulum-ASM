@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 6 is active through b7ed4ce. Latest integrated slice: verified `link_process_packet` dispatcher. Current gates passed: all milestone-6 focused `./verify` targets, `make ci` (`649 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-6 claim: link state-machine proof and closeout gates.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 7 is active through b1ef640. Latest integrated slice: milestone-6 closeout and milestone-7 activation. Current gates passed: `./verify --module link`, `make ci` (`649 passed, 14 skipped`), qemu/C6 builds, hardware suite `14 passed`, registry, stack max 2304/16384, and `git diff --check`. First eligible milestone-7 claims: `channel_envelope_build`, `channel_envelope_parse`, `resource_part_parse`, `resource_reassembly_init`.
 
 ## Pending
 
@@ -10,6 +10,8 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Close milestone 6 Link Establishment and activate milestone 7 Resource / Channel; marks all M6 DoD items complete, adds the milestone-7 spec, updates roadmap/current-milestone docs, and registers planned resource/channel functions — branch: main, integrated as b1ef640 2026-05-03T13:05:00Z
+- [agent-1] Add milestone-6 link state TLA+ model; covers request accept, duplicate, reject, timeout, encrypted packet accept, and encrypted packet reject traces, and wires the model into `link_process_packet` verification — branch: main, integrated as d2dc272 2026-05-03T12:56:00Z
 - [agent-1] Implement verified `link_process_packet`; dispatches link requests through parse/accept, HEADER_1 link DATA by established link ID through session decrypt, and announces through the milestone-5 transport path, with direct-QEMU dispatch tests and source contract proof — branch: main, integrated as b7ed4ce 2026-05-03T12:51:00Z
 - [agent-1] Implement verified `link_session_encrypt` and `link_session_decrypt`; adds Reticulum Token-compatible AES-256-CBC session tokens with PKCS7 padding, signing-key/encryption-key split from derived material, HMAC-before-decrypt release gating, tamper/padding/capacity tests, and source contract proof — branch: main, integrated as 58c83d9 2026-05-03T12:37:00Z
 - [agent-1] Implement verified `link_handshake_accept`; validates parsed Reticulum link requests, computes upstream-compatible link IDs excluding signalling bytes, generates accept-side X25519 material, derives established session keys, refreshes duplicates, and keeps bounded table replacement deterministic with direct-QEMU tests and source contract proof — branch: main, integrated as 9e7a171 2026-05-03T12:23:00Z

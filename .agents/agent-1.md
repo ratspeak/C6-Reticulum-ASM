@@ -3,9 +3,11 @@
 # Codex session: 2026-05-03T06:01:49Z
 
 ## Active claim (single line, current)
-milestone-6-link-establishment — claimed 2026-05-03T11:42:00Z, ETA active
+milestone-7-resource-channel — claimed 2026-05-03T12:52:00Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- milestone-6-closeout — claimed 2026-05-03T12:52:00Z, completed 2026-05-03T13:05:00Z, branch: main, integrated as b1ef640
+- link-state-model — claimed 2026-05-03T12:51:00Z, completed 2026-05-03T12:56:00Z, branch: main, integrated as d2dc272
 - link-process-packet — claimed 2026-05-03T12:38:00Z, completed 2026-05-03T12:51:00Z, branch: main, integrated as b7ed4ce
 - link-session-tokens — claimed 2026-05-03T12:24:00Z, completed 2026-05-03T12:37:00Z, branch: main, integrated as 58c83d9
 - link-handshake-accept — claimed 2026-05-03T12:11:00Z, completed 2026-05-03T12:23:00Z, branch: main, integrated as 9e7a171
@@ -28,7 +30,7 @@ milestone-6-link-establishment — claimed 2026-05-03T11:42:00Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 6; all milestone-6 functions are verified. Remaining claim is the link state-machine proof and closeout gates.
+- Active milestone is milestone 7; first eligible claims are `channel_envelope_build`, `channel_envelope_parse`, `resource_part_parse`, and `resource_reassembly_init`.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.
@@ -46,3 +48,5 @@ milestone-6-link-establishment — claimed 2026-05-03T11:42:00Z, ETA active
 - 2026-05-03T12:23:00Z — implemented verified `link_handshake_accept` on main as 9e7a171; gates: `./verify link_handshake_accept`, `make ci` (`620 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T12:37:00Z — implemented verified `link_session_encrypt` and `link_session_decrypt` on main as 58c83d9; gates: `./verify link_session_encrypt`, `./verify link_session_decrypt`, `make ci` (`639 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T12:51:00Z — implemented verified `link_process_packet` on main as b7ed4ce; gates: `./verify link_process_packet`, `make ci` (`649 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
+- 2026-05-03T12:56:00Z — added the milestone-6 link TLA+ state model on main as d2dc272; gate: `./verify link_process_packet` passed with `proofs/link/link_state.tla`.
+- 2026-05-03T13:05:00Z — closed milestone 6 and activated milestone 7 on main as b1ef640; gates: `./verify --module link`, `make ci` (`649 passed, 14 skipped`), qemu/C6 builds, hardware suite `14 passed`, registry, stack max 2304/16384, and `git diff --check`.
