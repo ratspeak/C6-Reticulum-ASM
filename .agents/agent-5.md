@@ -3,9 +3,10 @@
 # Codex session: 2026-05-03T06:19:23Z
 
 ## Active claim (single line, current)
-flash-hardware-contract-docs — claimed 2026-05-03T07:33:11Z, ETA 2h
+none — available
 
 ## Recent claims (rolling, last 10)
+- flash-hardware-contract-docs — claimed 2026-05-03T07:33:11Z, completed 2026-05-03T07:42:31Z, branch: agent-5/flash-hardware-contract, commit: 3d415a0, integrated as b39f842
 - milestone-3-python-oracles — claimed 2026-05-03T06:19:23Z, completed 2026-05-03T06:28:50Z, branch: agent-5/work, commit: 4d26af0
 
 ## Notes / blockers
@@ -15,3 +16,4 @@ flash-hardware-contract-docs — claimed 2026-05-03T07:33:11Z, ETA 2h
 - Oracle helpers queued for integration; focused harness tests passed, and `make ci` passed after rerunning outside the sandbox for build directory creation.
 - 2026-05-03T06:33:11Z — integrated milestone-3 oracle helpers on main as 01c0301; coordinator reran focused oracle tests and `make ci` (485 passed, 12 skipped).
 - 2026-05-03T07:33:11Z — claimed milestone-4 flash hardware contract and reset-retention test plan; owns `docs/hardware/flash.md`, optional `docs/hardware/README.md`, and hardware-target tests only. Avoid production asm and identity persistence code.
+- 2026-05-03T07:42:31Z — integrated flash hardware contract on main as b39f842; coordinator reran focused hardware pytest with and without `--hardware`, plus `git diff --check`.
