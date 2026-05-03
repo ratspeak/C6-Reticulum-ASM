@@ -91,3 +91,15 @@ sx1262_read_buffer_req_buf:
 sx1262_model_rx_len:
         .skip   4
         .size   sx1262_model_rx_len, 4
+
+        .global lora_interface_initialized
+        .type   lora_interface_initialized, @object
+lora_interface_initialized:
+        .skip   4
+        .size   lora_interface_initialized, 4
+
+        .global lora_interface_last_status
+        .type   lora_interface_last_status, @object
+lora_interface_last_status:
+        .skip   4
+        .size   lora_interface_last_status, 4
