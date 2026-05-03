@@ -51,6 +51,7 @@ class FuncEntry:
     name: str
     module: str
     status: str
+    owner: str
     depends_on: list[str]
     adrs: list[str]
 
@@ -91,6 +92,16 @@ def _parse_list_cell(cell: str) -> list[str]:
     return parts
 
 
+def _cell(cells: list[str], idx: int | None, default: str = "") -> str:
+    if idx is None or idx < 0 or idx >= len(cells):
+        return default
+    return cells[idx]
+
+
+def _header_map(cells: list[str]) -> dict[str, int]:
+    return {_strip_md(cell).lower(): idx for idx, cell in enumerate(cells)}
+
+
 def parse_registry(path: Path) -> list[FuncEntry]:
     """Parse FUNCTIONS.md into a flat list of FuncEntry."""
     text = path.read_text(encoding="utf-8")
@@ -98,6 +109,7 @@ def parse_registry(path: Path) -> list[FuncEntry]:
     current_module: str | None = None
     in_table = False
     saw_header = False
+    columns: dict[str, int] = {}
 
     for line in text.splitlines():
         m = MODULE_HEADER_RE.match(line)
@@ -105,18 +117,21 @@ def parse_registry(path: Path) -> list[FuncEntry]:
             current_module = m.group(1)
             in_table = False
             saw_header = False
+            columns = {}
             continue
 
         row = TABLE_ROW_RE.match(line)
         if not row:
             in_table = False
             saw_header = False
+            columns = {}
             continue
 
         cells = [c.strip() for c in row.group(1).split("|")]
 
         # Recognise table header / separator rows: skip until past them.
         if not saw_header and cells and cells[0].lower() == "function":
+            columns = _header_map(cells)
             saw_header = True
             in_table = False
             continue
@@ -134,7 +149,13 @@ def parse_registry(path: Path) -> list[FuncEntry]:
         if len(cells) < 4:
             continue
 
-        name_raw = cells[0]
+        name_idx = columns.get("function", 0)
+        status_idx = columns.get("status", 1)
+        owner_idx = columns.get("owner")
+        depends_idx = columns.get("depends-on", 2 if owner_idx is None else 3)
+        adrs_idx = columns.get("adrs", 3 if owner_idx is None else 4)
+
+        name_raw = _cell(cells, name_idx)
         # Skip placeholder rows like "(functions added when milestone N is activated)".
         if name_raw.startswith("("):
             continue
@@ -142,15 +163,17 @@ def parse_registry(path: Path) -> list[FuncEntry]:
         if not name:
             continue
 
-        status = _parse_status_cell(cells[1])
-        depends = _parse_list_cell(cells[2])
-        adrs = _parse_list_cell(cells[3])
+        status = _parse_status_cell(_cell(cells, status_idx))
+        owner = _strip_md(_cell(cells, owner_idx))
+        depends = _parse_list_cell(_cell(cells, depends_idx))
+        adrs = _parse_list_cell(_cell(cells, adrs_idx))
 
         entries.append(
             FuncEntry(
                 name=name,
                 module=current_module,
                 status=status,
+                owner=owner,
                 depends_on=depends,
                 adrs=adrs,
             )

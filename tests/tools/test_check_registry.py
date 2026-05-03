@@ -47,6 +47,32 @@ def test_parse_basic_registry(tmp_path: Path) -> None:
     assert by_name["clock_init"].adrs == []
 
 
+def test_parse_owner_column_registry(tmp_path: Path) -> None:
+    md = tmp_path / "FUNCTIONS.md"
+    md.write_text(
+        textwrap.dedent(
+            """\
+            # Function Registry
+
+            ## Module: `identity`
+
+            | Function | Status | Owner | Depends-on | ADRs | Spec |
+            |----------|--------|-------|-----------|------|------|
+            | `identity_create` | ◐ in-progress | agent-2 | `rng_bytes` | 0001 | (spec) |
+            | `identity_hash` | ☐ planned |  | `sha256_*` | — | (spec) |
+            """
+        ),
+        encoding="utf-8",
+    )
+    entries = check_registry.parse_registry(md)
+    by_name = {e.name: e for e in entries}
+    assert by_name["identity_create"].status == "in-progress"
+    assert by_name["identity_create"].owner == "agent-2"
+    assert by_name["identity_create"].depends_on == ["rng_bytes"]
+    assert by_name["identity_hash"].owner == ""
+    assert by_name["identity_hash"].adrs == []
+
+
 def test_skip_placeholder_rows(tmp_path: Path) -> None:
     md = tmp_path / "FUNCTIONS.md"
     md.write_text(

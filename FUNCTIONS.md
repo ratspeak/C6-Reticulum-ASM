@@ -21,6 +21,8 @@ Each function entry has:
   - `tested` — asm written, tests pass, formal verifier not yet run or not yet passing.
   - `verified` — asm written, tests pass, formal verifier passes (per ADR-0006 obligation).
   - `superseded` — replaced by a different function; kept for history with a pointer.
+- **Owner:** active agent lock while a function is `in-progress` or `tested`. Empty for
+  `planned`, `verified`, and `superseded` rows.
 - **Depends-on:** functions that must reach `verified` before this function can be implemented.
   Empty if the function has no dependencies within the project.
 - **ADRs:** ADR numbers this function implements or is constrained by.
@@ -50,8 +52,9 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
   hardware-RNG entropy properties) over the on-chip USB-Serial/JTAG endpoint per
   [ADR-0010](docs/adr/0010-usb-serial-jtag-backend.md). 12 hardware tests pass in ~6 s
   (run with `pytest --hardware tests/hardware/`).
-- Total functions registered: **41** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 80 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 12 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + production HMAC-DRBG-SHA-256 RNG (NIST SP 800-90A Rev. 1 §10.1.2; the new `rng_entropy` raw-source layer + `hmac_drbg_update` + `rng_init` + `rng_bytes` together discharge the canonical NIST CAVP DRBGVS COUNT=0 KAT symbolically; on TARGET_C6 the entropy source is the on-chip LPPERI hardware RNG) — all under ADR-0009)
+- Total functions registered: **91** (excludes placeholder rows like
+  "(functions added when milestone N is activated)")
+- Verified: 82 (milestone 1 software side + ENTIRE milestone-2 crypto stack: SHA-256 family + SHA-512 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + 11 Ed25519 functions (scalar arith, point ops, scalarmult, compress/decompress, keypair, sign, verify — all match pyca/cryptography under QEMU; RFC 7748 §5.2/§6.1 + RFC 8032 §7.1 vectors plus tampering rejection) + production HMAC-DRBG-SHA-256 RNG (NIST SP 800-90A Rev. 1 §10.1.2; `rng_entropy` raw-source layer + `hmac_drbg_update` + `rng_init` + `rng_bytes` together discharge the canonical NIST CAVP DRBGVS COUNT=0 KAT symbolically; on TARGET_C6 the entropy source is the on-chip LPPERI hardware RNG) — all under ADR-0009)
 - Tier A coverage extended: the SHA-512 family (`sha512_init`, `sha512_compress`, `sha512_update`, `sha512_final`) now carries a Cryptol+SAW Tier A proof alongside the QEMU/hashlib KAT bridge. The SAW drivers discharge FIPS 180-4 §C.1 + §C.2 KATs symbolically over the 80-round transform + 16-word schedule, plus K-table constants, ROTR/ch/maj algebraic sanity, streaming associativity (small chunkings), and both padding paths (bl ≤ 111 single-block + bl > 111 two-block).
 - Tier A coverage extended: the Ed25519 lower stack (8 of 11 functions: `sc_reduce`, `sc_muladd`, `point_add`, `point_double`, `scalarmult`, `point_compress`, `point_decompress`, `field_pow_p5d8`) now carries a Cryptol+SAW Tier A proof — `Ed25519Scalar.cry` (sc_reduce/sc_muladd boundary KATs vs (a*b+c) mod L), `Ed25519Point.cry` (BBJLP add/double on edwards25519: identity, additive inverse, double=add-at-equal, commutativity sanity), `Ed25519Encoding.cry` (compress(B) RFC vector, decompress(B) round-trip, scalarmult bit-pattern KATs, sqrt(-1)^2 = -1).
 - Tier B (Binsec/Rel constant-time) coverage landed 2026-05-02 for the
@@ -74,7 +77,7 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
 - In progress: 0
-- Planned: 1 milestone-1 leaf (`uart_isr`, hw-only) + the milestone-2..9 chain (X25519, Ed25519, RNG)
+- Planned: 9 (`uart_isr`, milestone-3 identity create/hash, milestone-4 identity persistence, milestone-4 flash driver)
 
 The end-to-end milestone-1 demo path is observable: KISS-framed Reticulum
 packets sent to qemu's stdin produce `boot.ready`, `kiss.rx_frame`, and
@@ -87,86 +90,86 @@ packets sent to qemu's stdin produce `boot.ready`, `kiss.rx_frame`, and
 
 System startup, before any other code runs. Lives at the reset vector.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `_reset` | ◉ verified | — | 0001, 0002, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_init_bss` | ◉ verified | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_init_data` | ◉ verified | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
-| `_main` | ◉ verified | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event`, `log_hex`, `log_str`, `log_hex_buf`, `uart_rx_byte`, `uart_tx_byte`, `clock_now_ms`, `kiss_decode_byte`, `packet_parse_header`, `sha256_init`, `sha256_update`, `sha256_final`, `hmac_sha256`, `hkdf_extract`, `hkdf_expand`, `aes_sbox`, `aes_invsbox`, `aes_mixcolumns`, `aes_invmixcolumns`, `aes256_key_expand`, `aes256_encrypt_block`, `aes256_decrypt_block`, `aes256_cbc_encrypt`, `aes256_cbc_decrypt` | 0001, 0004, 0006, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `_reset` | ◉ verified |  | — | 0001, 0002, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_init_bss` | ◉ verified |  | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_init_data` | ◉ verified |  | `_reset` | 0002 | [milestone-1](docs/milestones/milestone-1.md#boot) |
+| `_main` | ◉ verified |  | `_init_bss`, `_init_data`, `clock_init`, `uart_init`, `log_init`, `log_event`, `log_hex`, `log_str`, `log_hex_buf`, `uart_rx_byte`, `uart_tx_byte`, `clock_now_ms`, `kiss_decode_byte`, `packet_parse_header`, `sha256_init`, `sha256_update`, `sha256_final`, `hmac_sha256`, `hkdf_extract`, `hkdf_expand`, `aes_sbox`, `aes_invsbox`, `aes_mixcolumns`, `aes_invmixcolumns`, `aes256_key_expand`, `aes256_encrypt_block`, `aes256_decrypt_block`, `aes256_cbc_encrypt`, `aes256_cbc_decrypt` | 0001, 0004, 0006, 0008 | [milestone-1](docs/milestones/milestone-1.md#boot) |
 
 ## Module: `clock`
 
 Clock and PLL configuration. Brings the chip to a known 160 MHz operating state.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `clock_init` | ◉ verified | — | 0008 | [milestone-1](docs/milestones/milestone-1.md#clock) |
-| `clock_now_ticks` | ◉ verified | `clock_init` | 0001 | [milestone-1](docs/milestones/milestone-1.md#clock) |
-| `clock_now_ms` | ◉ verified | `clock_now_ticks` | 0001, 0008 | [milestone-1](docs/milestones/milestone-1.md#clock) |
-| `clock_get_freq` | ◉ verified | `clock_init` | 0001 | [milestone-1](docs/milestones/milestone-1.md#clock) |
-| `clock_delay_us` | ◉ verified | `clock_init` | 0001 | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `clock_init` | ◉ verified |  | — | 0008 | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_now_ticks` | ◉ verified |  | `clock_init` | 0001 | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_now_ms` | ◉ verified |  | `clock_now_ticks` | 0001, 0008 | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_get_freq` | ◉ verified |  | `clock_init` | 0001 | [milestone-1](docs/milestones/milestone-1.md#clock) |
+| `clock_delay_us` | ◉ verified |  | `clock_init` | 0001 | [milestone-1](docs/milestones/milestone-1.md#clock) |
 
 ## Module: `uart`
 
 UART0 driver. Interrupt-driven RX and TX with ring buffers. Permanent diagnostic + KISS interface I/O.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `uart_init` | ◉ verified | `clock_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
-| `uart_tx_byte` | ◉ verified | `uart_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
-| `uart_tx_bytes` | ◉ verified | `uart_tx_byte` | 0001, 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
-| `uart_rx_byte` | ◉ verified | `uart_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
-| `uart_rx_available` | ◉ verified | `uart_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
-| `uart_isr` | ☐ planned | `uart_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `uart_init` | ◉ verified |  | `clock_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_tx_byte` | ◉ verified |  | `uart_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_tx_bytes` | ◉ verified |  | `uart_tx_byte` | 0001, 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_rx_byte` | ◉ verified |  | `uart_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_rx_available` | ◉ verified |  | `uart_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#uart) |
+| `uart_isr` | ☐ planned |  | `uart_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#uart) |
 
 ## Module: `log`
 
 Structured logging primitives over UART0. See ADR-0004.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `log_init` | ◉ verified | `uart_init`, `clock_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_str` | ◉ verified | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_hex` | ◉ verified | `log_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_u32` | ◉ verified | `log_init` | 0001, 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_bytes` | ◉ verified | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_event` | ◉ verified | `log_init`, `log_hex`, `log_str`, `clock_now_ms` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#log) |
-| `log_hex_buf` | ◉ verified | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `log_init` | ◉ verified |  | `uart_init`, `clock_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_str` | ◉ verified |  | `log_init` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_hex` | ◉ verified |  | `log_init` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_u32` | ◉ verified |  | `log_init` | 0001, 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_bytes` | ◉ verified |  | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_event` | ◉ verified |  | `log_init`, `log_hex`, `log_str`, `clock_now_ms` | 0004, 0008 | [milestone-1](docs/milestones/milestone-1.md#log) |
+| `log_hex_buf` | ◉ verified |  | `log_hex` | 0004 | [milestone-1](docs/milestones/milestone-1.md#log) |
 
 ## Module: `kiss`
 
 KISS framing layer. Both encode (frame → escaped byte stream) and decode (byte stream → frame).
 Used by every interface (USB-serial in dev, LoRa in milestone 8).
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `kiss_decode_byte` | ◉ verified | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#kiss) |
-| `kiss_decode_reset` | ◉ verified | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#kiss) |
-| `kiss_encode_frame` | ◉ verified | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#kiss) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `kiss_decode_byte` | ◉ verified |  | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#kiss) |
+| `kiss_decode_reset` | ◉ verified |  | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#kiss) |
+| `kiss_encode_frame` | ◉ verified |  | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#kiss) |
 
 ## Module: `packet`
 
 Reticulum wire format. Header parser, header serializer, field accessors. Permanent — every
 later module reads packets through this.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `packet_parse_header` | ◉ verified | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#packet) |
-| `packet_get_dest_hash` | ◉ verified | `packet_parse_header` | 0002 | [milestone-1](docs/milestones/milestone-1.md#packet) |
-| `packet_get_payload` | ◉ verified | `packet_parse_header` | 0002 | [milestone-1](docs/milestones/milestone-1.md#packet) |
-| `packet_serialize_header` | ◉ verified | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#packet) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `packet_parse_header` | ◉ verified |  | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#packet) |
+| `packet_get_dest_hash` | ◉ verified |  | `packet_parse_header` | 0002 | [milestone-1](docs/milestones/milestone-1.md#packet) |
+| `packet_get_payload` | ◉ verified |  | `packet_parse_header` | 0002 | [milestone-1](docs/milestones/milestone-1.md#packet) |
+| `packet_serialize_header` | ◉ verified |  | — | 0002 | [milestone-1](docs/milestones/milestone-1.md#packet) |
 
 ## Module: `crypto/sha256`
 
 SHA-256 implementation. Foundation for HMAC, HKDF, identity hashing. Per ADR-0006: equivalence
 proof + KAT + constant-time required.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `sha256_init` | ◉ verified | — | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
-| `sha256_compress` | ◉ verified | `sha256_init` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
-| `sha256_update` | ◉ verified | `sha256_init`, `sha256_compress` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
-| `sha256_final` | ◉ verified | `sha256_update` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `sha256_init` | ◉ verified |  | — | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
+| `sha256_compress` | ◉ verified |  | `sha256_init` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
+| `sha256_update` | ◉ verified |  | `sha256_init`, `sha256_compress` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
+| `sha256_final` | ◉ verified |  | `sha256_update` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#sha256) |
 
 ## Module: `crypto/sha512`
 
@@ -175,52 +178,52 @@ ADR-0006: equivalence proof + KAT + constant-time required (Cryptol/SAW
 Tier A is a follow-up; KAT-only here while the 64-bit-on-RV32 emulation
 matures — see ADR-0009 §"Tier C path forward").
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `sha512_init` | ◉ verified | — | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `sha512_compress` | ◉ verified | `sha512_init` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `sha512_update` | ◉ verified | `sha512_compress` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `sha512_final` | ◉ verified | `sha512_update`, `sha512_compress` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `sha512_init` | ◉ verified |  | — | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `sha512_compress` | ◉ verified |  | `sha512_init` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `sha512_update` | ◉ verified |  | `sha512_compress` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `sha512_final` | ◉ verified |  | `sha512_update`, `sha512_compress` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
 
 ## Module: `crypto/hmac`
 
 HMAC-SHA-256 per RFC 2104. Used for IFAC, ratchets, message authentication.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `hmac_sha256` | ◉ verified | `sha256_init`, `sha256_update`, `sha256_final` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#hmac) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `hmac_sha256` | ◉ verified |  | `sha256_init`, `sha256_update`, `sha256_final` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#hmac) |
 
 ## Module: `crypto/hkdf`
 
 HKDF per RFC 5869. Used for Reticulum key derivation.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `hkdf_extract` | ◉ verified | `hmac_sha256` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#hkdf) |
-| `hkdf_expand` | ◉ verified | `hmac_sha256` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#hkdf) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `hkdf_extract` | ◉ verified |  | `hmac_sha256` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#hkdf) |
+| `hkdf_expand` | ◉ verified |  | `hmac_sha256` | 0001, 0002, 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#hkdf) |
 
 ## Module: `crypto/aes`
 
 AES-256-CBC. Used for Reticulum link encryption. Constant-time S-box uses
 the Boyar-Peralta combinational circuit (no table lookups, per ADR-0006).
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `aes_sbox` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invsbox` | ◉ verified | `aes_sbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_subbytes` | ◉ verified | `aes_sbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invsubbytes` | ◉ verified | `aes_invsbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_shiftrows` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invshiftrows` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_mixcolumns` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_invmixcolumns` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_addroundkey` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes_subword` | ◉ verified | `aes_sbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes256_key_expand` | ◉ verified | `aes_subword` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes256_encrypt_block` | ◉ verified | `aes_subbytes`, `aes_shiftrows`, `aes_mixcolumns`, `aes_addroundkey` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes256_decrypt_block` | ◉ verified | `aes_invsubbytes`, `aes_invshiftrows`, `aes_invmixcolumns`, `aes_addroundkey` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes256_cbc_encrypt` | ◉ verified | `aes256_encrypt_block` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
-| `aes256_cbc_decrypt` | ◉ verified | `aes256_decrypt_block` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `aes_sbox` | ◉ verified |  | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invsbox` | ◉ verified |  | `aes_sbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_subbytes` | ◉ verified |  | `aes_sbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invsubbytes` | ◉ verified |  | `aes_invsbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_shiftrows` | ◉ verified |  | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invshiftrows` | ◉ verified |  | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_mixcolumns` | ◉ verified |  | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_invmixcolumns` | ◉ verified |  | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_addroundkey` | ◉ verified |  | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes_subword` | ◉ verified |  | `aes_sbox` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_key_expand` | ◉ verified |  | `aes_subword` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_encrypt_block` | ◉ verified |  | `aes_subbytes`, `aes_shiftrows`, `aes_mixcolumns`, `aes_addroundkey` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_decrypt_block` | ◉ verified |  | `aes_invsubbytes`, `aes_invshiftrows`, `aes_invmixcolumns`, `aes_addroundkey` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_cbc_encrypt` | ◉ verified |  | `aes256_encrypt_block` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
+| `aes256_cbc_decrypt` | ◉ verified |  | `aes256_decrypt_block` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#aes) |
 
 ## Module: `crypto/x25519`
 
@@ -233,21 +236,21 @@ is verified against RFC 7748 §5.2 and §6.1 KATs (Tier A); per-function
 asm verifiers follow the same Tier A → Tier C pattern as the SHA-256
 and AES stacks.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `x25519_field_unpack` | ◉ verified | — | 0006, 0009 | (milestone 2) |
-| `x25519_field_pack` | ◉ verified | — | 0006, 0009 | (milestone 2) |
-| `x25519_field_add` | ◉ verified | — | 0006, 0009 | (milestone 2) |
-| `x25519_field_sub` | ◉ verified | — | 0006, 0009 | (milestone 2) |
-| `x25519_field_mul` | ◉ verified | — | 0006, 0009 | (milestone 2) |
-| `x25519_field_sq` | ◉ verified | `x25519_field_mul` | 0006, 0009 | (milestone 2) |
-| `x25519_field_mul121665` | ◉ verified | — | 0006, 0009 | (milestone 2) |
-| `x25519_field_inv` | ◉ verified | `x25519_field_mul`, `x25519_field_sq` | 0006, 0009 | (milestone 2) |
-| `x25519_decode_scalar` | ◉ verified | — | 0006, 0009 | (milestone 2) |
-| `x25519_cswap` | ◉ verified | — | 0006, 0009 | (milestone 2) |
-| `x25519_montgomery_ladder` | ◉ verified | `x25519_field_*`, `x25519_cswap` | 0006, 0009 | (milestone 2) |
-| `x25519_scalar_mult` | ◉ verified | `x25519_montgomery_ladder`, `x25519_decode_*`, `x25519_field_pack` | 0006, 0009 | (milestone 2) |
-| `x25519_keypair` | ◉ verified | `x25519_scalar_mult`, `rng_bytes` | 0006, 0009 | (milestone 2) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `x25519_field_unpack` | ◉ verified |  | — | 0006, 0009 | (milestone 2) |
+| `x25519_field_pack` | ◉ verified |  | — | 0006, 0009 | (milestone 2) |
+| `x25519_field_add` | ◉ verified |  | — | 0006, 0009 | (milestone 2) |
+| `x25519_field_sub` | ◉ verified |  | — | 0006, 0009 | (milestone 2) |
+| `x25519_field_mul` | ◉ verified |  | — | 0006, 0009 | (milestone 2) |
+| `x25519_field_sq` | ◉ verified |  | `x25519_field_mul` | 0006, 0009 | (milestone 2) |
+| `x25519_field_mul121665` | ◉ verified |  | — | 0006, 0009 | (milestone 2) |
+| `x25519_field_inv` | ◉ verified |  | `x25519_field_mul`, `x25519_field_sq` | 0006, 0009 | (milestone 2) |
+| `x25519_decode_scalar` | ◉ verified |  | — | 0006, 0009 | (milestone 2) |
+| `x25519_cswap` | ◉ verified |  | — | 0006, 0009 | (milestone 2) |
+| `x25519_montgomery_ladder` | ◉ verified |  | `x25519_field_*`, `x25519_cswap` | 0006, 0009 | (milestone 2) |
+| `x25519_scalar_mult` | ◉ verified |  | `x25519_montgomery_ladder`, `x25519_decode_*`, `x25519_field_pack` | 0006, 0009 | (milestone 2) |
+| `x25519_keypair` | ◉ verified |  | `x25519_scalar_mult`, `rng_bytes` | 0006, 0009 | (milestone 2) |
 
 ## Module: `crypto/ed25519`
 
@@ -257,19 +260,19 @@ sc_muladd), Edwards-curve group ops, base-point scalar mult, all on top
 of the SHA-512 family (RFC 8032 explicitly requires SHA-512, not
 SHA-256).
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `ed25519_sc_reduce` | ◉ verified | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_sc_muladd` | ◉ verified | `ed25519_sc_reduce` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_point_add` | ◉ verified | `x25519_field_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_point_double` | ◉ verified | `x25519_field_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_scalarmult` | ◉ verified | `ed25519_point_add`, `ed25519_point_double` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_point_compress` | ◉ verified | `x25519_field_inv`, `x25519_field_mul`, `x25519_field_pack` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_keypair` | ◉ verified | `sha512_*`, `ed25519_scalarmult`, `ed25519_point_compress`, `rng_bytes` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_sign` | ◉ verified | `ed25519_scalarmult`, `ed25519_point_compress`, `ed25519_sc_reduce`, `ed25519_sc_muladd`, `sha512_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_field_pow_p5d8` | ◉ verified | `x25519_field_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_point_decompress` | ◉ verified | `ed25519_field_pow_p5d8`, `x25519_field_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
-| `ed25519_verify` | ◉ verified | `ed25519_point_decompress`, `ed25519_scalarmult`, `ed25519_point_compress`, `ed25519_sc_reduce`, `sha512_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `ed25519_sc_reduce` | ◉ verified |  | — | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_sc_muladd` | ◉ verified |  | `ed25519_sc_reduce` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_point_add` | ◉ verified |  | `x25519_field_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_point_double` | ◉ verified |  | `x25519_field_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_scalarmult` | ◉ verified |  | `ed25519_point_add`, `ed25519_point_double` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_point_compress` | ◉ verified |  | `x25519_field_inv`, `x25519_field_mul`, `x25519_field_pack` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_keypair` | ◉ verified |  | `sha512_*`, `ed25519_scalarmult`, `ed25519_point_compress`, `rng_bytes` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_sign` | ◉ verified |  | `ed25519_scalarmult`, `ed25519_point_compress`, `ed25519_sc_reduce`, `ed25519_sc_muladd`, `sha512_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_field_pow_p5d8` | ◉ verified |  | `x25519_field_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_point_decompress` | ◉ verified |  | `ed25519_field_pow_p5d8`, `x25519_field_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
+| `ed25519_verify` | ◉ verified |  | `ed25519_point_decompress`, `ed25519_scalarmult`, `ed25519_point_compress`, `ed25519_sc_reduce`, `sha512_*` | 0006, 0009 | [milestone-2](docs/milestones/milestone-2.md#ed25519) |
 
 ## Module: `crypto/rng`
 
@@ -280,82 +283,82 @@ on-chip LPPERI hardware RNG on TARGET_C6) and an HMAC-DRBG-SHA-256
 generator (`rng_init` instantiate, `rng_bytes` generate, with the
 internal `hmac_drbg_update` primitive shared between them).
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `rng_entropy` | ◉ verified | `sha256_*` | 0006, 0009 | (milestone 2) |
-| `hmac_drbg_update` | ◉ verified | `hmac_sha256` | 0006, 0009 | (milestone 2) |
-| `rng_init` | ◉ verified | `rng_entropy`, `hmac_drbg_update` | 0006, 0009 | (milestone 2) |
-| `rng_bytes` | ◉ verified | `rng_init`, `hmac_sha256`, `hmac_drbg_update` | 0006, 0009 | (milestone 2) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `rng_entropy` | ◉ verified |  | `sha256_*` | 0006, 0009 | (milestone 2) |
+| `hmac_drbg_update` | ◉ verified |  | `hmac_sha256` | 0006, 0009 | (milestone 2) |
+| `rng_init` | ◉ verified |  | `rng_entropy`, `hmac_drbg_update` | 0006, 0009 | (milestone 2) |
+| `rng_bytes` | ◉ verified |  | `rng_init`, `hmac_sha256`, `hmac_drbg_update` | 0006, 0009 | (milestone 2) |
 
 ## Module: `identity`
 
 Reticulum identity: keypair generation, persistence, hash derivation.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `identity_create` | ☐ planned | `x25519_keypair`, `ed25519_keypair`, `rng_bytes` | — | (milestone 3) |
-| `identity_hash` | ☐ planned | `sha256_*` | — | (milestone 3) |
-| `identity_save` | ☐ planned | `flash_*`, `identity_create` | — | (milestone 4) |
-| `identity_load` | ☐ planned | `flash_*` | — | (milestone 4) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `identity_create` | ☐ planned |  | `x25519_keypair`, `ed25519_keypair`, `rng_bytes` | — | (milestone 3) |
+| `identity_hash` | ☐ planned |  | `sha256_*` | — | (milestone 3) |
+| `identity_save` | ☐ planned |  | `flash_*`, `identity_create` | — | (milestone 4) |
+| `identity_load` | ☐ planned |  | `flash_*` | — | (milestone 4) |
 
 ## Module: `transport`
 
 Announce processing, path table, destination cache. Reticulum's routing layer.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| (functions added when milestone 5 is activated) | ☐ planned | | | (milestone 5) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| (functions added when milestone 5 is activated) | ☐ planned |  | | | (milestone 5) |
 
 ## Module: `link`
 
 Encrypted point-to-point link establishment. Curve25519 handshake + AES session.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| (functions added when milestone 6 is activated) | ☐ planned | | | (milestone 6) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| (functions added when milestone 6 is activated) | ☐ planned |  | | | (milestone 6) |
 
 ## Module: `resource`
 
 Reliable resource transfer over a link. Fragmentation, channels.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| (functions added when milestone 7 is activated) | ☐ planned | | | (milestone 7) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| (functions added when milestone 7 is activated) | ☐ planned |  | | | (milestone 7) |
 
 ## Module: `flash`
 
 Flash driver: page read/write/erase. Required for identity persistence, destination caches.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| `flash_init` | ☐ planned | `clock_init` | — | (milestone 4) |
-| `flash_read` | ☐ planned | `flash_init` | — | (milestone 4) |
-| `flash_write_page` | ☐ planned | `flash_init` | — | (milestone 4) |
-| `flash_erase_sector` | ☐ planned | `flash_init` | — | (milestone 4) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| `flash_init` | ☐ planned |  | `clock_init` | — | (milestone 4) |
+| `flash_read` | ☐ planned |  | `flash_init` | — | (milestone 4) |
+| `flash_write_page` | ☐ planned |  | `flash_init` | — | (milestone 4) |
+| `flash_erase_sector` | ☐ planned |  | `flash_init` | — | (milestone 4) |
 
 ## Module: `interface/lora`
 
 LoRa interface via SX1276/RFM95 over SPI. The first wireless interface.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| (functions added when milestone 8 is activated) | ☐ planned | | 0003 | (milestone 8) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| (functions added when milestone 8 is activated) | ☐ planned |  | | 0003 | (milestone 8) |
 
 ## Module: `interface/spi`
 
 SPI driver. Used by the LoRa interface.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| (functions added when milestone 8 is activated) | ☐ planned | | | (milestone 8) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| (functions added when milestone 8 is activated) | ☐ planned |  | | | (milestone 8) |
 
 ## Module: `lxmf`
 
 LXMF messaging on top of Reticulum.
 
-| Function | Status | Depends-on | ADRs | Spec |
-|----------|--------|-----------|------|------|
-| (functions added when milestone 9 is activated) | ☐ planned | | | (milestone 9) |
+| Function | Status | Owner | Depends-on | ADRs | Spec |
+|----------|--------|-------|-----------|------|------|
+| (functions added when milestone 9 is activated) | ☐ planned |  | | | (milestone 9) |
 
 ---
 
@@ -363,7 +366,8 @@ LXMF messaging on top of Reticulum.
 
 - **Adding a function:** add the entry under its module with status `planned`. Same commit
   introduces the milestone-spec entry for it.
-- **Starting work:** change status to `in-progress`. Commit the stub file simultaneously.
+- **Starting work:** set `Owner`, change status to `in-progress`, and commit the stub file
+  simultaneously.
 - **Tests passing:** change status to `tested`. Commit when tests are committed.
 - **Verifier passing:** change status to `verified`. Commit when verifier spec is committed.
 - **Replacing a function:** mark old as `superseded` with a pointer; do not delete the entry.
