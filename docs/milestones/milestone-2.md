@@ -1,8 +1,21 @@
 # Milestone 2: Cryptographic primitives
 
-- **Status:** Active
+- **Status:** Software-complete; verifier hardening pending
 - **Started:** 2026-05-02
+- **Software-complete:** 2026-05-02
 - **Estimate:** 4–6 months
+- **Notes:** Every primitive under `crypto/*` is implemented in pure
+  RV32 asm and passes its KAT under qemu-system-riscv32. End-to-end
+  KATs use the published reference vectors (FIPS 180-4, RFC 2104,
+  RFC 5869, FIPS 197 + NIST SP 800-38A, RFC 7748 §5.2/§6.1, RFC 8032
+  §7.1) plus pyca/cryptography as an independent oracle for
+  Ed25519/X25519 sign-verify round-trips. SHA-256 / HMAC / HKDF /
+  AES / X25519 carry full Cryptol + SAW Tier A equivalence proofs;
+  SHA-512 and Ed25519 are KAT-only at present, with Cryptol+SAW
+  algebraic models slated for follow-up in the Tier C-future SAW +
+  macaw-riscv path described in ADR-0009. The deterministic-fake RNG
+  for QEMU bring-up is in place; the production HMAC-DRBG seeded by
+  the on-chip TRNG lands at hardware bring-up time.
 
 ## Goal
 

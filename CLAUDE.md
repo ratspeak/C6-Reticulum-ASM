@@ -162,8 +162,13 @@ When the active milestone reaches `Complete`:
 (software complete; hardware demo gated on bring-up).
 See [docs/milestones/milestone-1.md](docs/milestones/milestone-1.md).
 
-**Milestone 2 — Cryptographic primitives** (running in parallel; the
-crypto work has no hardware dependency).
+**Milestone 2 — Cryptographic primitives** (software-complete; the
+SHA-256/HMAC/HKDF/AES/X25519 stack is verified Tier A + Tier C, the
+SHA-512/Ed25519 stack is KAT-verified end-to-end against
+pyca/cryptography under qemu-system-riscv32, and the deterministic-
+fake RNG is in place pending hardware-TRNG bring-up. Tier A Cryptol
+models for SHA-512/Ed25519 and Binsec/Rel constant-time proofs across
+the full crypto stack are the remaining hardening work).
 See [docs/milestones/milestone-2.md](docs/milestones/milestone-2.md).
 
 Update this section whenever a milestone becomes active or completes.
