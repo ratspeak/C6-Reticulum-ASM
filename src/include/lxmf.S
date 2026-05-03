@@ -14,6 +14,7 @@
 
         .equ LXMF_MSGPACK_FIXARRAY2,             0x92
         .equ LXMF_MSGPACK_FIXARRAY4,             0x94
+        .equ LXMF_MSGPACK_FIXARRAY5,             0x95
         .equ LXMF_MSGPACK_NIL,                   0xC0
         .equ LXMF_MSGPACK_BIN8,                  0xC4
         .equ LXMF_MSGPACK_FLOAT64,               0xCB
@@ -23,6 +24,9 @@
         .equ LXMF_PAYLOAD_MAX_CONTENT,           255
         .equ LXMF_PAYLOAD_MAX_FIELDS,            64
         .equ LXMF_PAYLOAD_MAX_LEN,               397
+        .equ LXMF_STAMP_MAX_LEN,                 32
+        .equ LXMF_PAYLOAD_MAX_STAMPED_LEN,       LXMF_PAYLOAD_MAX_LEN + 2 + LXMF_STAMP_MAX_LEN
+        .equ LXMF_PAYLOAD_PARSED_HAS_STAMP,      1
 
         /* lxmf_payload_input_t struct offsets (28 bytes total).
          *
@@ -39,6 +43,30 @@
         .equ LXMF_PAYLOAD_IN_OFF_FIELDS_PTR,       20
         .equ LXMF_PAYLOAD_IN_OFF_FIELDS_LEN,       24
         .equ LXMF_PAYLOAD_IN_T_SIZE,               28
+
+        /* lxmf_payload_parsed_t struct offsets.
+         *
+         * payload_without_stamp points at raw input for array4 payloads. For
+         * array5 payloads it points at the embedded no-stamp buffer, where the
+         * first byte is normalised from fixarray5 to fixarray4 and the fifth
+         * stamp element is omitted.
+         */
+        .equ LXMF_PAYLOAD_PARSED_OFF_RAW_PTR,                0
+        .equ LXMF_PAYLOAD_PARSED_OFF_RAW_LEN,                4
+        .equ LXMF_PAYLOAD_PARSED_OFF_WITHOUT_STAMP_PTR,      8
+        .equ LXMF_PAYLOAD_PARSED_OFF_WITHOUT_STAMP_LEN,      12
+        .equ LXMF_PAYLOAD_PARSED_OFF_TIMESTAMP_BE_PTR,       16
+        .equ LXMF_PAYLOAD_PARSED_OFF_TITLE_PTR,              20
+        .equ LXMF_PAYLOAD_PARSED_OFF_TITLE_LEN,              24
+        .equ LXMF_PAYLOAD_PARSED_OFF_CONTENT_PTR,            28
+        .equ LXMF_PAYLOAD_PARSED_OFF_CONTENT_LEN,            32
+        .equ LXMF_PAYLOAD_PARSED_OFF_FIELDS_PTR,             36
+        .equ LXMF_PAYLOAD_PARSED_OFF_FIELDS_LEN,             40
+        .equ LXMF_PAYLOAD_PARSED_OFF_STAMP_PTR,              44
+        .equ LXMF_PAYLOAD_PARSED_OFF_STAMP_LEN,              48
+        .equ LXMF_PAYLOAD_PARSED_OFF_FLAGS,                  52
+        .equ LXMF_PAYLOAD_PARSED_OFF_WITHOUT_STAMP_BUF,      56
+        .equ LXMF_PAYLOAD_PARSED_T_SIZE,                     456
 
         /* Upstream LXMF delivery announce app-data:
          * msgpack([display_name_or_nil, stamp_cost_or_nil]).

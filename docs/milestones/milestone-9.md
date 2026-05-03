@@ -37,7 +37,7 @@ compatibility mode.
       Direct Link packets carry this full packed message; Opportunistic packets
       strip the destination hash in transit and reconstruct it from the packet
       destination on receive.
-- [ ] Payload build/parse accepts the bounded MessagePack subset needed for
+- [x] Payload build/parse accepts the bounded MessagePack subset needed for
       timestamp, title, content, empty/custom fields, and optional stamp stripping
       for message-id/signature validation.
 - [ ] `lxmf_message_id` computes `SHA256(destination || source || payload_without_stamp)`
@@ -115,7 +115,9 @@ Implementation status:
 
 - [x] `lxmf_payload_build` emits upstream-compatible MessagePack for bounded
       timestamp, title, content, and empty/custom fields.
-- [ ] `lxmf_payload_parse` is still open.
+- [x] `lxmf_payload_parse` accepts array4/array5 payloads, preserves bounded
+      title/content/fields views, rejects unsupported nested fields, and exposes
+      exact no-stamp bytes for message-id/signature validation.
 
 Responsibilities:
 
