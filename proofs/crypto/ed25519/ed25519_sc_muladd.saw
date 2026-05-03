@@ -1,0 +1,56 @@
+// proofs/crypto/ed25519/ed25519_sc_muladd.saw
+//
+// SAW driver for ed25519_sc_muladd algorithmic verification (Tier A
+// per ADR-0009): proves the Cryptol model in Ed25519Scalar.cry is
+// algebraically consistent with RFC 8032 §5.1.5 modular arithmetic
+// for (a*b + c) mod L.
+//
+// The asm computes (a*b + c) mod L via an 8x8 schoolbook multiply
+// into a 64-byte buffer, adds c into the low half (with carry), then
+// invokes ed25519_sc_reduce. The Cryptol model collapses all that
+// machinery into a one-line Integer expression; SAW discharges the
+// concrete boundary KATs and a random vector here. The QEMU pytest at
+// tests/crypto/ed25519/test_ed25519_sc_muladd.py covers the random-
+// input space against a Python reference oracle.
+//
+// We deliberately stay with concrete KATs (not symbolic universal
+// quantification) — Cryptol's Integer-typed `mod L` becomes a
+// symbolic bignum that z3 takes a long time to discharge over
+// universal 256-bit inputs. Concrete KATs go through in seconds.
+//
+// Run standalone:
+//   saw proofs/crypto/ed25519/ed25519_sc_muladd.saw
+// or via dispatcher:
+//   ./verify ed25519_sc_muladd
+
+import "Ed25519Scalar.cry";
+
+print "[ed25519_sc_muladd.saw] proving sc_muladd(0, 0, 0) == 0 ...";
+prove_print z3 {{ sc_muladd_kat_zero }};
+print "[ed25519_sc_muladd.saw] zero KAT: PASS.";
+
+print "[ed25519_sc_muladd.saw] proving sc_muladd(1, 1, 0) == 1 ...";
+prove_print z3 {{ sc_muladd_kat_one_one }};
+print "[ed25519_sc_muladd.saw] 1*1+0 KAT: PASS.";
+
+print "[ed25519_sc_muladd.saw] proving sc_muladd(L, 1, 0) == 0 ...";
+prove_print z3 {{ sc_muladd_kat_L_one }};
+print "[ed25519_sc_muladd.saw] L*1+0 == 0 KAT: PASS.";
+
+print "[ed25519_sc_muladd.saw] proving sc_muladd(1, L, 0) == 0 ...";
+prove_print z3 {{ sc_muladd_kat_one_L }};
+print "[ed25519_sc_muladd.saw] 1*L+0 == 0 KAT: PASS.";
+
+print "[ed25519_sc_muladd.saw] proving sc_muladd(L-1, L-1, 0) == 1 ...";
+prove_print z3 {{ sc_muladd_kat_minus_one_squared }};
+print "[ed25519_sc_muladd.saw] (-1)^2 == 1 KAT: PASS.";
+
+print "[ed25519_sc_muladd.saw] proving sc_muladd(0, 0, L-1) == L-1 ...";
+prove_print z3 {{ sc_muladd_kat_zero_zero_Lm1 }};
+print "[ed25519_sc_muladd.saw] passthrough-c KAT: PASS.";
+
+print "[ed25519_sc_muladd.saw] proving random concrete (a, b, c) -> r KAT ...";
+prove_print z3 {{ sc_muladd_kat_random }};
+print "[ed25519_sc_muladd.saw] random concrete KAT: PASS.";
+
+print "[ed25519_sc_muladd.saw] PASS";

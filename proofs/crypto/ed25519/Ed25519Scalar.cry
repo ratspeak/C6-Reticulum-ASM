@@ -1,0 +1,207 @@
+// proofs/crypto/ed25519/Ed25519Scalar.cry
+//
+// Cryptol algorithmic specification for the Ed25519 scalar arithmetic
+// primitives `ed25519_sc_reduce` and `ed25519_sc_muladd`.
+//
+// RFC 8032 §5.1.5 fixes the Ed25519 group order:
+//   L = 2^252 + 27742317777372353535851937790883648493
+//
+// All scalars in Ed25519 are 32-byte little-endian integers in the range
+// [0, L). The two operations modelled here are:
+//
+//   sc_reduce(in)        : in is a 64-byte LE 512-bit integer; returns
+//                          (in mod L) as 32 LE bytes.
+//   sc_muladd(a, b, c)   : a, b, c are 32-byte LE scalars; returns
+//                          ((a * b + c) mod L) as 32 LE bytes.
+//
+// The asm implementations use binary long-division (sc_reduce) and an
+// 8×8 schoolbook multiply followed by sc_reduce (sc_muladd). Both must
+// produce the same result as direct modular arithmetic; this module
+// states the arithmetic specification, against which SAW symbolically
+// discharges concrete KAT vectors.
+//
+// We deliberately stay with concrete-value KATs (not universal
+// quantification over symbolic 256/512-bit integers) — Cryptol's
+// Integer-typed `mod L` becomes a symbolic bignum that z3 takes a
+// long time to discharge over universal inputs. The QEMU pytest at
+// tests/crypto/ed25519/test_ed25519_sc_*.py covers the random-input
+// space against a Python reference oracle.
+
+module Ed25519Scalar where
+
+// ---------- types ------------------------------------------------------
+
+type Scalar32 = [32][8]   // 32-byte LE scalar
+type Scalar64 = [64][8]   // 64-byte LE 512-bit integer (sc_reduce input)
+
+// ---------- L constant ------------------------------------------------
+
+// RFC 8032 §5.1.5 — Ed25519 prime order.
+// L = 2^252 + 27742317777372353535851937790883648493
+//   = 0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed
+L_int : Integer
+L_int = 7237005577332262213973186563042994240857116359379907606001950938285454250989
+
+// L encoded as 32 LE bytes. The asm holds this in `ed25519_L_bytes`
+// (state/ed25519.S) — same byte-for-byte content.
+L_bytes : Scalar32
+L_bytes = [ 0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58
+          , 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14
+          , 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+          , 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10
+          ]
+
+// ---------- byte/integer conversions ----------------------------------
+
+// 32 LE bytes -> Integer.
+le32_to_int : Scalar32 -> Integer
+le32_to_int bs = toInteger (join (reverse bs) : [256])
+
+// Integer -> 32 LE bytes (truncates if value > 2^256 - 1).
+int_to_le32 : Integer -> Scalar32
+int_to_le32 v = reverse (split (fromInteger v : [256]))
+
+// 64 LE bytes -> Integer.
+le64_to_int : Scalar64 -> Integer
+le64_to_int bs = toInteger (join (reverse bs) : [512])
+
+// ---------- sc_reduce specification ----------------------------------
+
+// (in mod L) as 32 LE bytes. The asm computes this via binary long-
+// division (constant-time mask-select per iteration), but the abstract
+// answer is the integer mod.
+sc_reduce : Scalar64 -> Scalar32
+sc_reduce v = int_to_le32 ((le64_to_int v) % L_int)
+
+// ---------- sc_muladd specification ----------------------------------
+
+// ((a * b + c) mod L) as 32 LE bytes.
+sc_muladd : Scalar32 -> Scalar32 -> Scalar32 -> Scalar32
+sc_muladd a b c = int_to_le32 ((((le32_to_int a) * (le32_to_int b)
+                                + (le32_to_int c)) % L_int))
+
+// ---------- helpers for KATs ----------------------------------------
+
+// L_bytes equals the canonical encoding of L_int.
+L_bytes_match : Bit
+L_bytes_match = L_bytes == int_to_le32 L_int
+
+// Useful canonical encodings.
+zero_bytes : Scalar32
+zero_bytes = zero
+
+one_bytes : Scalar32
+one_bytes = [0x01] # (zero : [31][8])
+
+L_minus_one_bytes : Scalar32
+L_minus_one_bytes = int_to_le32 (L_int - 1)
+
+zero64 : Scalar64
+zero64 = zero
+
+L_extended_64 : Scalar64
+L_extended_64 = L_bytes # (zero : [32][8])
+
+L_minus_one_extended_64 : Scalar64
+L_minus_one_extended_64 = L_minus_one_bytes # (zero : [32][8])
+
+// 2^256 in 64 LE bytes.
+two_to_256_bytes : Scalar64
+two_to_256_bytes = (zero : [32][8]) # [0x01] # (zero : [31][8])
+
+// All-ones 64 bytes (= 2^512 - 1).
+all_ones_64 : Scalar64
+all_ones_64 = repeat 0xff
+
+// ---------- sc_reduce KATs (boundary values) ------------------------
+
+// sc_reduce(0) == 0
+sc_reduce_kat_zero : Bit
+sc_reduce_kat_zero = sc_reduce zero64 == zero_bytes
+
+// sc_reduce(L) == 0
+sc_reduce_kat_L : Bit
+sc_reduce_kat_L = sc_reduce L_extended_64 == zero_bytes
+
+// sc_reduce(L-1) == L-1
+sc_reduce_kat_L_minus_one : Bit
+sc_reduce_kat_L_minus_one = sc_reduce L_minus_one_extended_64 == L_minus_one_bytes
+
+// sc_reduce(2^256) == 2^256 mod L
+two_to_256_mod_L : Scalar32
+two_to_256_mod_L = int_to_le32 ((2 ^^ 256) % L_int)
+
+sc_reduce_kat_two_to_256 : Bit
+sc_reduce_kat_two_to_256 = sc_reduce two_to_256_bytes == two_to_256_mod_L
+
+// sc_reduce(2^512 - 1) == (2^512 - 1) mod L
+two_to_512_minus_1_mod_L : Scalar32
+two_to_512_minus_1_mod_L = int_to_le32 ((2 ^^ 512 - 1) % L_int)
+
+sc_reduce_kat_all_ones : Bit
+sc_reduce_kat_all_ones = sc_reduce all_ones_64 == two_to_512_minus_1_mod_L
+
+// ---------- sc_muladd KATs (concrete) -------------------------------
+
+// 1 * 1 + 0 == 1
+sc_muladd_kat_one_one : Bit
+sc_muladd_kat_one_one = sc_muladd one_bytes one_bytes zero_bytes == one_bytes
+
+// 0 * 0 + 0 == 0
+sc_muladd_kat_zero : Bit
+sc_muladd_kat_zero = sc_muladd zero_bytes zero_bytes zero_bytes == zero_bytes
+
+// L * 1 + 0 == 0  (L is reduced to 0)
+sc_muladd_kat_L_one : Bit
+sc_muladd_kat_L_one = sc_muladd L_bytes one_bytes zero_bytes == zero_bytes
+
+// 1 * L + 0 == 0
+sc_muladd_kat_one_L : Bit
+sc_muladd_kat_one_L = sc_muladd one_bytes L_bytes zero_bytes == zero_bytes
+
+// (L-1) * (L-1) + 0 == 1   (since L-1 ≡ -1, (-1)^2 = 1)
+sc_muladd_kat_minus_one_squared : Bit
+sc_muladd_kat_minus_one_squared =
+    sc_muladd L_minus_one_bytes L_minus_one_bytes zero_bytes == one_bytes
+
+// 0 * 0 + (L-1) == L-1
+sc_muladd_kat_zero_zero_Lm1 : Bit
+sc_muladd_kat_zero_zero_Lm1 =
+    sc_muladd zero_bytes zero_bytes L_minus_one_bytes == L_minus_one_bytes
+
+// Random-looking concrete vector: a*b + c mod L for chosen a, b, c.
+// (Generated against a Python oracle.)
+random_kat_a : Scalar32
+random_kat_a =
+    [ 0xfe, 0xde, 0xee, 0x8a, 0x92, 0x30, 0xa4, 0xf2
+    , 0x2c, 0xb5, 0x06, 0xb2, 0xbb, 0xe5, 0x77, 0x09
+    , 0x02, 0xf1, 0x07, 0xbc, 0xcc, 0x0a, 0x6e, 0x5e
+    , 0xed, 0xe3, 0x6d, 0x34, 0x64, 0x36, 0xea, 0xc8
+    ]
+
+random_kat_b : Scalar32
+random_kat_b =
+    [ 0xb7, 0x39, 0xf6, 0xc4, 0x9b, 0x38, 0x9a, 0x8f
+    , 0x66, 0x67, 0x4a, 0x22, 0x03, 0x21, 0x24, 0x16
+    , 0x94, 0xb1, 0xd6, 0xf4, 0x9f, 0xcb, 0x3d, 0x4a
+    , 0x96, 0xb4, 0x29, 0x3c, 0x50, 0x0a, 0x4b, 0x86
+    ]
+
+random_kat_c : Scalar32
+random_kat_c =
+    [ 0x51, 0x42, 0xbf, 0x0b, 0x1b, 0xb1, 0x5c, 0x38
+    , 0x0e, 0x55, 0x6a, 0x08, 0x1d, 0x48, 0xe7, 0x2d
+    , 0xad, 0x6f, 0x06, 0x06, 0x7a, 0x6e, 0x42, 0xa2
+    , 0x17, 0xc1, 0xd8, 0xbf, 0xd2, 0xde, 0x51, 0xfa
+    ]
+
+random_kat_r : Scalar32
+random_kat_r =
+    [ 0xa1, 0x5f, 0x60, 0x17, 0x61, 0x07, 0x18, 0x3e
+    , 0xac, 0x46, 0xe1, 0xdc, 0xc0, 0xa0, 0xe6, 0x48
+    , 0x7a, 0xc4, 0xbe, 0x44, 0xe4, 0x6b, 0x79, 0x93
+    , 0x8e, 0x62, 0x3f, 0xbe, 0xbf, 0x80, 0x53, 0x07
+    ]
+
+sc_muladd_kat_random : Bit
+sc_muladd_kat_random = sc_muladd random_kat_a random_kat_b random_kat_c == random_kat_r

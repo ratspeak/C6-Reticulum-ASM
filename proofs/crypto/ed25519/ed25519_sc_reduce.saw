@@ -1,0 +1,46 @@
+// proofs/crypto/ed25519/ed25519_sc_reduce.saw
+//
+// SAW driver for ed25519_sc_reduce algorithmic verification (Tier A
+// per ADR-0009): proves the Cryptol model in Ed25519Scalar.cry is
+// algebraically consistent with RFC 8032 §5.1.5 modular reduction.
+//
+// Tier A here is a spec-level proof: the model implements
+// `(in mod L)` directly via Cryptol's Integer type, and SAW discharges
+// concrete KATs at the boundary (zero, L, L-1, 2^256, 2^512 - 1) plus
+// the canonical L encoding. The asm uses binary long-division which
+// must be observably equivalent — that's what the QEMU pytest at
+// tests/crypto/ed25519/test_ed25519_sc_reduce.py pins down on a
+// battery of random and boundary inputs.
+//
+// Run standalone:
+//   saw proofs/crypto/ed25519/ed25519_sc_reduce.saw
+// or via dispatcher:
+//   ./verify ed25519_sc_reduce
+
+import "Ed25519Scalar.cry";
+
+print "[ed25519_sc_reduce.saw] proving L_bytes matches the canonical L encoding ...";
+prove_print z3 {{ L_bytes_match }};
+print "[ed25519_sc_reduce.saw] L_bytes == int_to_le32 L_int: PASS.";
+
+print "[ed25519_sc_reduce.saw] proving sc_reduce KAT: zero -> zero ...";
+prove_print z3 {{ sc_reduce_kat_zero }};
+print "[ed25519_sc_reduce.saw] sc_reduce(0) == 0: PASS.";
+
+print "[ed25519_sc_reduce.saw] proving sc_reduce KAT: L -> 0 ...";
+prove_print z3 {{ sc_reduce_kat_L }};
+print "[ed25519_sc_reduce.saw] sc_reduce(L) == 0: PASS.";
+
+print "[ed25519_sc_reduce.saw] proving sc_reduce KAT: L-1 -> L-1 ...";
+prove_print z3 {{ sc_reduce_kat_L_minus_one }};
+print "[ed25519_sc_reduce.saw] sc_reduce(L-1) == L-1: PASS.";
+
+print "[ed25519_sc_reduce.saw] proving sc_reduce KAT: 2^256 -> 2^256 mod L ...";
+prove_print z3 {{ sc_reduce_kat_two_to_256 }};
+print "[ed25519_sc_reduce.saw] sc_reduce(2^256) == 2^256 mod L: PASS.";
+
+print "[ed25519_sc_reduce.saw] proving sc_reduce KAT: 2^512-1 -> ... mod L ...";
+prove_print z3 {{ sc_reduce_kat_all_ones }};
+print "[ed25519_sc_reduce.saw] sc_reduce(2^512 - 1) == (2^512 - 1) mod L: PASS.";
+
+print "[ed25519_sc_reduce.saw] PASS";

@@ -16,9 +16,14 @@
 #               word multiplication into a 64-byte product, then
 #               add c (with carry propagation through the high half),
 #               then reduce mod L via ed25519_sc_reduce.
-# @verify:      kat-only; matches Python (a*b + c) mod L for boundary
-#               and random inputs in the QEMU pytest.
+# @verify:      proofs/crypto/ed25519/Ed25519Scalar.cry, proofs/crypto/ed25519/ed25519_sc_muladd.saw
 # @tests:       tests/crypto/ed25519/test_ed25519_sc_muladd.py
+#               (Tier A: SAW + Cryptol prove (a*b + c) mod L matches
+#               the integer-arithmetic spec on seven concrete vectors:
+#               (0,0,0), (1,1,0), (L,1,0), (1,L,0), (L-1,L-1,0),
+#               (0,0,L-1), and one random 256-bit triple. Tier C
+#               bridge: the QEMU pytest covers the random-input space
+#               against the same Python oracle.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================

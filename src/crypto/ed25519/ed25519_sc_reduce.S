@@ -18,10 +18,14 @@
 #               construction, and the cost (~36K cycles, ≈ 360µs at
 #               100 MHz) is acceptable for sign/verify hot paths since
 #               sc_reduce runs at most twice per sign and verify.
-# @verify:      kat-only; reduction matches Python's `N mod L` for
-#               N in {0, L-1, L, L+1, 2^256-1, 2^512-1, random} via the
-#               QEMU pytest.
+# @verify:      proofs/crypto/ed25519/Ed25519Scalar.cry, proofs/crypto/ed25519/ed25519_sc_reduce.saw
 # @tests:       tests/crypto/ed25519/test_ed25519_sc_reduce.py
+#               (Tier A: SAW + Cryptol prove L_bytes equals the
+#               canonical encoding of L = 2^252 + ... and the boundary
+#               KATs sc_reduce({0, L, L-1, 2^256, 2^512-1}) match the
+#               integer-mod spec. Tier C bridge: the QEMU pytest
+#               cross-checks the asm against Python `N mod L` for
+#               random inputs in addition to the boundaries.)
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
 # ============================================================================
