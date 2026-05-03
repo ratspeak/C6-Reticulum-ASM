@@ -91,6 +91,7 @@ def test_emits_lora_ready_before_boot_banner(artifacts: build.BuildArtifacts) ->
     assert lora_idx is not None, [e.raw for e in events]
     assert boot_idx is not None, [e.raw for e in events]
     assert lora_idx < boot_idx, [e.raw for e in events]
+    assert "status" in events[lora_idx].fields, events[lora_idx].raw
 
 
 def test_banner_has_canonical_timestamp_field(

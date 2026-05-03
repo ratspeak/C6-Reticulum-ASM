@@ -180,6 +180,9 @@ paths injectable from tests.
   USB-Serial/JTAG diagnostics still work and GPIO5 does not break boot.
 - Reset/readback test: drive NRST low/high, wait for BUSY low, then issue a
   harmless status/read command and check for a sane response.
+  The boot `lora.ready` log includes the `GetStatus` byte; the hardware test
+  requires chip-mode bits 6:4 to report STBY_RC (`0x2`, encoded as `0x20`)
+  per the Semtech SX1261/2 status-byte table.
 - Init test: configure LoRa packet mode, RF frequency, modulation params,
   packet params, DIO IRQ params, and standby/RX state.
 - TX test: write one short Reticulum packet to FIFO, start TX, observe TX done

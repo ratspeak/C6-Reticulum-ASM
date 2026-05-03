@@ -354,6 +354,7 @@ class HwTarget(Target):
     def __init__(self, config: TargetConfig | None = None) -> None:
         super().__init__(config)
         self._serial = None  # type: ignore[assignment]
+        self.boot_output = b""
 
     def is_available(self) -> bool:
         if shutil.which("esptool.py") is None and shutil.which("esptool") is None:
@@ -402,12 +403,15 @@ class HwTarget(Target):
         # post-boot stream from the next read.
         deadline = time.monotonic() + self.config.boot_ready_timeout
         buf = bytearray()
+        self.boot_output = b""
         while time.monotonic() < deadline:
             chunk = self._serial.read(4096)
             if chunk:
                 buf.extend(chunk)
                 if b"\tboot\tready" in buf:
+                    self.boot_output = bytes(buf)
                     return
+        self.boot_output = bytes(buf)
         raise TargetUnavailable(
             f"HwTarget: no `boot\\tready` marker within "
             f"{self.config.boot_ready_timeout}s after reset; got "

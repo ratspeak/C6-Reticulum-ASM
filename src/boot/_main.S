@@ -71,11 +71,11 @@
 .Lboot_ready_tag_end:
         .equ   .Lboot_ready_tag_len, .Lboot_ready_tag_end - .Lboot_ready_tag
 .Llora_ready_tag:
-        .ascii "lora\tready"
+        .ascii "lora\tready\tstatus="
 .Llora_ready_tag_end:
         .equ   .Llora_ready_tag_len, .Llora_ready_tag_end - .Llora_ready_tag
 .Llora_init_err_tag:
-        .ascii "lora\tinit_error"
+        .ascii "lora\tinit_error\tcode="
 .Llora_init_err_tag_end:
         .equ   .Llora_init_err_tag_len, .Llora_init_err_tag_end - .Llora_init_err_tag
 .Llora_rx_tag:
@@ -270,15 +270,41 @@ _main:
         call    lora_interface_init
         bnez    a0, .Llora_init_error
 
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
         la      a0, .Llora_ready_tag
         li      a1, .Llora_ready_tag_len
-        call    log_event
+        call    log_str
+        la      t0, sx1262_model_status_byte
+        lbu     a0, 0(t0)
+        li      a1, 2
+        call    log_hex
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
         j       .Lboot_ready
 
 .Llora_init_error:
+        sw      a0, 0(sp)
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
         la      a0, .Llora_init_err_tag
         li      a1, .Llora_init_err_tag_len
-        call    log_event
+        call    log_str
+        lw      a0, 0(sp)
+        li      a1, 8
+        call    log_hex
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
 
 .Lboot_ready:
         la      a0, .Lboot_ready_tag
