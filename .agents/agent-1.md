@@ -6,6 +6,7 @@
 milestone-6-link-establishment — claimed 2026-05-03T11:42:00Z, ETA active
 
 ## Recent claims (rolling, last 10)
+- link-handshake-accept — claimed 2026-05-03T12:11:00Z, completed 2026-05-03T12:23:00Z, branch: main, integrated as 9e7a171
 - link-handshake-init — claimed 2026-05-03T11:58:00Z, completed 2026-05-03T12:10:00Z, branch: main, integrated as 0a34309
 - link-key-derivation — claimed 2026-05-03T11:50:00Z, completed 2026-05-03T11:58:00Z, branch: main, integrated as 9d97944
 - link-request-subset — claimed 2026-05-03T11:42:00Z, completed 2026-05-03T11:50:00Z, branch: main, integrated as beef415
@@ -25,7 +26,7 @@ milestone-6-link-establishment — claimed 2026-05-03T11:42:00Z, ETA active
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 6; first eligible claims are `link_request_build`, `link_request_parse`, `link_handshake_init`, `link_handshake_accept`, `link_derive_keys`, `link_session_encrypt`, `link_session_decrypt`, and `link_process_packet`.
+- Active milestone is milestone 6; eligible remaining claims are `link_session_encrypt`, `link_session_decrypt`, and `link_process_packet`.
 - 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.
 - 2026-05-03T07:57:41Z — milestone-4 flash driver/model, hardware contract, and qemu proof integrated through 143055f; `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and `./verify --all` passed.
 - 2026-05-03T08:28:10Z — TARGET_C6 ROM-helper flash backend and executable reset-retention hardware test integrated through 27b75d6; `make ci`, `make build TARGET=qemu-virt`, `make image TARGET=c6`, focused `./verify flash_*`, and `./verify --all` passed.
@@ -40,3 +41,4 @@ milestone-6-link-establishment — claimed 2026-05-03T11:42:00Z, ETA active
 - 2026-05-03T11:50:00Z — implemented verified milestone-6 link request subset on main as beef415; gates: `./verify link_request_build`, `./verify link_request_parse`, `make ci` (`598 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T11:58:00Z — implemented verified `link_derive_keys` on main as 9d97944; gates: `./verify link_derive_keys`, `make ci` (`606 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
 - 2026-05-03T12:10:00Z — implemented verified `link_handshake_init` on main as 0a34309; gates: `./verify link_handshake_init`, `make ci` (`613 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
+- 2026-05-03T12:23:00Z — implemented verified `link_handshake_accept` on main as 9e7a171; gates: `./verify link_handshake_accept`, `make ci` (`620 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`.
