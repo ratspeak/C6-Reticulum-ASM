@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 6 is active through 9d97944. Latest integrated slice: verified `link_derive_keys` HKDF session material. Current gates passed: `./verify link_request_build`, `./verify link_request_parse`, `./verify link_derive_keys`, `make ci` (`606 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-6 claims: `link_handshake_init`, `link_handshake_accept`, `link_session_encrypt`, `link_session_decrypt`, `link_process_packet`.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 6 is active through 0a34309. Latest integrated slice: verified `link_handshake_init` pending entry + request emission. Current gates passed: `./verify link_request_build`, `./verify link_request_parse`, `./verify link_derive_keys`, `./verify link_handshake_init`, `make ci` (`613 passed, 14 skipped`), qemu/C6 builds, registry, stack max 2304/16384, and `git diff --check`. Eligible next milestone-6 claims: `link_handshake_accept`, `link_session_encrypt`, `link_session_decrypt`, `link_process_packet`.
 
 ## Pending
 
@@ -10,6 +10,7 @@
 
 ## Resolved (rolling, last 20)
 
+- [agent-1] Implement verified `link_handshake_init`; adds RAM link table state, deterministic existing/first-invalid/oldest-age replacement, fresh local X25519 and Ed25519 link keys, pending entry metadata, current Reticulum link request emission, direct-QEMU table/request tests, and source contract proof — branch: main, integrated as 0a34309 2026-05-03T12:10:00Z
 - [agent-1] Implement verified `link_derive_keys`; derives 64 bytes of AES-256-CBC link token material with HKDF-SHA-256 using transcript/link-id salt and X25519 shared secret IKM, with direct-QEMU tests against Python hmac/hashlib and source contract proof — branch: main, integrated as 9d97944 2026-05-03T11:58:00Z
 - [agent-1] Implement verified milestone-6 link request subset; adds current Reticulum HEADER_1 `LINKREQUEST` build/parse for `x25519_pub || ed25519_link_pub || signalling(500,AES-256-CBC)`, rejects legacy/no-signalling and alternate mode/MTU packets, and includes QEMU tests plus finite source/bounds proof — branch: main, integrated as beef415 2026-05-03T11:50:00Z
 - [agent-1] Close milestone 5 Transport RX and activate milestone 6 Link Establishment; adds `docs/milestones/milestone-6.md`, updates roadmap/registry counts, records final M5 proof/hardware gates, and leaves M6 link functions planned — branch: main, integrated as 7bfa97b 2026-05-03T11:41:00Z
