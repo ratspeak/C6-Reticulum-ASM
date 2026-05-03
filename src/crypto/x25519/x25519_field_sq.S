@@ -19,7 +19,7 @@
 #               55 mul instead of 100, leveraging a[i]*a[j] = a[j]*a[i]
 #               for i<j) can replace this body without changing the
 #               post-condition.
-# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_sq.saw
+# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_sq.saw, proofs/crypto/x25519/x25519_field_sq.bsc
 # @tests:       tests/crypto/x25519/test_x25519_field_sq.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

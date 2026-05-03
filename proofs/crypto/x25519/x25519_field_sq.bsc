@@ -1,0 +1,23 @@
+# Binsec/Rel constant-time check for x25519_field_sq (Tier B per ADR-0009).
+#
+# x25519_field_sq is currently a wrapper for x25519_field_mul(a, a): it copies
+# the input pointer from a1 to a2, then tail-calls the full multiplication and
+# reduction routine. Field-element limbs are secret during the X25519 ladder.
+# This proof starts at the wrapper entry and halts at the tail-called field_mul
+# return, checking the wrapper plus the compiled RV32IMC multiplication body for
+# secret-independent control flow and memory-access addresses.
+
+starting from <x25519_field_sq> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # out (40 bytes)
+  a1 := 0x80001000          # a   (40 bytes)
+  for i<32> in 0 to 9 do
+    @[a1 + i * 4, 4] := secret as a_limb
+  end
+end
+
+# field_sq tail-calls field_mul, so the return instruction lives in the callee.
+halt at <x25519_field_mul> return
+
+explore all
