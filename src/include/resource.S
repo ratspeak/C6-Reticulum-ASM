@@ -33,6 +33,10 @@
         .equ RESOURCE_REASM_STATUS_EMPTY,         0
         .equ RESOURCE_REASM_STATUS_RECEIVING,     1
         .equ RESOURCE_REASM_STATUS_COMPLETE,      2
+        .equ RESOURCE_REASM_RESULT_ADVERTISED,    1
+        .equ RESOURCE_REASM_RESULT_PART_ACCEPTED, 2
+        .equ RESOURCE_REASM_RESULT_DUPLICATE,     3
+        .equ RESOURCE_REASM_RESULT_COMPLETE,      4
 
         /* resource_reassembly_entry_t offsets (316 bytes total). */
         .equ RESOURCE_REASM_OFF_VALID,            0

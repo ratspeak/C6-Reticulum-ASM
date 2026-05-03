@@ -37,7 +37,7 @@ small in-RAM reassembly window.
 - [x] `resource_part_parse` extracts one resource part from decrypted link
       plaintext, checks caller length bounds, and computes the map-hash used
       to infer the part position from the advertised receive window.
-- [ ] `resource_reassembly_init` and `resource_reassembly_update` maintain a
+- [x] `resource_reassembly_init` and `resource_reassembly_update` maintain a
       fixed-capacity in-RAM received-part window with deterministic duplicate,
       complete, and invalid statuses.
 - [ ] `resource_process_plaintext` dispatches decrypted link plaintext for
@@ -160,6 +160,11 @@ Verified state baseline:
    `resource_reassembly_update` matching.
 3. The initial receive-window constants mirror upstream Reticulum's receive
    window floor/default/max for this bounded subset: 2, 4, and 75.
+4. `resource_reassembly_update` installs parsed advertisements, rejects
+   duplicate resource hashes without clearing progress, computes per-resource
+   map hashes for incoming parts, marks received bits, advances the consecutive
+   index, and returns stable accepted, duplicate, complete, and invalid
+   statuses.
 
 ## resource_process_plaintext
 
