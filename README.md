@@ -1,5 +1,5 @@
 # RISC-V-C6
-#### Do not take this project seriously, it's the result of having spare LLM compute and wanting to test its capability. Zero guarantees.
+#### Warning: Experimental - this is the result of boredom, spare LLM compute and wanting to test its capability. No guarantees.
 
 Pure RV32IMAC assembly firmware for experimenting with Reticulum on the
 Adafruit ESP32-C6 Feather.
