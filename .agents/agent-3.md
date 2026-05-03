@@ -3,9 +3,10 @@
 # Codex session: not started
 
 ## Active claim (single line, current)
-destination-qemu-output-tests — claimed 2026-05-03T06:40:58Z, ETA 2h
+none — available
 
 ## Recent claims (rolling, last 10)
+- destination-qemu-output-tests — claimed 2026-05-03T06:40:58Z, completed 2026-05-03T06:45:26Z, branch: agent-3/destination-qemu-tests, commit: 68beaa1
 - destination_name_hash,destination_hash — claimed 2026-05-03T06:19:26Z, completed 2026-05-03T06:26:15Z, branch: agent-3/work
 
 ## Notes / blockers
@@ -15,3 +16,4 @@ destination-qemu-output-tests — claimed 2026-05-03T06:40:58Z, ETA 2h
 - 2026-05-03T06:26:15Z: Verified `destination_name_hash` and `destination_hash`; gates passed (`make registry`, `make stack`, focused destination pytest, `make build TARGET=qemu-virt`, and `./verify` for both functions).
 - 2026-05-03T06:33:11Z — integrated destination hash helpers on main as 2d53456; coordinator reran both focused `./verify` targets, destination pytest, `make registry`, `make stack`, and `make build TARGET=qemu-virt`.
 - 2026-05-03T06:40:58Z — claimed direct QEMU output coverage for `destination_name_hash` and `destination_hash`; tests-only sidecar.
+- 2026-05-03T06:46:52Z — integrated direct QEMU output coverage on main as 1e2a711; coordinator reran focused destination pytest, both focused `./verify` targets, `make registry`, and `make stack`.
