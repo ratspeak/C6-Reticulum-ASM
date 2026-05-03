@@ -1,8 +1,20 @@
 # Milestone 2: Cryptographic primitives
 
-- **Status:** Software-complete; verifier hardening pending
+- **Status:** Software-complete; Tier A landed for the entire crypto
+  stack except the three Ed25519 end-to-end glue functions
+  (`keypair`, `sign`, `verify`); Tier B (Binsec/Rel ct on RV32 ELFs)
+  is the remaining sub-project.
 - **Started:** 2026-05-02
 - **Software-complete:** 2026-05-02
+- **Tier A complete:** 2026-05-02 (sha-256 / sha-512 / hmac / hkdf /
+  aes-256 / x25519 / ed25519-scalar / ed25519-point / ed25519-encoding
+  / ed25519-scalarmult / ed25519-compress / ed25519-decompress /
+  ed25519-field-pow-p5d8). The three Ed25519 end-to-end functions
+  remain `kat-only` with strengthened rationale: every underlying
+  primitive now has its own Tier A, so a sign/verify-level Tier A
+  would re-execute the same primitives symbolically (dominated by
+  per-primitive coverage). RNG remains `kat-only` until the
+  production HMAC-DRBG replaces the deterministic-fake.
 - **Estimate:** 4–6 months
 - **Notes:** Every primitive under `crypto/*` is implemented in pure
   RV32 asm and passes its KAT under qemu-system-riscv32. End-to-end
@@ -10,12 +22,14 @@
   RFC 5869, FIPS 197 + NIST SP 800-38A, RFC 7748 §5.2/§6.1, RFC 8032
   §7.1) plus pyca/cryptography as an independent oracle for
   Ed25519/X25519 sign-verify round-trips. SHA-256 / HMAC / HKDF /
-  AES / X25519 carry full Cryptol + SAW Tier A equivalence proofs;
-  SHA-512 and Ed25519 are KAT-only at present, with Cryptol+SAW
-  algebraic models slated for follow-up in the Tier C-future SAW +
-  macaw-riscv path described in ADR-0009. The deterministic-fake RNG
-  for QEMU bring-up is in place; the production HMAC-DRBG seeded by
-  the on-chip TRNG lands at hardware bring-up time.
+  AES / X25519 / SHA-512 / Ed25519 (sub-functions) carry full
+  Cryptol + SAW Tier A equivalence proofs. Tier C binary equivalence
+  for SHA-512 and the (lo, hi)-paired Ed25519 limb code waits on the
+  macaw-riscv path described in ADR-0009 §"Tier C path forward";
+  QEMU pytest cross-checks against pyca/cryptography fill the bridge
+  in the meantime. The deterministic-fake RNG for QEMU bring-up is in
+  place; the production HMAC-DRBG seeded by the on-chip TRNG lands at
+  hardware bring-up time.
 
 ## Goal
 
