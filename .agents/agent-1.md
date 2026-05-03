@@ -13,4 +13,5 @@ parallel-session-live — claimed 2026-05-03T06:18:00Z, ETA ongoing
 ## Notes / blockers
 - Baseline gates passed before live session: `make ci` and `./verify --all`.
 - Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
-- Active milestone is milestone 3; first eligible claims are `identity_hash`, `destination_name_hash`, and `destination_hash`.
+- Active milestone is milestone 4; first eligible claims are `flash_init`, `flash_read`, `flash_write_page`, `flash_erase_sector`, `identity_save`, and `identity_load`.
+- 2026-05-03T07:33:11Z — closed milestone 3 and activated milestone 4 on main as 40493eb.

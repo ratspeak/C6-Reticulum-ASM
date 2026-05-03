@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; baseline `make ci` and `./verify --all` passed; milestone 3 is active
+- parallel session live — 2026-05-03T06:18:00Z; baseline `make ci` and `./verify --all` passed; milestone 4 is active as of 40493eb
 
 ## Pending
 

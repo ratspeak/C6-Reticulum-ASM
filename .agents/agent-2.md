@@ -3,7 +3,7 @@
 # Codex session: 2026-05-03T06:19:34Z
 
 ## Active claim (single line, current)
-none — available
+flash-driver-qemu-model — claimed 2026-05-03T07:33:11Z, ETA 4h
 
 ## Recent claims (rolling, last 10)
 - announce_send — claimed 2026-05-03T07:10:41Z, completed 2026-05-03T07:18:20Z, branch: agent-2/announce-send, commit: d659dd5, integrated as dd8ead3
@@ -20,3 +20,4 @@ none — available
 - 2026-05-03T07:09:15Z — integrated `announce_build` on main as 1e008e9; coordinator reran spec parse, focused QEMU pytest, `./verify announce_build`, `make registry`, `make stack`, and clean `make build TARGET=qemu-virt`.
 - 2026-05-03T07:10:41Z — claimed `announce_send`; owns `src/announce/announce_send.S`, announce TX state buffers/constants, and focused direct tests. Do not edit `src/boot/_main.S`; queue dispatcher integration after the function verifies.
 - 2026-05-03T07:28:58Z — integrated `announce_send` on main as dd8ead3; coordinator reran spec parse, focused QEMU pytest, `./verify announce_send`, `make registry`, `make stack`, clean `make build TARGET=qemu-virt`, `./verify _main`, and `./verify --all`.
+- 2026-05-03T07:33:11Z — claimed milestone-4 qemu flash driver/model; owns `src/include/flash.S`, `src/state/flash.S`, `src/flash/flash_init.S`, `src/flash/flash_read.S`, `src/flash/flash_write_page.S`, `src/flash/flash_erase_sector.S`, `tests/flash/test_flash_driver.py`, and focused verifier artifacts. Avoid `identity_save`, `identity_load`, `_main`, and hardware docs.
