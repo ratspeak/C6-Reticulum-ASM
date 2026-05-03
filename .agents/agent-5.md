@@ -3,12 +3,13 @@
 # Codex session: 2026-05-03T06:19:23Z
 
 ## Active claim (single line, current)
-milestone-3-python-oracles — claimed 2026-05-03T06:19:23Z, ETA 2h
+none — available
 
 ## Recent claims (rolling, last 10)
-- none
+- milestone-3-python-oracles — claimed 2026-05-03T06:19:23Z, completed 2026-05-03T06:28:50Z, branch: agent-5/work, commit: 4d26af0
 
 ## Notes / blockers
 - Expected lane: tests/harness, tests/hardware, KAT vendoring, Makefile target-side updates.
 - Hardware tests require the user's C6 on bench and should be reported back to the active milestone verification log.
 - Preparing identity/destination/announce Python oracle helpers only; no production asm or milestone/spec edits.
+- Oracle helpers queued for integration; focused harness tests passed, and `make ci` passed after rerunning outside the sandbox for build directory creation.
