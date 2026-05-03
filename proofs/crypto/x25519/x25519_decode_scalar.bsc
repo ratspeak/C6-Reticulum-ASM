@@ -1,0 +1,20 @@
+# Binsec/Rel constant-time check for x25519_decode_scalar (Tier B per ADR-0009).
+#
+# x25519_decode_scalar applies RFC 7748 scalar clamping in place:
+# k[0] &= 248 and k[31] = (k[31] & 127) | 64. The scalar bytes are secret
+# before they feed the Montgomery ladder. The function is straight-line and
+# uses fixed-offset byte loads/stores, so output bytes may depend on the
+# secret scalar while control flow and memory-access addresses must not.
+
+starting from <x25519_decode_scalar> with
+  sp := 0x90000000
+  ra := 0xDEADBEEF
+  a0 := 0x80000000          # scalar bytes (32 bytes, modified in place)
+  for i<32> in 0 to 31 do
+    @[a0 + i, 1] := secret as scalar_byte
+  end
+end
+
+halt at <x25519_decode_scalar> return
+
+explore all

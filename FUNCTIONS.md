@@ -63,16 +63,16 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
   aes_mixcolumns/invmixcolumns, aes_addroundkey, aes_subword,
   aes256_key_expand, aes256_encrypt_block / aes256_decrypt_block,
   aes256_cbc_encrypt / aes256_cbc_decrypt) plus sha256_compress
-  (representative SHA-256 family) and seven X25519 functions
+  (representative SHA-256 family) and eight X25519 functions
   (x25519_cswap, x25519_field_add, x25519_field_sub,
   x25519_field_mul, x25519_field_sq, x25519_field_mul121665,
-  x25519_field_inv). All discharge a
+  x25519_field_inv, x25519_decode_scalar). All discharge a
   `secure` verdict from binsec -checkct against the qemu-virt RV32IMC
   ELF with full path coverage. The remaining Tier B sweep across X25519
-  heavy field ops (`montgomery_ladder`, `scalar_mult`, `keypair`),
-  Ed25519, SHA-512, HMAC, HKDF is tracked as a follow-up sub-project;
-  their CT obligation is currently discharged by source-level review
-  against `@ct: required` and composition through proven-CT primitives.
+  (`field_unpack`, `field_pack`, `montgomery_ladder`, `scalar_mult`,
+  `keypair`), Ed25519, SHA-512, HMAC, HKDF is tracked as a follow-up
+  sub-project; their CT obligation is currently discharged by source-level
+  review against `@ct: required` and composition through proven-CT primitives.
 - Planned: Tier A symbolic proofs for the three end-to-end Ed25519 functions (`keypair`, `sign`, `verify`) — these remain kat-only with strengthened rationale because every underlying primitive (sha512, scalarmult, compress, sc_reduce, sc_muladd, decompress, point_add) now has its own Tier A; running the full sign/verify symbolically through SAW would re-execute the same primitives and is dominated by the existing per-primitive coverage. `uart_isr` (hw) remains for the milestone-1 hardware-demo DoD. `decode_u` removed from the registry — `field_unpack`'s limb 9 mask already drops bit 255 (the RFC 7748 high-bit mask), so a separate decode_u is redundant in our representation.
 - `x25519_field_mul121665` and `x25519_field_mul` both rely on a QEMU-pytest Tier C path rather than angr: the pcode RV32IMC engine mistranslates the `mul + mulh + add-with-carry` 64-bit accumulator chain (40-of-40 random inputs disagreed in earlier runs against a hand-written Python asm-level simulator that mirrors the asm verbatim). The X25519 dispatcher tag `'F'` (added in this commit) drives `x25519_field_mul` under qemu-system-riscv32 and compares to the algebraic-spec-validated Python oracle. Same Tier C-future resolution (SAW + macaw-riscv per ADR-0009); QEMU plumbing for `x25519_field_mul121665` is a follow-up since its asm is also covered by transitivity through the simulator.
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.

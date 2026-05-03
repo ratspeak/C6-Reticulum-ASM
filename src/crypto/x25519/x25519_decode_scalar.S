@@ -12,7 +12,7 @@
 # @cycles:      bounded (~10: 2 lbu/sb pairs around 3 mask ops)
 # @ct:          required
 # @spec:        RFC 7748 §5 — decode_scalar25519 clamping
-# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_decode_scalar.saw, proofs/crypto/x25519/x25519_decode_scalar.py
+# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_decode_scalar.saw, proofs/crypto/x25519/x25519_decode_scalar.py, proofs/crypto/x25519/x25519_decode_scalar.bsc
 # @tests:       tests/crypto/x25519/test_x25519_decode_scalar.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
