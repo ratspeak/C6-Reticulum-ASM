@@ -22,9 +22,21 @@
 #                                                ed25519_scalarmult)
 #                 5. compare compress(result) to sig[0..31]; equal ⇒ 0,
 #                    else 1.
-# @verify:      kat-only; QEMU pytest verifies a battery of (sk, msg)
-#               sign-then-verify round-trips (assert verify == 0) plus
-#               negative cases (tampered sig / pk / msg → verify == 1).
+# @verify:      kat-only; ed25519_verify is end-to-end glue over
+#               ed25519_point_decompress + sha512_* + ed25519_sc_reduce
+#               + ed25519_scalarmult + ed25519_point_add +
+#               ed25519_point_compress. Each underlying primitive now
+#               carries Tier A Cryptol+SAW (proofs/crypto/sha512/,
+#               proofs/crypto/ed25519/) plus per-function Tier C
+#               QEMU/pyca KATs; the verify-level QEMU pytest exercises
+#               a battery of (sk, msg) sign-then-verify round-trips
+#               (assert verify == 0) plus tamper rejection (tampered
+#               sig / pk / msg → verify == 1) including RFC 8032 §7.1
+#               TEST 1. A dedicated verify-level Tier A would have to
+#               symbolically run two decompresses + SHA-512 +
+#               sc_reduce + two scalarmults + point_negate + point_add
+#               + compress + memcmp, which is dominated by the
+#               underlying tier-A coverage.
 # @tests:       tests/crypto/ed25519/test_ed25519_verify.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

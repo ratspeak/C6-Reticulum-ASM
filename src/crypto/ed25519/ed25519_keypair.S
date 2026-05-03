@@ -21,10 +21,18 @@
 #                      h[0]  &= 248, h[31] &= 127, h[31] |= 64
 #                 4. A := scalarmult(h_lower, B)    (point)
 #                 5. pk := compress(A)              (pk_out)
-# @verify:      kat-only; QEMU pytest with deterministic-fake RNG
-#               compares (sk, pk) against pyca/cryptography's
-#               Ed25519PrivateKey.from_private_bytes(seed) on the seed
-#               that the fake RNG produces.
+# @verify:      kat-only; ed25519_keypair is end-to-end glue over
+#               rng_bytes + sha512_* + ed25519_scalarmult +
+#               ed25519_point_compress. Each underlying primitive now
+#               carries Tier A Cryptol+SAW (proofs/crypto/sha512/,
+#               proofs/crypto/ed25519/) plus per-function Tier C
+#               QEMU/pyca KATs; the keypair-level QEMU pytest with
+#               the deterministic-fake RNG compares (sk, pk) against
+#               pyca/cryptography's Ed25519PrivateKey.from_private_bytes
+#               for the seed the fake RNG produces. A dedicated
+#               keypair-level Tier A would have to symbolically run
+#               sha512_compress + 256 point doublings + field_inv,
+#               which is dominated by the underlying tier-A coverage.
 # @tests:       tests/crypto/ed25519/test_ed25519_keypair.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified

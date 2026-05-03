@@ -24,9 +24,19 @@
 #                 7. k := SHA-512(R || pk || M) → reduce mod L
 #                 8. s := (k * a + r) mod L
 #                 9. sig := R || s_LE
-# @verify:      kat-only; QEMU pytest verifies the signature against
-#               pyca/cryptography's Ed25519PrivateKey.sign on a battery
-#               of (seed, message) pairs (including RFC 8032 §7.1).
+# @verify:      kat-only; ed25519_sign is end-to-end glue over
+#               sha512_* + ed25519_scalarmult + ed25519_point_compress
+#               + ed25519_sc_reduce + ed25519_sc_muladd. Each
+#               underlying primitive now carries Tier A Cryptol+SAW
+#               (proofs/crypto/sha512/, proofs/crypto/ed25519/) plus
+#               per-function Tier C QEMU/pyca KATs; the sign-level
+#               QEMU pytest verifies the produced signature against
+#               pyca/cryptography's Ed25519PrivateKey.sign on a
+#               battery of (seed, message) pairs including RFC 8032
+#               §7.1. A dedicated sign-level Tier A would have to
+#               symbolically run two SHA-512 invocations + scalarmult
+#               + compress + sc_reduce + sc_muladd, which is dominated
+#               by the underlying tier-A coverage.
 # @tests:       tests/crypto/ed25519/test_ed25519_sign.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
