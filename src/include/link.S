@@ -56,3 +56,7 @@
         .equ LINK_REQUEST_OFF_X25519_PUB,     28
         .equ LINK_REQUEST_OFF_ED25519_PUB,    60
         .equ LINK_REQUEST_T_SIZE,             92
+
+        .equ LINK_SHARED_SECRET_SIZE,         32
+        .equ LINK_PRK_SIZE,                   32
+        .equ LINK_KEY_MATERIAL_SIZE,          64

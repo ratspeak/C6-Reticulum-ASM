@@ -33,7 +33,7 @@ trip through the asm stack.
 - [ ] `link_handshake_init` and `link_handshake_accept` maintain a bounded
       static link table with stable pending, established, duplicate, expired,
       and invalid statuses.
-- [ ] `link_derive_keys` derives deterministic session material from X25519
+- [x] `link_derive_keys` derives deterministic session material from X25519
       shared secrets and transcript bytes using HKDF, with oracle tests against
       pyca/reference vectors.
 - [ ] `link_session_encrypt` and `link_session_decrypt` provide an AES-256-CBC
@@ -212,9 +212,11 @@ a0 = 0 on success, negative errno on invalid input
 
 Responsibilities:
 
-1. Use HKDF over the shared secret and transcript bytes.
-2. Produce fixed-size AES/HMAC key material for the session subset.
-3. Match pyca/reference vectors for deterministic inputs.
+1. Use HKDF-SHA-256 with the transcript/link-id bytes as salt and the X25519
+   shared secret as input key material.
+2. Produce 64 bytes of AES-256-CBC token material, matching upstream
+   `RNS.Link` mode length.
+3. Match Python `hmac`/`hashlib` reference vectors for deterministic inputs.
 
 ## link_session_encrypt
 
