@@ -27,7 +27,7 @@ trip through the asm stack.
 
 - [ ] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-6 function with
       a source, tests, verifier artifact, and status `verified`.
-- [ ] `link_request_build` and `link_request_parse` round-trip the milestone-6
+- [x] `link_request_build` and `link_request_parse` round-trip the milestone-6
       Reticulum link-request subset and reject malformed/truncated inputs
       without reading outside the caller-provided buffer.
 - [ ] `link_handshake_init` and `link_handshake_accept` maintain a bounded
@@ -56,6 +56,13 @@ milestone.
 The milestone may implement a strict Reticulum subset first, but every accepted
 packet must be traceable to the upstream link format. Any intentional subset
 restriction must have a negative test and a verifier-state transition.
+
+The first landed subset follows Reticulum 1.2.0 `RNS.Link`: HEADER_1
+`LINKREQUEST` packets are unencrypted and carry
+`x25519_public[32] || ed25519_link_signing_public[32] || signalling[3]`.
+Milestone 6 currently accepts only the default `signalling_bytes(500,
+AES-256-CBC) == 20 01 f4`; legacy no-signalling requests and alternate modes
+are rejected with negative tests.
 
 ## Link State
 
@@ -92,9 +99,10 @@ Inputs:
 
 ```
 a0 = destination_hash ptr (16 bytes)
-a1 = local_ephemeral_public ptr (32 bytes)
-a2 = raw packet out ptr
-a3 = raw packet capacity
+a1 = local_x25519_public ptr (32 bytes)
+a2 = local_ed25519_public ptr (32 bytes)
+a3 = raw packet out ptr
+a4 = raw packet capacity
 ```
 
 Outputs:
@@ -105,8 +113,9 @@ a0 = raw packet length on success, negative errno on failure
 
 Responsibilities:
 
-1. Build the milestone-6 link-request subset using the existing packet header
-   conventions.
+1. Build the current upstream link-request subset using the existing HEADER_1
+   packet conventions: flags `0x02`, hops `0`, destination hash, context `0`,
+   X25519 public key, Ed25519 link-signing public key, and default signalling.
 2. Reject null pointers and insufficient capacity.
 3. Avoid heap allocation and keep all temporaries static or caller-provided.
 
@@ -130,9 +139,10 @@ a0 = 0 on success, negative errno on malformed input
 
 Responsibilities:
 
-1. Reject short, wrong-type, wrong-context, or over-MDU packets.
-2. Extract destination hash and remote ephemeral public key into a bounded
-   caller-provided struct.
+1. Reject short, wrong-type, wrong-context, over-MDU, legacy no-signalling, or
+   non-default mode/MTU packets.
+2. Extract destination hash, remote X25519 public key, remote Ed25519
+   link-signing public key, MTU, and mode into a bounded caller-provided struct.
 3. Never read beyond `raw_packet[0:raw_len]`.
 
 ## link_handshake_init
@@ -156,7 +166,7 @@ a0 = raw packet length on success, negative errno on failure
 Responsibilities:
 
 1. Allocate or update a pending link entry for the destination.
-2. Generate local X25519 ephemeral key material.
+2. Generate local X25519 and Ed25519 ephemeral key material.
 3. Emit a link request packet using `link_request_build`.
 
 ## link_handshake_accept

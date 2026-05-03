@@ -42,9 +42,16 @@ ANNOUNCE_SIGNATURE_LEN = 64
 RETICULUM_MDU = 484
 
 HEADER_1_ANNOUNCE_FLAGS = 0x01
+HEADER_1_LINKREQUEST_FLAGS = 0x02
 HEADER_1_HOPS = 0x00
 PACKET_CONTEXT_NONE = 0x00
 HEADER_1_ANNOUNCE_LEN = 19
+HEADER_1_LINKREQUEST_LEN = 19
+LINK_REQUEST_MTU = 500
+LINK_REQUEST_MODE_AES256_CBC = 1
+LINK_REQUEST_SIGNAL_LEN = 3
+LINK_REQUEST_PAYLOAD_LEN = X25519_KEY_LEN + ED25519_KEY_LEN + LINK_REQUEST_SIGNAL_LEN
+LINK_REQUEST_RAW_LEN = HEADER_1_LINKREQUEST_LEN + LINK_REQUEST_PAYLOAD_LEN
 
 
 class OracleDependencyError(RuntimeError):
@@ -306,6 +313,48 @@ class AnnounceOracle:
             self.random_hash,
             self.signature,
             self.app_data,
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class LinkRequestOracle:
+    """Parsed or built current HEADER_1 link request material."""
+
+    raw_packet: bytes
+    destination_hash: bytes
+    x25519_public: bytes
+    ed25519_public: bytes
+    mtu: int = LINK_REQUEST_MTU
+    mode: int = LINK_REQUEST_MODE_AES256_CBC
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "raw_packet", _bytes("raw_packet", self.raw_packet))
+        object.__setattr__(
+            self,
+            "destination_hash",
+            _check_len(
+                "destination_hash",
+                _bytes("destination_hash", self.destination_hash),
+                DESTINATION_HASH_LEN,
+            ),
+        )
+        object.__setattr__(
+            self,
+            "x25519_public",
+            _check_len(
+                "x25519_public",
+                _bytes("x25519_public", self.x25519_public),
+                X25519_KEY_LEN,
+            ),
+        )
+        object.__setattr__(
+            self,
+            "ed25519_public",
+            _check_len(
+                "ed25519_public",
+                _bytes("ed25519_public", self.ed25519_public),
+                ED25519_KEY_LEN,
+            ),
         )
 
 
@@ -633,6 +682,98 @@ def announce_validate_pyca(raw_packet: bytes) -> bool:
         )
     except (OracleDependencyError, TypeError, ValueError):
         return False
+
+
+def link_request_signalling(
+    mtu: int = LINK_REQUEST_MTU, mode: int = LINK_REQUEST_MODE_AES256_CBC
+) -> bytes:
+    """Return upstream RNS.Link.signalling_bytes(mtu, mode)."""
+    rns_link = _require("RNS.Link")
+    return bytes(rns_link.Link.signalling_bytes(mtu, mode))
+
+
+def link_request_payload(
+    x25519_public: bytes,
+    ed25519_public: bytes,
+    *,
+    mtu: int = LINK_REQUEST_MTU,
+    mode: int = LINK_REQUEST_MODE_AES256_CBC,
+) -> bytes:
+    x25519_public = _check_len(
+        "x25519_public", _bytes("x25519_public", x25519_public), X25519_KEY_LEN
+    )
+    ed25519_public = _check_len(
+        "ed25519_public", _bytes("ed25519_public", ed25519_public), ED25519_KEY_LEN
+    )
+    return x25519_public + ed25519_public + link_request_signalling(mtu, mode)
+
+
+def link_request_build(
+    destination_hash_bytes: bytes,
+    x25519_public: bytes,
+    ed25519_public: bytes,
+    *,
+    mtu: int = LINK_REQUEST_MTU,
+    mode: int = LINK_REQUEST_MODE_AES256_CBC,
+) -> LinkRequestOracle:
+    """Build a current upstream HEADER_1 LINKREQUEST packet."""
+    destination_hash_bytes = _check_len(
+        "destination_hash",
+        _bytes("destination_hash", destination_hash_bytes),
+        DESTINATION_HASH_LEN,
+    )
+    payload = link_request_payload(
+        x25519_public, ed25519_public, mtu=mtu, mode=mode
+    )
+    rns_packet = _require("RNS.Packet")
+    rns_destination = _require("RNS.Destination")
+
+    class _Destination:
+        type = rns_destination.Destination.SINGLE
+
+        def __init__(self, destination_hash_value: bytes) -> None:
+            self.hash = destination_hash_value
+
+    pkt = rns_packet.Packet(
+        _Destination(destination_hash_bytes),
+        payload,
+        packet_type=rns_packet.Packet.LINKREQUEST,
+    )
+    pkt.pack()
+    return LinkRequestOracle(
+        raw_packet=bytes(pkt.raw),
+        destination_hash=destination_hash_bytes,
+        x25519_public=x25519_public,
+        ed25519_public=ed25519_public,
+        mtu=mtu,
+        mode=mode,
+    )
+
+
+def link_request_parse(raw_packet: bytes) -> LinkRequestOracle:
+    """Parse a current HEADER_1 LINKREQUEST packet."""
+    raw_packet = _bytes("raw_packet", raw_packet)
+    pkt = _upstream_packet_from_raw(raw_packet)
+    if pkt.packet_type != _require("RNS.Packet").Packet.LINKREQUEST:
+        raise ValueError(f"not a link request: type={pkt.packet_type}")
+    if pkt.context != PACKET_CONTEXT_NONE:
+        raise ValueError(f"unsupported link request context: 0x{pkt.context:02x}")
+    if len(pkt.data) != LINK_REQUEST_PAYLOAD_LEN:
+        raise ValueError(f"unsupported link request payload length: {len(pkt.data)}")
+    mode = (pkt.data[X25519_KEY_LEN + ED25519_KEY_LEN] & 0xE0) >> 5
+    mtu = (
+        (pkt.data[X25519_KEY_LEN + ED25519_KEY_LEN] << 16)
+        + (pkt.data[X25519_KEY_LEN + ED25519_KEY_LEN + 1] << 8)
+        + pkt.data[X25519_KEY_LEN + ED25519_KEY_LEN + 2]
+    ) & 0x1FFFFF
+    return LinkRequestOracle(
+        raw_packet=raw_packet,
+        destination_hash=pkt.destination_hash,
+        x25519_public=pkt.data[:X25519_KEY_LEN],
+        ed25519_public=pkt.data[X25519_KEY_LEN:X25519_KEY_LEN + ED25519_KEY_LEN],
+        mtu=mtu,
+        mode=mode,
+    )
 
 
 def _upstream_packet_from_raw(raw_packet: bytes, *, rns_packet: Any | None = None) -> Any:
