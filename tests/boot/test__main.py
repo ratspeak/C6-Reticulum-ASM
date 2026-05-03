@@ -195,3 +195,128 @@ def test_second_announce_reuses_loaded_identity(
     assert b"\tidentity\tloaded" in out
     assert oracle.kiss_decode(frames[0]) == [expected_first.raw_packet]
     assert oracle.kiss_decode(frames[1]) == [expected_second.raw_packet]
+
+
+def _transport_announce_packet(app_data: bytes, random_seed: int, hops: int) -> bytes:
+    pytest.importorskip("cryptography", reason="pyca required for announce oracle")
+    identity = oracle.identity_from_private_parts(bytes(range(32)), bytes(range(32, 64)))
+    name_hash = oracle.destination_name_hash_from_parts("rnstransport", "nodes")
+    random_hash = bytes((random_seed + i) & 0xFF for i in range(10))
+    raw = bytearray(oracle.announce_build(identity, name_hash, random_hash, app_data).raw_packet)
+    raw[1] = hops & 0xFF
+    return bytes(raw)
+
+
+def _run_frames_until(
+    artifacts: build.BuildArtifacts,
+    frames: bytes,
+    *,
+    predicate,
+    timeout_chunks: int = 240,
+) -> tuple[list[log_parser.LogEvent], bytes]:
+    cfg = target.TargetConfig(binary=artifacts.elf)
+    t = target.EmuTarget(cfg)
+    if not t.is_available():
+        pytest.skip("qemu-system-riscv32 not available")
+
+    out = bytearray()
+    with t:
+        t.write(frames)
+        for _ in range(timeout_chunks):
+            out.extend(t.read(4096, timeout=0.5))
+            text = bytes(out).decode("utf-8", errors="replace")
+            events = log_parser.parse_lines(line + "\r\n" for line in text.splitlines())
+            if predicate(events):
+                return events, bytes(out)
+
+    text = bytes(out).decode("utf-8", errors="replace")
+    return log_parser.parse_lines(line + "\r\n" for line in text.splitlines()), bytes(out)
+
+
+def _assert_event_sequence(
+    events: list[log_parser.LogEvent], sequence: list[tuple[str, str]]
+) -> None:
+    pos = -1
+    for module, event in sequence:
+        for idx in range(pos + 1, len(events)):
+            if events[idx].module == module and events[idx].event == event:
+                pos = idx
+                break
+        else:
+            raise AssertionError((module, event, [e.raw for e in events]))
+
+
+def test_inbound_valid_announce_updates_transport_path(
+    artifacts: build.BuildArtifacts,
+) -> None:
+    raw = _transport_announce_packet(b"path", random_seed=0x10, hops=4)
+    assert oracle.announce_validate_pyca(raw)
+
+    events, out = _run_frames_until(
+        artifacts,
+        oracle.kiss_encode(raw),
+        predicate=lambda evs: log_parser.find_event(
+            evs, module="transport", event="path_updated"
+        )
+        is not None,
+    )
+
+    _assert_event_sequence(
+        events,
+        [
+            ("kiss", "rx_frame"),
+            ("packet", "parsed"),
+            ("transport", "announce_valid"),
+            ("transport", "path_updated"),
+        ],
+    )
+    assert not log_parser.find_event(events, module="transport", event="announce_invalid"), out
+
+
+def test_inbound_duplicate_announce_updates_existing_path(
+    artifacts: build.BuildArtifacts,
+) -> None:
+    first = _transport_announce_packet(b"first-path", random_seed=0x20, hops=2)
+    second = _transport_announce_packet(b"second-path", random_seed=0x30, hops=5)
+    assert oracle.announce_parse(first).destination_hash == oracle.announce_parse(second).destination_hash
+
+    events, out = _run_frames_until(
+        artifacts,
+        oracle.kiss_encode(first) + oracle.kiss_encode(second),
+        predicate=lambda evs: len(
+            log_parser.find_all(evs, module="transport", event="path_updated")
+        )
+        >= 2,
+    )
+
+    assert len(log_parser.find_all(events, module="transport", event="announce_valid")) >= 2, out
+    assert len(log_parser.find_all(events, module="transport", event="path_updated")) >= 2, out
+    assert not log_parser.find_event(events, module="transport", event="announce_invalid"), out
+
+
+def test_inbound_invalid_announce_is_rejected_without_path_update(
+    artifacts: build.BuildArtifacts,
+) -> None:
+    raw = bytearray(_transport_announce_packet(b"bad-path", random_seed=0x40, hops=1))
+    raw[-1] ^= 0x01
+    assert not oracle.announce_validate_pyca(bytes(raw))
+
+    events, out = _run_frames_until(
+        artifacts,
+        oracle.kiss_encode(bytes(raw)),
+        predicate=lambda evs: log_parser.find_event(
+            evs, module="transport", event="announce_invalid"
+        )
+        is not None,
+    )
+
+    _assert_event_sequence(
+        events,
+        [
+            ("kiss", "rx_frame"),
+            ("packet", "parsed"),
+            ("transport", "announce_invalid"),
+        ],
+    )
+    assert not log_parser.find_event(events, module="transport", event="announce_valid"), out
+    assert not log_parser.find_event(events, module="transport", event="path_updated"), out

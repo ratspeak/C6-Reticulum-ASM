@@ -37,8 +37,15 @@
  *                log_event("identity\\tready");
  *                announce_send(identity_current, frame+1, frame+11, len-11);
  *            ok = packet_parse_header(kiss_buf, kiss_buf_len, packet_struct);
- *            if ok == 0: log_event("packet\\tparsed");
- *            else:        log_event("packet\\trejected");
+ *            if ok == 0:
+ *                log_event("packet\\tparsed");
+ *                if HEADER_1 announce:
+ *                    status = transport_process_announce(...);
+ *                    if status < 0: log_event("transport\\tannounce_invalid");
+ *                    else:
+ *                        log_event("transport\\tannounce_valid");
+ *                        log_event("transport\\tpath_updated");
+ *            else: log_event("packet\\trejected");
  *        if status < 0:
  *            log_event("kiss\\trx_error");
  *
@@ -49,6 +56,7 @@
         .include "packet.S"
         .include "aes.S"
         .include "identity.S"
+        .include "transport.S"
 
         .section .rodata.boot_event_tags, "a"
 .Lboot_ready_tag:
@@ -71,6 +79,18 @@
         .ascii "packet\trejected"
 .Lpkt_bad_tag_end:
         .equ   .Lpkt_bad_tag_len, .Lpkt_bad_tag_end - .Lpkt_bad_tag
+.Ltransport_announce_valid_tag:
+        .ascii "transport\tannounce_valid"
+.Ltransport_announce_valid_tag_end:
+        .equ   .Ltransport_announce_valid_tag_len, .Ltransport_announce_valid_tag_end - .Ltransport_announce_valid_tag
+.Ltransport_announce_invalid_tag:
+        .ascii "transport\tannounce_invalid"
+.Ltransport_announce_invalid_tag_end:
+        .equ   .Ltransport_announce_invalid_tag_len, .Ltransport_announce_invalid_tag_end - .Ltransport_announce_invalid_tag
+.Ltransport_path_updated_tag:
+        .ascii "transport\tpath_updated"
+.Ltransport_path_updated_tag_end:
+        .equ   .Ltransport_path_updated_tag_len, .Ltransport_path_updated_tag_end - .Ltransport_path_updated_tag
 .Lidentity_ready_tag:
         .ascii "identity\tready"
 .Lidentity_ready_tag_end:
@@ -222,6 +242,7 @@ _main:
         call    log_init
         call    rng_init                /* zero deterministic counter   */
         call    flash_init
+        call    transport_path_init
 
         la      a0, .Lboot_ready_tag
         li      a1, .Lboot_ready_tag_len
@@ -315,6 +336,32 @@ _main:
 
         la      a0, .Lpkt_ok_tag
         li      a1, .Lpkt_ok_tag_len
+        call    log_event
+        la      t0, packet_struct
+        lbu     t1, PKT_OFF_HEADER_TYPE(t0)
+        bnez    t1, .Lloop
+        lbu     t1, PKT_OFF_PACKET_TYPE(t0)
+        li      t2, PKT_ANNOUNCE
+        bne     t1, t2, .Lloop
+
+        la      a0, kiss_buf
+        la      t0, kiss_buf_len
+        lw      a1, 0(t0)
+        li      a2, TRANSPORT_INTERFACE_KISS
+        call    transport_process_announce
+        bltz    a0, .Ltransport_announce_invalid
+
+        la      a0, .Ltransport_announce_valid_tag
+        li      a1, .Ltransport_announce_valid_tag_len
+        call    log_event
+        la      a0, .Ltransport_path_updated_tag
+        li      a1, .Ltransport_path_updated_tag_len
+        call    log_event
+        j       .Lloop
+
+.Ltransport_announce_invalid:
+        la      a0, .Ltransport_announce_invalid_tag
+        li      a1, .Ltransport_announce_invalid_tag_len
         call    log_event
         j       .Lloop
 
