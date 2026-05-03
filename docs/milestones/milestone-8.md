@@ -26,7 +26,7 @@ receive one packet at a time without heap allocation.
 
 ## Definition of Done
 
-- [ ] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-8 function with
+- [x] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-8 function with
       a source, tests, verifier artifact, and status `verified`.
 - [x] `docs/hardware/lora.md` pins the SX1262 module wiring, voltage
       assumptions, reset/BUSY/DIO1 semantics, SPI mode, clock bounds, and
@@ -40,10 +40,10 @@ receive one packet at a time without heap allocation.
 - [ ] SX1262 reset/init verifies the radio command path by reaching standby
       from cold reset and validating at least one readback/status command on
       hardware.
-- [ ] TX accepts one bounded Reticulum packet, writes it into the SX1262 FIFO,
+- [x] TX accepts one bounded Reticulum packet, writes it into the SX1262 FIFO,
       starts transmit, observes TX done or timeout, and never overruns the
       configured LoRa payload limit.
-- [ ] RX polls DIO1/IRQ state, reads one received frame into static storage,
+- [x] RX polls DIO1/IRQ state, reads one received frame into static storage,
       distinguishes no-packet, received, CRC/error, and overflow statuses, and
       exposes the raw Reticulum packet to the existing parser path.
 - [ ] A TLA+ LoRa interface state model covers reset, configure, idle, TX,

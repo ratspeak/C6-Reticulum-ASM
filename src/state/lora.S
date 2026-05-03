@@ -109,3 +109,21 @@ lora_interface_last_status:
 lora_interface_tx_len:
         .skip   4
         .size   lora_interface_tx_len, 4
+
+        .global lora_interface_rx_buf
+        .type   lora_interface_rx_buf, @object
+lora_interface_rx_buf:
+        .skip   SPI_MAX_TRANSFER
+        .size   lora_interface_rx_buf, SPI_MAX_TRANSFER
+
+        .global lora_interface_rx_len
+        .type   lora_interface_rx_len, @object
+lora_interface_rx_len:
+        .skip   4
+        .size   lora_interface_rx_len, 4
+
+        .global lora_interface_dispatch_status
+        .type   lora_interface_dispatch_status, @object
+lora_interface_dispatch_status:
+        .skip   4
+        .size   lora_interface_dispatch_status, 4

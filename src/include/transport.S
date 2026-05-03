@@ -8,6 +8,7 @@
 
         .equ TRANSPORT_PATH_CAPACITY,         8
         .equ TRANSPORT_INTERFACE_KISS,        1
+        .equ TRANSPORT_INTERFACE_LORA,        2
 
         .equ TRANSPORT_PATH_OFF_VALID,        0
         .equ TRANSPORT_PATH_OFF_INTERFACE,    1
