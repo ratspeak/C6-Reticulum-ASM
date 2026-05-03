@@ -2,7 +2,7 @@
 
 ## Session
 
-- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through 63f8f1d. Latest integrated slice: SX1262 hardware readback smoke test and boot diagnostics. Current software gates passed: `./verify _main`, default hardware smoke skip (`1 skipped`), harness tests (`37 passed`), `make ci` (`751 passed, 15 skipped`), qemu/C6 builds, `make registry`, stack max 2496/16384, and `git diff --check`. Hardware gate attempted: `pytest --hardware tests/hardware/test_lora_sx1262.py -q -p no:cacheprovider` failed with `lora.init_error code=fffffffe` (`LORA_ERR_BUSY_TIMEOUT`), so reset/readback remains blocked on SX1262 BUSY/power/wiring.
+- parallel session live — 2026-05-03T06:18:00Z; milestone 8 is active through the current wiring-contract correction. Latest integrated slice: Wio-SX1262 V1.0 header-carrier wiring contract correction. Current software gates passed: `./verify _main`, default hardware smoke skip (`1 skipped`), harness tests (`37 passed`), `make ci` (`751 passed, 15 skipped`), qemu/C6 builds, `make registry`, stack max 2496/16384, and `git diff --check`. Hardware gate history: initial readback failed with `lora.init_error code=fffffffe` (`LORA_ERR_BUSY_TIMEOUT`) under the previous bare-module wiring assumption; after rewiring to the V1.0 carrier map, the host did not enumerate an Espressif/Adafruit USB serial endpoint, and `esptool.py --chip esp32c6 --port /dev/cu.debug-console chip_id` failed with "No serial data received".
 
 ## Pending
 

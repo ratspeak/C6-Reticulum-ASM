@@ -1,6 +1,7 @@
 """SX1262 LoRa hardware smoke tests for milestone 8.
 
-These tests require the Wio-SX1262 module wired per docs/hardware/lora.md.
+These tests require the Wio-SX1262 V1.0 header carrier wired per
+docs/hardware/lora.md.
 They assert that the boot-time reset/init path reaches STBY_RC and that the
 SX1262 GetStatus readback is not just an all-zero/no-radio SPI response.
 """

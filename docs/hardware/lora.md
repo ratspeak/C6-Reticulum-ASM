@@ -1,9 +1,10 @@
 # ESP32-C6 SX1262 LoRa Hardware Contract
 
 Milestone 8 adds the first standalone wireless interface: an external Seeed
-Wio-SX1262 LoRa module driven directly by the Adafruit ESP32-C6 Feather over
-SPI. This document is the TARGET_C6 hardware contract for the milestone-8
-GPIO, SPI, SX1262, and LoRa interface functions.
+Wio-SX1262 LoRa module on the V1.0 XIAO-style header carrier, driven directly
+by the Adafruit ESP32-C6 Feather over SPI. This document is the TARGET_C6
+hardware contract for the milestone-8 GPIO, SPI, SX1262, and LoRa interface
+functions.
 
 This is not an implementation proof. It is the source of truth for pin
 ownership, electrical assumptions, register-document provenance, and the qemu
@@ -24,9 +25,11 @@ hardware-model surface that the asm driver and tests must satisfy.
   documents that SPI0/SPI1 are used for attached flash and SPI2 is the
   general-purpose SPI controller.
 - [Seeed Wio-SX1262 module datasheet](https://files.seeedstudio.com/products/SenseCAP/Wio_SX1262/Wio-SX1262_Module_Datasheet.pdf):
-  documents the 12-pin module pinout, SPI interface, VCC operating range,
-  BUSY, DIO1, NRST, NSS, IPEX antenna default, HF 862-930 MHz range, and
-  +22 dBm maximum TX power.
+  documents the radio-module SPI interface, VCC operating range, BUSY, DIO1,
+  NRST/RST, NSS, IPEX antenna default, HF 862-930 MHz range, and +22 dBm
+  maximum TX power. The selected bench board is the V1.0 header carrier, so
+  wiring below uses the carrier silkscreen labels rather than the bare
+  12-pin SMT module numbers.
 - [Semtech SX1261/2 datasheet](https://www.alldatasheet.net/html-marking/1148171/SEMTECH/SX1262/17045/49/SX1262.html):
   documents SX1262 SPI mode (`CPOL=0`, `CPHA=0`), 16 MHz maximum SCK,
   mandatory BUSY line, reset timing, and command opcodes for register/buffer
@@ -43,23 +46,24 @@ hardware-model surface that the asm driver and tests must satisfy.
 
 ## Selected Bench Wiring
 
-The first bench configuration uses the Feather header SPI pins plus four GPIOs
-that do not overlap UART0, USB-Serial/JTAG, I2C, SPI flash, the Boot/NeoPixel
-pin, or the red LED.
+The first bench configuration uses the Wio-SX1262 V1.0 header carrier, wired
+by signal name to the Feather header SPI pins plus four GPIOs that do not
+overlap UART0, USB-Serial/JTAG, I2C, SPI flash, the Boot/NeoPixel pin, or the
+red LED.
 
-| Wio-SX1262 signal | Wio pin | ESP32-C6 GPIO | Feather role | Direction from C6 | Rule |
-|-------------------|---------|---------------|--------------|-------------------|------|
-| VCC | 8 | 3.3 V rail | 3.3 V | power | Module VCC must stay within the Seeed operating range. |
-| GND | 7, 10 | GND | GND | power | Common ground is mandatory. |
-| SCK | 4 | GPIO21 | SCK | output | SPI2 SCLK through GPIO matrix or IO_MUX-compatible routing. |
-| MOSI | 3 | GPIO22 | MOSI | output | SPI2 MOSI. |
-| MISO | 2 | GPIO23 | MISO | input | SPI2 MISO. |
-| NSS | 6 | GPIO0 | digital | output | Active-low chip select; idle high before and after every transaction. |
-| NRST | 5 | GPIO7 | digital | output | Active-low radio reset; default high after GPIO init. |
-| BUSY | 11 | GPIO6 | A2/IO6 | input | Driver must wait for low before each SX1262 command. |
-| DIO1 | 12 | GPIO5 | A3/IO5 | input | IRQ input for TX done, RX done, timeout, CRC/error. |
-| ANT | 9 | IPEX antenna | RF | RF | Antenna must be attached before TX. |
-| RF_SW | 1 | not connected | - | - | First bring-up assumes the module's internal DIO2 RF-switch control path. |
+| Wio-SX1262 V1.0 carrier label | ESP32-C6 GPIO | Feather silkscreen | Direction from C6 | Rule |
+|-------------------------------|---------------|--------------------|-------------------|------|
+| 3V3 | 3.3 V rail | 3V | power | Module VCC must stay within the Seeed operating range. Do not use VIN for the radio in the bench setup. |
+| GND | GND | GND | power | Common ground is mandatory. |
+| SCK | GPIO21 | SCK | output | SPI2 SCLK through GPIO matrix or IO_MUX-compatible routing. |
+| MOSI | GPIO22 | MO | output | SPI2 MOSI. |
+| MISO | GPIO23 | MI | input | SPI2 MISO. |
+| NSS | GPIO0 | 0/IO0 | output | Active-low chip select; idle high before and after every transaction. |
+| RST | GPIO7 | IO7 | output | Active-low radio reset; default high after GPIO init. Do not wire this to the Feather RST pad. |
+| BUSY | GPIO6 | IO6/A2 | input | Driver must wait for low before each SX1262 command. |
+| DIO1 | GPIO5 | IO5/A3 | input | IRQ input for TX done, RX done, timeout, CRC/error. |
+| RF_SW | not connected | - | - | First bring-up assumes the module's internal DIO2 RF-switch control path. |
+| VIN, D0, D6, D7 | not connected | - | - | Carrier pass-through or alternate-control pins are unused in the current milestone contract. |
 
 GPIO5 is an ESP32-C6 strapping pin. This contract allows it only for DIO1
 because DIO1 is expected to be high-impedance or inactive during reset. The

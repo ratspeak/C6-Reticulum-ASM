@@ -28,9 +28,9 @@ receive one packet at a time without heap allocation.
 
 - [x] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-8 function with
       a source, tests, verifier artifact, and status `verified`.
-- [x] `docs/hardware/lora.md` pins the SX1262 module wiring, voltage
-      assumptions, reset/BUSY/DIO1 semantics, SPI mode, clock bounds, and
-      reference provenance before production asm depends on those values.
+- [x] `docs/hardware/lora.md` pins the Wio-SX1262 V1.0 header-carrier wiring,
+      voltage assumptions, reset/BUSY/DIO1 semantics, SPI mode, clock bounds,
+      and reference provenance before production asm depends on those values.
 - [x] GPIO helpers configure and sample the exact C6 pins used for SX1262
       CS, RESET, BUSY, and DIO1 without disturbing UART0 or USB-Serial/JTAG
       diagnostics.
@@ -76,7 +76,8 @@ Document:
 Responsibilities:
 
 1. Record the physical module, pin map, power assumptions, SPI peripheral,
-   CS/RESET/BUSY/DIO1 GPIOs, and bench wiring.
+   CS/RESET/BUSY/DIO1 GPIOs, and bench wiring for the selected Wio-SX1262
+   V1.0 header carrier.
 2. Vendor or cite acquisition steps for the SX1262 datasheet and module
    schematic/pinout in [references/README.md](../../references/README.md).
 3. Define the qemu hardware model surface used by tests before the asm driver
