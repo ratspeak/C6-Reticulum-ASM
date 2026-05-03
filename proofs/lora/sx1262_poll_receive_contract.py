@@ -116,6 +116,7 @@ def prove_source_shape() -> None:
     require_patterns("src/interface/lora/sx1262_poll_receive.S", [
         r"sx1262_model_initialized",
         r"sx1262_model_rx_len",
+        r"sx1262_model_rx_armed",
         r"sx1262_model_last_irq",
         r"sx1262_irq_read_buf",
         r"sx1262_rx_status_buf",
@@ -146,6 +147,7 @@ def prove_source_shape() -> None:
         r"sx1262_rx_status_buf",
         r"sx1262_read_buffer_req_buf",
         r"sx1262_model_rx_len",
+        r"sx1262_model_rx_armed",
     ])
 
 

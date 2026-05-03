@@ -63,7 +63,7 @@ def _run_with_input(elf, stdin_bytes: bytes, *, gap_s: float = 0.0,
 def test_timestamps_monotonic_across_events(
     artifacts: build.BuildArtifacts,
 ) -> None:
-    """boot.ready first, then a kiss.rx_frame triggered by a frame we
+    """boot.ready followed by a kiss.rx_frame triggered by a frame we
     write after pausing on the host. Parser-decoded timestamps must be
     non-decreasing, and the kiss event's ts must exceed boot.ready's."""
     framed = oracle.kiss_encode(b"hello")

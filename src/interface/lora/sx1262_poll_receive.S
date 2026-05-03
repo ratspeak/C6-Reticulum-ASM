@@ -59,6 +59,8 @@ sx1262_poll_receive:
         call    gpio_read
         bltz    a0, .Lsx1262_poll_gpio_error
         beqz    a0, .Lsx1262_poll_arm_rx_no_packet
+        la      t0, sx1262_model_rx_armed
+        sw      zero, 0(t0)
 
         li      a0, SX1262_CMD_GET_IRQ_STATUS
         mv      a1, zero
@@ -140,6 +142,9 @@ sx1262_poll_receive:
 
 .Lsx1262_poll_arm_rx_no_packet:
         li      s7, LORA_ERR_NO_PACKET
+        la      t0, sx1262_model_rx_armed
+        lw      t1, 0(t0)
+        bnez    t1, .Lsx1262_poll_return_s7
         j       .Lsx1262_poll_set_rx_then_s7
 
 .Lsx1262_poll_clear_then_crc:
@@ -166,6 +171,10 @@ sx1262_poll_receive:
         mv      a3, s2
         call    sx1262_command_write
         bnez    a0, .Lsx1262_poll_return
+        la      t0, sx1262_model_rx_armed
+        li      t1, 1
+        sw      t1, 0(t0)
+.Lsx1262_poll_return_s7:
         mv      a0, s7
         j       .Lsx1262_poll_return
 

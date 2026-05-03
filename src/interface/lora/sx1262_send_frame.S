@@ -42,6 +42,8 @@ sx1262_send_frame:
         sw      zero, 0(t0)
         la      t0, sx1262_model_last_irq
         sw      zero, 0(t0)
+        la      t0, sx1262_model_rx_armed
+        sw      zero, 0(t0)
 
         la      t0, sx1262_model_initialized
         lw      t1, 0(t0)

@@ -46,6 +46,9 @@ receive one packet at a time without heap allocation.
 - [x] RX polls DIO1/IRQ state, reads one received frame into static storage,
       distinguishes no-packet, received, CRC/error, and overflow statuses, and
       exposes the raw Reticulum packet to the existing parser path.
+- [x] `_main` initializes the native LoRa interface during boot, preserves the
+      USB/KISS development path with a nonblocking UART pump, and polls one
+      LoRa frame per idle loop.
 - [ ] A TLA+ LoRa interface state model covers reset, configure, idle, TX,
       TX timeout, RX, RX error, and recovery traces.
 - [ ] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`,
@@ -165,6 +168,8 @@ Responsibilities:
 2. Send raw Reticulum packets produced by existing stack paths.
 3. Poll one received LoRa frame per call and pass valid raw packets into the
    existing packet/transport/link dispatch path.
+4. Wire `_main` to initialize this interface during boot and poll it without
+   blocking the existing USB/KISS command path.
 
 ## Verifier Plan
 

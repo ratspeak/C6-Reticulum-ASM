@@ -2,26 +2,28 @@
 # @function:    _main
 # @module:      boot
 # @inputs:      (none; entered from _reset)
-# @outputs:     (does not return; runs the KISS → packet/announce bridge)
+# @outputs:     (does not return; runs USB/KISS and native LoRa packet pumps)
 # @clobbers:    a0..a7, t0..t6, ra
 # @preserves:   sp, gp, s0..s11
 # @stack:       16
 # @cycles:      unbounded
 # @ct:          not-required
-# @spec:        milestone-1 §boot
+# @spec:        milestone-1 §boot; milestone-8 reticulum-interface-glue
 # @verify:      kat-only; integration via tests/boot/test__main.py
 # @tests:       tests/boot/test__main.py
-# @adrs:        0001, 0004, 0008
+# @adrs:        0001, 0004, 0008, 0011
 # @status:      verified
 # ============================================================================
 
 /* Bring-up + main event loop:
  *
  *   1. _init_bss / _init_data / clock_init / uart_init / log_init
- *   2. log_event("boot\\tready")
- *   3. Loop:
- *        byte   = uart_rx_byte();
- *        status = kiss_decode_byte(byte);
+ *   2. lora_interface_init()
+ *   3. log_event("boot\\tready")
+ *   4. Loop:
+ *        if uart_rx_available():
+ *            byte   = uart_rx_byte();
+ *            status = kiss_decode_byte(byte);
  *        if status == 1:                    // frame complete
  *            log_event("kiss\\trx_frame");
  *            if frame[0] == 'N':
@@ -48,6 +50,10 @@
  *            else: log_event("packet\\trejected");
  *        if status < 0:
  *            log_event("kiss\\trx_error");
+ *        if no USB byte is waiting:
+ *            lora_interface_poll();
+ *            if a frame was received:
+ *                log_event("lora\\trx_frame");
  *
  * The loop never exits — milestone 1's main loop is the simplest
  * possible scheduler. A real scheduler arrives in a later milestone.
@@ -57,12 +63,29 @@
         .include "aes.S"
         .include "identity.S"
         .include "transport.S"
+        .include "lora.S"
 
         .section .rodata.boot_event_tags, "a"
 .Lboot_ready_tag:
         .ascii "boot\tready"
 .Lboot_ready_tag_end:
         .equ   .Lboot_ready_tag_len, .Lboot_ready_tag_end - .Lboot_ready_tag
+.Llora_ready_tag:
+        .ascii "lora\tready"
+.Llora_ready_tag_end:
+        .equ   .Llora_ready_tag_len, .Llora_ready_tag_end - .Llora_ready_tag
+.Llora_init_err_tag:
+        .ascii "lora\tinit_error"
+.Llora_init_err_tag_end:
+        .equ   .Llora_init_err_tag_len, .Llora_init_err_tag_end - .Llora_init_err_tag
+.Llora_rx_tag:
+        .ascii "lora\trx_frame"
+.Llora_rx_tag_end:
+        .equ   .Llora_rx_tag_len, .Llora_rx_tag_end - .Llora_rx_tag
+.Llora_rx_err_tag:
+        .ascii "lora\trx_error"
+.Llora_rx_err_tag_end:
+        .equ   .Llora_rx_err_tag_len, .Llora_rx_err_tag_end - .Llora_rx_err_tag
 .Lkiss_rx_tag:
         .ascii "kiss\trx_frame"
 .Lkiss_rx_tag_end:
@@ -243,16 +266,57 @@ _main:
         call    rng_init                /* zero deterministic counter   */
         call    flash_init
         call    transport_path_init
+        li      a0, 0
+        call    lora_interface_init
+        bnez    a0, .Llora_init_error
 
+        la      a0, .Llora_ready_tag
+        li      a1, .Llora_ready_tag_len
+        call    log_event
+        j       .Lboot_ready
+
+.Llora_init_error:
+        la      a0, .Llora_init_err_tag
+        li      a1, .Llora_init_err_tag_len
+        call    log_event
+
+.Lboot_ready:
         la      a0, .Lboot_ready_tag
         li      a1, .Lboot_ready_tag_len
         call    log_event
 
 .Lloop:
+        call    uart_rx_available
+        beqz    a0, .Lpoll_lora
+
+.Luart_rx_ready:
         call    uart_rx_byte            /* a0 = next byte                */
         call    kiss_decode_byte        /* a0 = 0 | 1 | -1               */
         bgtz    a0, .Lframe
         bltz    a0, .Lkiss_err
+        j       .Lloop
+
+.Lpoll_lora:
+        la      t0, lora_interface_initialized
+        lw      t1, 0(t0)
+        beqz    t1, .Lloop
+        li      a0, 0
+        call    lora_interface_poll
+        la      t0, lora_interface_rx_len
+        lw      t1, 0(t0)
+        beqz    t1, .Lloop
+        sw      a0, 0(sp)
+        la      a0, .Llora_rx_tag
+        li      a1, .Llora_rx_tag_len
+        call    log_event
+        lw      t0, 0(sp)
+        bltz    t0, .Llora_rx_error
+        j       .Lloop
+
+.Llora_rx_error:
+        la      a0, .Llora_rx_err_tag
+        li      a1, .Llora_rx_err_tag_len
+        call    log_event
         j       .Lloop
 
 .Lframe:

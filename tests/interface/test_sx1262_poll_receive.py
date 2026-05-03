@@ -94,6 +94,8 @@ _reset:
         sw      zero, 0(t0)
         la      t0, sx1262_model_rx_len
         sw      zero, 0(t0)
+        la      t0, sx1262_model_rx_armed
+        sw      zero, 0(t0)
 
 {body}
 
@@ -275,6 +277,7 @@ def test_poll_receive_reads_one_frame_and_rearms_rx(tmp_path: Path) -> None:
         + _store_byte("spi_model_rx_source", 4, 0x55)
         + _call("sx1262_poll_receive", "rx4", 4, 100)
         + _load_word("sx1262_model_rx_len")
+        + _load_word("sx1262_model_rx_armed")
         + _load_word("sx1262_model_last_irq")
         + _load_word("rx4")
         + _load_word("sx1262_frame_rx_buf")
@@ -282,9 +285,10 @@ def test_poll_receive_reads_one_frame_and_rearms_rx(tmp_path: Path) -> None:
         + _load_word("spi_model_tx_log_len")
         + _load_word("spi_model_tx_log")
     )
-    assert _run_body(tmp_path, body, 8, TEST_DATA) == [
+    assert _run_body(tmp_path, body, 9, TEST_DATA) == [
         2,
         2,
+        1,
         IRQ_RX_DONE,
         0x00005544,
         0x00005544,
@@ -299,16 +303,34 @@ def test_poll_receive_dio_low_returns_no_packet_and_arms_rx(tmp_path: Path) -> N
         _ready_radio()
         + _call("sx1262_poll_receive", "rx4", 4, 100)
         + _load_word("sx1262_model_rx_len")
+        + _load_word("sx1262_model_rx_armed")
         + _load_word("spi_model_transfer_count")
         + _load_word("spi_model_tx_log_len")
         + _load_word("spi_model_tx_log")
     )
-    assert _run_body(tmp_path, body, 5, TEST_DATA) == [
+    assert _run_body(tmp_path, body, 6, TEST_DATA) == [
         LORA_ERR_NO_PACKET,
         0,
         1,
+        1,
         4,
         0xFFFFFF82,
+    ]
+
+
+def test_poll_receive_dio_low_does_not_rearm_when_already_armed(tmp_path: Path) -> None:
+    body = (
+        _ready_radio()
+        + _call("sx1262_poll_receive", "rx4", 4, 100)
+        + _call("sx1262_poll_receive", "rx4", 4, 100)
+        + _load_word("sx1262_model_rx_armed")
+        + _load_word("spi_model_transfer_count")
+    )
+    assert _run_body(tmp_path, body, 4, TEST_DATA) == [
+        LORA_ERR_NO_PACKET,
+        LORA_ERR_NO_PACKET,
+        1,
+        1,
     ]
 
 
@@ -336,14 +358,16 @@ def test_poll_receive_crc_error_clears_and_rearms_rx(tmp_path: Path) -> None:
         + _store_word("spi_model_rx_source", 0x00400000)
         + _call("sx1262_poll_receive", "rx4", 4, 100)
         + _load_word("sx1262_model_rx_len")
+        + _load_word("sx1262_model_rx_armed")
         + _load_word("sx1262_model_last_irq")
         + _load_word("spi_model_transfer_count")
         + _load_word("spi_model_tx_log_len")
         + _load_word("spi_model_tx_log")
     )
-    assert _run_body(tmp_path, body, 6, TEST_DATA) == [
+    assert _run_body(tmp_path, body, 7, TEST_DATA) == [
         LORA_ERR_CRC,
         0,
+        1,
         IRQ_CRC_ERR,
         3,
         4,
@@ -358,14 +382,16 @@ def test_poll_receive_overflow_clears_and_rearms_rx(tmp_path: Path) -> None:
         + _store_word("spi_model_rx_source", 0x05020000)
         + _call("sx1262_poll_receive", "rx4", 1, 100)
         + _load_word("sx1262_model_rx_len")
+        + _load_word("sx1262_model_rx_armed")
         + _load_word("sx1262_model_last_irq")
         + _load_word("spi_model_transfer_count")
         + _load_word("spi_model_tx_log_len")
         + _load_word("spi_model_tx_log")
     )
-    assert _run_body(tmp_path, body, 6, TEST_DATA) == [
+    assert _run_body(tmp_path, body, 7, TEST_DATA) == [
         LORA_ERR_OVERFLOW,
         0,
+        1,
         IRQ_RX_DONE,
         4,
         4,

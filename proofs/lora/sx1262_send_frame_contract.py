@@ -92,6 +92,7 @@ def prove_source_shape() -> None:
         r"sx1262_tx_packet_params_buf",
         r"sx1262_model_tx_len",
         r"sx1262_model_last_irq",
+        r"sx1262_model_rx_armed",
         r"SX1262_CMD_SET_PACKET_PARAMS",
         r"SX1262_CMD_WRITE_BUFFER",
         r"SX1262_CMD_CLEAR_IRQ_STATUS",
@@ -112,6 +113,7 @@ def prove_source_shape() -> None:
         r"sx1262_irq_read_buf",
         r"sx1262_model_tx_len",
         r"sx1262_model_last_irq",
+        r"sx1262_model_rx_armed",
     ])
 
 

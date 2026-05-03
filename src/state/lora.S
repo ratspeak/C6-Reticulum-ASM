@@ -92,6 +92,12 @@ sx1262_model_rx_len:
         .skip   4
         .size   sx1262_model_rx_len, 4
 
+        .global sx1262_model_rx_armed
+        .type   sx1262_model_rx_armed, @object
+sx1262_model_rx_armed:
+        .skip   4
+        .size   sx1262_model_rx_armed, 4
+
         .global lora_interface_initialized
         .type   lora_interface_initialized, @object
 lora_interface_initialized:

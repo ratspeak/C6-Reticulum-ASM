@@ -23,6 +23,25 @@ def artifacts() -> build.BuildArtifacts:
     return build.build("qemu-virt")
 
 
+def test_main_initializes_lora_and_uses_nonblocking_usb_pump(
+    artifacts: build.BuildArtifacts,
+) -> None:
+    body = build.objdump_disassemble(artifacts.elf, symbol="_main")
+
+    for symbol in (
+        "lora_interface_init",
+        "uart_rx_available",
+        "lora_interface_poll",
+        "uart_rx_byte",
+        "kiss_decode_byte",
+    ):
+        assert f"<{symbol}>" in body, body
+
+    assert body.find("<lora_interface_init>") < body.find("<uart_rx_available>"), body
+    assert body.find("<uart_rx_available>") < body.find("<uart_rx_byte>"), body
+    assert body.find("<uart_rx_available>") < body.find("<lora_interface_poll>"), body
+
+
 def test_emits_boot_banner(artifacts: build.BuildArtifacts) -> None:
     cfg = target.TargetConfig(binary=artifacts.elf)
     t = target.EmuTarget(cfg)
@@ -41,6 +60,37 @@ def test_emits_boot_banner(artifacts: build.BuildArtifacts) -> None:
     assert ev is not None, f"banner did not parse as a log line: {banner!r}"
     assert ev.module == "boot"
     assert ev.event == "ready"
+
+
+def test_emits_lora_ready_before_boot_banner(artifacts: build.BuildArtifacts) -> None:
+    cfg = target.TargetConfig(binary=artifacts.elf)
+    t = target.EmuTarget(cfg)
+    if not t.is_available():
+        pytest.skip("qemu-system-riscv32 not available")
+
+    with t:
+        lines = t.read_lines(timeout=2.0)
+
+    events = log_parser.parse_lines(line + "\r\n" for line in lines)
+    lora_idx = next(
+        (
+            idx
+            for idx, ev in enumerate(events)
+            if ev.module == "lora" and ev.event == "ready"
+        ),
+        None,
+    )
+    boot_idx = next(
+        (
+            idx
+            for idx, ev in enumerate(events)
+            if ev.module == "boot" and ev.event == "ready"
+        ),
+        None,
+    )
+    assert lora_idx is not None, [e.raw for e in events]
+    assert boot_idx is not None, [e.raw for e in events]
+    assert lora_idx < boot_idx, [e.raw for e in events]
 
 
 def test_banner_has_canonical_timestamp_field(

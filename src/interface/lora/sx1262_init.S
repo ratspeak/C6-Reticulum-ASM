@@ -45,6 +45,8 @@ sx1262_init:
         sw      zero, 0(t0)
         la      t0, sx1262_model_status_byte
         sw      zero, 0(t0)
+        la      t0, sx1262_model_rx_armed
+        sw      zero, 0(t0)
 
         call    spi_init
         beqz    a0, .Lsx1262_init_spi_ready
