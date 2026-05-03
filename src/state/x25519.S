@@ -18,3 +18,13 @@
 x25519_field_buf:
         .zero   X25519_FIELD_BYTES
         .size   x25519_field_buf, X25519_FIELD_BYTES
+
+        # Curve25519 base-point u-coordinate = 9 (RFC 7748 §4.1).
+        .section .rodata.x25519_base_point, "a"
+        .global x25519_base_point
+        .type   x25519_base_point, @object
+        .balign 4
+x25519_base_point:
+        .byte   9
+        .zero   31
+        .size   x25519_base_point, 32

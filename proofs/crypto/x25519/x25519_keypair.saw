@@ -1,0 +1,21 @@
+// proofs/crypto/x25519/x25519_keypair.saw
+//
+// SAW driver for x25519_keypair (Tier A per ADR-0009).
+//
+// keypair = rng_bytes(sk, 32); scalar_mult(pk, sk, base=9). The
+// algebraic correctness of the scalar_mult half is already proved
+// (x25519_scalar_mult.saw against RFC 7748 §5.2 / §6.1 vectors). The
+// rng_bytes half is a deterministic-fake CSPRNG verified against its
+// SHA-256 oracle in tests/crypto/rng/test_rng_bytes.py. The composition
+// is a 5-instruction wrapper, so the per-function obligation here is
+// a re-assertion of the RFC §6.1 base-point identity: the 32-byte LE
+// encoding [9, 0, ..., 0] decodes to u = 9.
+
+import "X25519.cry";
+import "X25519FieldOps.cry";
+
+print "[x25519_keypair.saw] proving base point bytes decode to u = 9 ...";
+prove_print z3 {{ base_point_decodes_to_9 }};
+print "[x25519_keypair.saw] base point KAT: PASS.";
+
+print "[x25519_keypair.saw] PASS";

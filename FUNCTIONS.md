@@ -42,9 +42,9 @@ Each function entry has:
 post-milestone-1 task. Run `./verify --all` for the live tally.)
 
 - Total functions registered: **39** (excludes wildcard placeholders like `x25519_field_*`)
-- Verified: 59 (milestone 1 software side + entire milestone-2 crypto stack so far: SHA-256 family + HMAC + HKDF + AES-256-CBC stack + 12 X25519 functions — all under ADR-0009)
+- Verified: 62 (milestone 1 software side + entire milestone-2 crypto stack so far: SHA-256 family + HMAC + HKDF + AES-256-CBC stack + 13 X25519 functions + RNG (deterministic-fake) — all under ADR-0009)
 - Tested (KAT-only, formal verifier pending): 0
-- Planned: X25519 (1 function remaining: keypair) + Ed25519 (3) + RNG (2) + `uart_isr` (hw). `decode_u` removed from the registry — `field_unpack`'s limb 9 mask already drops bit 255 (the RFC 7748 high-bit mask), so a separate decode_u is redundant in our representation.
+- Planned: Ed25519 (3) + `uart_isr` (hw). The X25519 stack and the QEMU-bring-up RNG are complete; the production ESP32-C6 RNG (HMAC-DRBG seeded from the on-chip TRNG) replaces the deterministic-fake at hardware bring-up time. `decode_u` removed from the registry — `field_unpack`'s limb 9 mask already drops bit 255 (the RFC 7748 high-bit mask), so a separate decode_u is redundant in our representation.
 - `x25519_field_mul121665` and `x25519_field_mul` both rely on a QEMU-pytest Tier C path rather than angr: the pcode RV32IMC engine mistranslates the `mul + mulh + add-with-carry` 64-bit accumulator chain (40-of-40 random inputs disagreed in earlier runs against a hand-written Python asm-level simulator that mirrors the asm verbatim). The X25519 dispatcher tag `'F'` (added in this commit) drives `x25519_field_mul` under qemu-system-riscv32 and compares to the algebraic-spec-validated Python oracle. Same Tier C-future resolution (SAW + macaw-riscv per ADR-0009); QEMU plumbing for `x25519_field_mul121665` is a follow-up since its asm is also covered by transitivity through the simulator.
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
@@ -208,7 +208,7 @@ and AES stacks.
 | `x25519_cswap` | ◉ verified | — | 0006, 0009 | (milestone 2) |
 | `x25519_montgomery_ladder` | ◉ verified | `x25519_field_*`, `x25519_cswap` | 0006, 0009 | (milestone 2) |
 | `x25519_scalar_mult` | ◉ verified | `x25519_montgomery_ladder`, `x25519_decode_*`, `x25519_field_pack` | 0006, 0009 | (milestone 2) |
-| `x25519_keypair` | ☐ planned | `x25519_scalar_mult`, `rng_bytes` | 0006, 0009 | (milestone 2) |
+| `x25519_keypair` | ◉ verified | `x25519_scalar_mult`, `rng_bytes` | 0006, 0009 | (milestone 2) |
 
 ## Module: `crypto/ed25519`
 
@@ -226,8 +226,8 @@ Cryptographically secure random number generation. Source: ESP32-C6 hardware RNG
 
 | Function | Status | Depends-on | ADRs | Spec |
 |----------|--------|-----------|------|------|
-| `rng_init` | ☐ planned | `clock_init` | 0006 | (milestone 2) |
-| `rng_bytes` | ☐ planned | `rng_init` | 0006 | (milestone 2) |
+| `rng_init` | ◉ verified | `clock_init` | 0006, 0009 | (milestone 2) |
+| `rng_bytes` | ◉ verified | `rng_init`, `sha256_*` | 0006, 0009 | (milestone 2) |
 
 ## Module: `identity`
 

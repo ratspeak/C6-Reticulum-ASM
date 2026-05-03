@@ -130,6 +130,18 @@
         .ascii "x25519\tscalar_mult\thex="
 .Lx25519_smult_tag_end:
         .equ   .Lx25519_smult_tag_len, .Lx25519_smult_tag_end - .Lx25519_smult_tag
+.Lrng_tag:
+        .ascii "rng\tbytes\thex="
+.Lrng_tag_end:
+        .equ   .Lrng_tag_len, .Lrng_tag_end - .Lrng_tag
+.Lx25519_kp_pk_tag:
+        .ascii "x25519\tkeypair_pk\thex="
+.Lx25519_kp_pk_tag_end:
+        .equ   .Lx25519_kp_pk_tag_len, .Lx25519_kp_pk_tag_end - .Lx25519_kp_pk_tag
+.Lx25519_kp_sk_tag:
+        .ascii "x25519\tkeypair_sk\thex="
+.Lx25519_kp_sk_tag_end:
+        .equ   .Lx25519_kp_sk_tag_len, .Lx25519_kp_sk_tag_end - .Lx25519_kp_sk_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -143,6 +155,7 @@ _main:
         call    clock_init
         call    uart_init
         call    log_init
+        call    rng_init                /* zero deterministic counter   */
 
         la      a0, .Lboot_ready_tag
         li      a1, .Lboot_ready_tag_len
@@ -208,6 +221,10 @@ _main:
         beq     t1, t2, .Lx25519_ladder_kat
         li      t2, 0x73                /* 's' for x25519_scalar_mult     */
         beq     t1, t2, .Lx25519_smult_kat
+        li      t2, 0x72                /* 'r' for rng_bytes              */
+        beq     t1, t2, .Lrng_kat
+        li      t2, 0x6B                /* 'k' for x25519_keypair         */
+        beq     t1, t2, .Lx25519_keypair_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -735,6 +752,74 @@ _main:
         call    log_str
         la      a0, x25519_field_buf
         li      a1, 40
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Lx25519_keypair_kat:
+        /* x25519_keypair: 'k' (no args). Resets RNG to a deterministic
+         * state then emits the resulting (sk, pk) on two log lines. */
+        call    rng_init
+        # Use kiss_buf+0..31 as sk_out scratch and x25519_field_buf+0..31 as pk_out.
+        la      a0, x25519_field_buf
+        la      a1, kiss_buf
+        call    x25519_keypair
+        # Emit sk
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lx25519_kp_sk_tag
+        li      a1, .Lx25519_kp_sk_tag_len
+        call    log_str
+        la      a0, kiss_buf
+        li      a1, 32
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        # Emit pk
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lx25519_kp_pk_tag
+        li      a1, .Lx25519_kp_pk_tag_len
+        call    log_str
+        la      a0, x25519_field_buf
+        li      a1, 32
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Lrng_kat:
+        /* rng_bytes: 'r' || count[1]. Reseeds counter via rng_init then
+         * emits `count` deterministic bytes. */
+        call    rng_init
+        la      t0, kiss_buf
+        lbu     a1, 1(t0)               /* count                       */
+        la      a0, x25519_field_buf    /* spare 40-byte buf           */
+        call    rng_bytes
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lrng_tag
+        li      a1, .Lrng_tag_len
+        call    log_str
+        la      a0, x25519_field_buf
+        la      t0, kiss_buf
+        lbu     a1, 1(t0)               /* count again                 */
         call    log_hex_buf
         li      a0, 13
         call    uart_tx_byte
