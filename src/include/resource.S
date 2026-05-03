@@ -5,6 +5,9 @@
         .equ RESOURCE_OK,                         0
         .equ RESOURCE_ERR_INVAL,                 -1
         .equ RESOURCE_ERR_OVERFLOW,              -2
+        .equ RESOURCE_CONTEXT_RESOURCE,           0x01
+        .equ RESOURCE_CONTEXT_RESOURCE_ADV,       0x02
+        .equ RESOURCE_CONTEXT_CHANNEL,            0x0E
 
         .equ RESOURCE_HASH_SIZE,                  32
         .equ RESOURCE_RANDOM_HASH_SIZE,           4
@@ -37,6 +40,7 @@
         .equ RESOURCE_REASM_RESULT_PART_ACCEPTED, 2
         .equ RESOURCE_REASM_RESULT_DUPLICATE,     3
         .equ RESOURCE_REASM_RESULT_COMPLETE,      4
+        .equ RESOURCE_PROCESS_STATUS_CHANNEL,     5
 
         /* resource_reassembly_entry_t offsets (316 bytes total). */
         .equ RESOURCE_REASM_OFF_VALID,            0

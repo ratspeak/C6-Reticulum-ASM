@@ -40,7 +40,7 @@ small in-RAM reassembly window.
 - [x] `resource_reassembly_init` and `resource_reassembly_update` maintain a
       fixed-capacity in-RAM received-part window with deterministic duplicate,
       complete, and invalid statuses.
-- [ ] `resource_process_plaintext` dispatches decrypted link plaintext for
+- [x] `resource_process_plaintext` dispatches decrypted link plaintext for
       RESOURCE_ADV, RESOURCE, and CHANNEL contexts while preserving the
       milestone-6 context-0 encrypted packet path.
 - [ ] A TLA+ resource/channel state model covers advertise, accept part,
@@ -191,6 +191,16 @@ Responsibilities:
 2. Dispatch RESOURCE_ADV context to `resource_advertisement_parse`.
 3. Dispatch RESOURCE context to `resource_part_parse` and
    `resource_reassembly_update`.
+
+Verified dispatcher shape:
+
+1. `resource_process_plaintext` rejects null link entries and unknown contexts.
+2. CHANNEL plaintext must parse as a channel envelope and returns
+   `RESOURCE_PROCESS_STATUS_CHANNEL`.
+3. RESOURCE_ADV plaintext parses an advertisement and installs it into the
+   reassembly table.
+4. RESOURCE plaintext delegates to `resource_reassembly_update`, which computes
+   map hashes through `resource_part_parse`.
 
 ## Verifier Plan
 
