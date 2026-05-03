@@ -77,7 +77,7 @@ post-milestone-1 task. Run `./verify --all` for the live tally.)
 - `x25519_field_mul121665` and `x25519_field_mul` both rely on a QEMU-pytest Tier C path rather than angr: the pcode RV32IMC engine mistranslates the `mul + mulh + add-with-carry` 64-bit accumulator chain (40-of-40 random inputs disagreed in earlier runs against a hand-written Python asm-level simulator that mirrors the asm verbatim). The X25519 dispatcher tag `'F'` (added in this commit) drives `x25519_field_mul` under qemu-system-riscv32 and compares to the algebraic-spec-validated Python oracle. Same Tier C-future resolution (SAW + macaw-riscv per ADR-0009); QEMU plumbing for `x25519_field_mul121665` is a follow-up since its asm is also covered by transitivity through the simulator.
 - Note: AES Tier C is currently Cryptol+SAW (Tier A) plus QEMU pytest KATs; angr's pcode RV32IMC engine is empirically unreliable for the Boyar-Peralta circuit and dependent functions, so 11 of the 15 AES functions defer the angr Tier-C-bounded path to future SAW+macaw-riscv work (ADR-0009 §"Tier C path forward"). The 4 AES functions where pcode is reliable (`aes_addroundkey`, `aes_shiftrows`, `aes_invshiftrows`, `aes_mixcolumns`) carry both Tier A and Tier C verifiers.
 - The X25519 algorithmic spec [proofs/crypto/x25519/X25519.cry](proofs/crypto/x25519/X25519.cry) and SAW driver are landed and proven against RFC 7748 §5.2 / §6.1 KATs; each of the 14 listed functions hangs off the same shared model. The asm implementation follows in subsequent commits.
-- In progress: 0
+- In progress: 1
 - Planned: 8 (`uart_isr`, milestone-3 announce_send,
   milestone-4 identity persistence, milestone-4 flash driver)
 
@@ -319,7 +319,7 @@ Reticulum announce transmission over the current KISS serial development interfa
 | Function | Status | Owner | Depends-on | ADRs | Spec |
 |----------|--------|-------|-----------|------|------|
 | `announce_build` | ◉ verified |  | `identity_create`, `destination_name_hash`, `destination_hash`, `rng_bytes`, `ed25519_sign` | 0001, 0002, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#announce_build) |
-| `announce_send` | ☐ planned |  | `announce_build`, `packet_serialize_header`, `kiss_encode_frame`, `uart_tx_bytes` | 0001, 0002, 0004, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#announce_send) |
+| `announce_send` | ◌ in-progress | agent-2 | `announce_build`, `packet_serialize_header`, `kiss_encode_frame`, `uart_tx_bytes` | 0001, 0002, 0004, 0006, 0009 | [milestone-3](docs/milestones/milestone-3.md#announce_send) |
 
 ## Module: `transport`
 
