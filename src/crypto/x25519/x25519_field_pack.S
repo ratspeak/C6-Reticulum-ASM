@@ -14,7 +14,7 @@
 #               propagation (with the 2^255 ≡ 19 fold of limb 9's overflow
 #               into limb 0), followed by a constant-time conditional
 #               subtract of p, followed by bit-stream packing into 32 bytes.
-# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_pack.saw, proofs/crypto/x25519/x25519_field_pack.py
+# @verify:      proofs/crypto/x25519/X25519FieldOps.cry, proofs/crypto/x25519/x25519_field_pack.saw, proofs/crypto/x25519/x25519_field_pack.py, proofs/crypto/x25519/x25519_field_pack.bsc
 # @tests:       tests/crypto/x25519/test_x25519_field_pack.py
 # @adrs:        0001, 0002, 0006, 0009
 # @status:      verified
