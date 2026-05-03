@@ -1,0 +1,37 @@
+// proofs/crypto/x25519/x25519_scalar_mult.saw
+//
+// SAW driver for x25519_scalar_mult (Tier A per ADR-0009).
+//
+// scalar_mult is the wire-form composition
+//   pack ∘ ladder ∘ (decode_scalar × field_unpack)
+// already discharged piecewise (decode_scalar.saw, field_unpack.saw,
+// montgomery_ladder.saw, field_pack.saw). The end-to-end algebraic
+// post-condition is the Cryptol `x25519` function in X25519.cry, which
+// is itself proved against RFC 7748 §5.2 v1/v2 and §6.1 vectors in
+// x25519.saw.
+//
+// This driver re-asserts the §5.2 v1 and §6.1 round-trip KATs through
+// the Cryptol model so the obligation is visible at the per-function
+// level. The asm-vs-Cryptol bridge is the QEMU pytest in
+// test_x25519_scalar_mult.py.
+
+import "X25519.cry";
+import "X25519FieldOps.cry";
+
+print "[x25519_scalar_mult.saw] proving RFC 7748 §5.2 v1 vector (Cryptol model) ...";
+prove_print z3 {{ rfc7748_5_2_v1_kat }};
+print "[x25519_scalar_mult.saw] §5.2 v1: PASS.";
+
+print "[x25519_scalar_mult.saw] proving RFC 7748 §5.2 v2 vector (Cryptol model) ...";
+prove_print z3 {{ rfc7748_5_2_v2_kat }};
+print "[x25519_scalar_mult.saw] §5.2 v2: PASS.";
+
+print "[x25519_scalar_mult.saw] proving RFC 7748 §6.1 Alice-side shared secret ...";
+prove_print z3 {{ dh_shared_alice_kat }};
+print "[x25519_scalar_mult.saw] DH Alice: PASS.";
+
+print "[x25519_scalar_mult.saw] proving RFC 7748 §6.1 Bob-side shared secret ...";
+prove_print z3 {{ dh_shared_bob_kat }};
+print "[x25519_scalar_mult.saw] DH Bob: PASS.";
+
+print "[x25519_scalar_mult.saw] PASS";

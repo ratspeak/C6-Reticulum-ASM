@@ -126,6 +126,10 @@
         .ascii "x25519\tladder\thex="
 .Lx25519_ladder_tag_end:
         .equ   .Lx25519_ladder_tag_len, .Lx25519_ladder_tag_end - .Lx25519_ladder_tag
+.Lx25519_smult_tag:
+        .ascii "x25519\tscalar_mult\thex="
+.Lx25519_smult_tag_end:
+        .equ   .Lx25519_smult_tag_len, .Lx25519_smult_tag_end - .Lx25519_smult_tag
 
         .section .text._main, "ax", @progbits
         .global _main
@@ -202,6 +206,8 @@ _main:
         beq     t1, t2, .Lx25519_finv_kat
         li      t2, 0x4C
         beq     t1, t2, .Lx25519_ladder_kat
+        li      t2, 0x73                /* 's' for x25519_scalar_mult     */
+        beq     t1, t2, .Lx25519_smult_kat
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -729,6 +735,31 @@ _main:
         call    log_str
         la      a0, x25519_field_buf
         li      a1, 40
+        call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Lx25519_smult_kat:
+        /* x25519_scalar_mult: 's' || k_bytes[32] || u_bytes[32] →
+         * emits 64 hex chars (canonical 32-byte u-coordinate of k·P_u). */
+        la      a0, x25519_field_buf    /* 40-byte buf, low 32 used      */
+        la      a1, kiss_buf
+        addi    a1, a1, 1               /* &k_bytes                      */
+        addi    a2, a1, 32              /* &u_bytes                      */
+        call    x25519_scalar_mult
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Lx25519_smult_tag
+        li      a1, .Lx25519_smult_tag_len
+        call    log_str
+        la      a0, x25519_field_buf
+        li      a1, 32
         call    log_hex_buf
         li      a0, 13
         call    uart_tx_byte
