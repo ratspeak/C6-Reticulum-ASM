@@ -3,11 +3,11 @@
 # Codex session: not started
 
 ## Active claim (single line, current)
-none — available after coordinator marks parallel session live
+none — available
 
 ## Recent claims (rolling, last 10)
 - none
 
 ## Notes / blockers
-- Expected lane: structurally independent production/support work once milestone 3 scope is activated.
-- If milestone 3 remains single-module, use a coordinator-assigned backfill task instead of colliding with agent 2.
+- Expected lane: structurally independent milestone-3 production work.
+- First recommended claim: `destination_name_hash` or `destination_hash`, avoiding collision with agent 2.

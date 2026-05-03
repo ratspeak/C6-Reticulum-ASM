@@ -3,7 +3,7 @@
 # Codex session: not started
 
 ## Active claim (single line, current)
-none — available after coordinator marks parallel session live
+none — available
 
 ## Recent claims (rolling, last 10)
 - none

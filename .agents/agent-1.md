@@ -3,13 +3,14 @@
 # Codex session: 2026-05-03T06:01:49Z
 
 ## Active claim (single line, current)
-coordinator-bootstrap — claimed 2026-05-03T06:01:49Z, ETA 1h
+parallel-session-live — claimed 2026-05-03T06:18:00Z, ETA ongoing
 
 ## Recent claims (rolling, last 10)
-- milestone-3-activation — claimed 2026-05-03T06:10:00Z, completed pending, branch: main
+- worktree-bootstrap — claimed 2026-05-03T06:17:00Z, completed 2026-05-03T06:18:00Z, branch: main
+- milestone-3-activation — claimed 2026-05-03T06:10:00Z, completed 2026-05-03T06:16:00Z, branch: main
 - parallel-session-bootstrap — claimed 2026-05-03T06:01:49Z, completed 2026-05-03T06:08:00Z, branch: main
 
 ## Notes / blockers
-- Main worktree only existed at bootstrap start; agent worktrees still need to be created.
-- `FUNCTIONS.md` Owner column added for parallel-mode locking.
-- Milestone 3 activation metadata is being added before production agents claim identity work.
+- Baseline gates passed before live session: `make ci` and `./verify --all`.
+- Worktrees exist for agents 2-6 at `/Users/Games/Desktop/main/RISC-V-C6-agent-N`.
+- Active milestone is milestone 3; first eligible claims are `identity_hash`, `destination_name_hash`, and `destination_hash`.
