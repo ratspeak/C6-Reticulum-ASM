@@ -60,6 +60,25 @@ def source_body(path: str, symbol: str) -> str:
     return text[start:end]
 
 
+def qemu_source_body(path: str, symbol: str) -> str:
+    """Return the source shape visible to TARGET_QEMU_VIRT.
+
+    The flash assembly now carries a TARGET_C6 ROM-helper branch before the
+    qemu model branch. This verifier binds only the qemu model, so strip one
+    top-level TARGET_C6 conditional and leave the qemu `.else` body.
+    """
+    body = source_body(path, symbol)
+    body = re.sub(
+        r"^\s*\.ifdef TARGET_C6\s*$.*?^\s*\.else\s*$\n?",
+        "",
+        body,
+        count=1,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    body = re.sub(r"^\s*\.endif\s*$\n?", "", body, flags=re.MULTILINE)
+    return body
+
+
 def no_store_before(body: str, marker: str, description: str) -> None:
     prefix = body[: body.index(marker)]
     require(not re.search(r"^\s*sb\s+", prefix, re.MULTILINE), description)
@@ -196,7 +215,7 @@ def prove_erase() -> None:
 
 
 def prove_source_binding() -> None:
-    init = source_body("src/flash/flash_init.S", "flash_init")
+    init = qemu_source_body("src/flash/flash_init.S", "flash_init")
     require_ordered(
         init,
         [
@@ -211,7 +230,7 @@ def prove_source_binding() -> None:
         "flash_init initializes to erased bytes exactly once",
     )
 
-    read_body = source_body("src/flash/flash_read.S", "flash_read")
+    read_body = qemu_source_body("src/flash/flash_read.S", "flash_read")
     require_ordered(
         read_body,
         [
@@ -225,7 +244,7 @@ def prove_source_binding() -> None:
         "flash_read validates offset/length before copying",
     )
 
-    write = source_body("src/flash/flash_write_page.S", "flash_write_page")
+    write = qemu_source_body("src/flash/flash_write_page.S", "flash_write_page")
     require_ordered(
         write,
         [
@@ -246,7 +265,7 @@ def prove_source_binding() -> None:
     )
     no_store_before(write, "\n2:", "flash_write_page stores before validation completes")
 
-    erase = source_body("src/flash/flash_erase_sector.S", "flash_erase_sector")
+    erase = qemu_source_body("src/flash/flash_erase_sector.S", "flash_erase_sector")
     require_ordered(
         erase,
         [

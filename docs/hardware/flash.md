@@ -6,8 +6,9 @@ contract for `flash_init`, `flash_read`, `flash_write_page`,
 `flash_erase_sector`, `identity_save`, and `identity_load`.
 
 This is not an implementation proof. Register-level or ROM-helper sequencing
-for erase/program/read still belongs with the production flash backend and its
-verifier artifacts.
+is owned by the production flash backend and the hardware reset-retention test.
+The current TARGET_C6 backend calls the ESP32-C6 ROM SPI flash helpers from
+SRAM and keeps the public project API bounded to the reserved identity region.
 
 ## Primary References
 
@@ -24,6 +25,14 @@ verifier artifacts.
   documents that ESP32-C6 cache must be disabled during flash
   read/write/erase on SPI1, and that code/data used during that window must be
   in internal RAM.
+- [ESP-IDF ESP32-C6 ROM linker map](https://raw.githubusercontent.com/espressif/esp-idf/v6.0/components/esp_rom/esp32c6/ld/esp32c6.rom.ld):
+  documents the ROM entry addresses used by the asm backend:
+  `esp_rom_spiflash_erase_sector = 0x40000144`,
+  `esp_rom_spiflash_write = 0x4000014c`, and
+  `esp_rom_spiflash_read = 0x40000150`.
+- [ESP-IDF ESP32-C6 ROM SPI flash header](https://raw.githubusercontent.com/espressif/esp-idf/v6.0/components/esp_rom/esp32c6/include/esp32c6/rom/spi_flash.h):
+  documents that ROM flash read/write use flash byte offsets but require
+  4-byte-aligned addresses, buffers, and lengths.
 
 ## Confirmed Facts
 
@@ -37,6 +46,9 @@ verifier artifacts.
 - The C6 linker script currently places the whole production image in HP SRAM
   at boot. No production code is intended to execute from flash while the
   milestone-4 flash routines run.
+- The TARGET_C6 flash backend executes from HP SRAM and calls the ROM
+  `esp_rom_spiflash_read`, `esp_rom_spiflash_write`, and
+  `esp_rom_spiflash_erase_sector` helpers directly.
 - Sector erase granularity for the contract is 4 KiB. Erase offsets and lengths
   must be multiples of `0x1000`.
 - SPI NOR flash writes may only change erased `1` bits to programmed `0` bits.
@@ -45,13 +57,13 @@ verifier artifacts.
 
 ## Contract Assumptions
 
-- The milestone-4 write quantum is one 256-byte page. This matches the common
-  SPI NOR page-program size and ESP-IDF's page-program abstraction, but the
-  production TARGET_C6 backend must still confirm the in-package flash driver's
-  effective page size before marking `flash_write_page` verified.
-- The exact backend sequence is not yet proven. Production asm may use ROM SPI
-  flash helpers or direct MSPI/SPI1 registers, but it must satisfy the same
-  external contract and pass hardware reset-retention tests.
+- The milestone-4 write quantum is one 256-byte page. The TARGET_C6 backend
+  exposes this project-level page contract while using 4-byte-aligned ROM
+  helper calls internally.
+- The exact backend sequence is not yet proven on bench hardware. Production
+  asm currently uses ROM SPI flash helpers; it must still satisfy the same
+  external contract and pass hardware reset-retention tests before this
+  milestone can close.
 - Flash encryption and secure boot are out of scope. If either is enabled
   later, this document needs a new ADR or superseding hardware contract because
   raw flash reads and encrypted cache reads have different semantics.
@@ -93,15 +105,24 @@ the first page must remain `0xff` after `identity_save`.
 
 ## TARGET_C6 Backend Rules
 
+- `src/include/flash.S` owns the ROM helper addresses and the absolute
+  reserved-sector offset. These constants must stay sourced from the ESP-IDF
+  ESP32-C6 ROM linker map, not from ad hoc reverse-engineering.
 - `flash_init` must validate that the reserved absolute offset and size are
-  sector-aligned, and must reject any detected chip size smaller than 4 MiB.
+  sector-aligned, and must reject any detected failure to read the top of the
+  4 MiB chip address space.
 - `flash_read(offset, out, len)` may read any byte range inside the 4 KiB
-  region. Zero-length reads are no-ops.
+  region. Zero-length reads are no-ops. The TARGET_C6 wrapper may split
+  unaligned public reads into aligned 4-byte ROM reads through static SRAM
+  scratch.
 - `flash_write_page(offset, src, len)` must reject:
   - zero-length writes,
   - writes outside the 4 KiB identity region,
   - writes crossing a 256-byte page boundary,
   - any write that would program a `0` bit back to `1`.
+  The TARGET_C6 wrapper must validate the full requested range before issuing
+  any ROM write, then preserve surrounding bytes when an unaligned public write
+  is lowered to aligned 4-byte ROM writes.
 - `flash_erase_sector(offset)` only accepts `offset == 0` for milestone 4 and
   sets the whole identity sector to `0xff`.
 - Validation happens before modification. On any rejected write or erase,
@@ -156,11 +177,12 @@ the save and load phases.
 1. Build and flash `TARGET=c6` once.
 2. Start the board and drain to `boot.ready`.
 3. Trigger the milestone-4 load-or-create command path.
-4. If the sector is erased, expect `identity.created` followed by
-   `identity.saved`; record the public identity hash emitted by the test path.
+4. If the sector is erased, expect `identity.created`; parse the emitted
+   announce frame and record `SHA256(public_key)[0:16]`.
 5. Reset the board through `HwTarget` with `auto_flash=False`.
 6. Trigger the same path again.
-7. Expect `identity.loaded` and the same public identity hash.
+7. Expect `identity.loaded` and the same public identity hash parsed from the
+   second announce frame.
 8. Build and send an announce using the loaded identity; validate the announce
    with the Python Reticulum oracle.
 9. Negative setup tests may erase the identity sector and corrupt one record
@@ -170,5 +192,6 @@ The test must not pass by accidentally preserving host-side state. The observed
 hash has to come from the C6 after a reset and without `make flash` running in
 between.
 
-Until the production dispatcher exposes the flash/identity events, the hardware
-test in `tests/hardware/test_flash_persistence.py` is a skipped contract anchor.
+The hardware test in `tests/hardware/test_flash_persistence.py` implements this
+flow and is opt-in behind `pytest --hardware` because it requires the physical
+Feather and erases the reserved identity sector.

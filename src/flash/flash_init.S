@@ -3,12 +3,12 @@
 # @module:      flash
 # @inputs:      (none)
 # @outputs:     a0 = 0 on success, negative errno on failure
-# @clobbers:    a0, t0..t4
+# @clobbers:    a0..a2, t0..t4
 # @preserves:   sp, gp, ra, all callee-saved
-# @stack:       0
-# @cycles:      bounded (one 4096-byte erase on first qemu model init)
+# @stack:       16
+# @cycles:      bounded (one 4096-byte model init on qemu; one ROM read on C6)
 # @ct:          not-required
-# @spec:        milestone-4 flash_init; qemu-virt reserved flash model initialization
+# @spec:        milestone-4 flash_init; qemu-virt model / TARGET_C6 reserved flash validation
 # @verify:      proofs/flash/flash_qemu_model.py
 # @tests:       tests/flash/test_flash_driver.py
 # @adrs:        0001, 0002, 0005, 0006, 0009
@@ -28,6 +28,36 @@
         .global flash_init
         .type   flash_init, @function
 flash_init:
+        .ifdef TARGET_C6
+        li      t0, FLASH_SECTOR_SIZE - 1
+        li      t1, FLASH_C6_IDENTITY_ABS_OFFSET
+        and     t2, t1, t0
+        bnez    t2, .Lfi_c6_fail
+        li      t1, FLASH_IDENTITY_REGION_SIZE
+        and     t2, t1, t0
+        bnez    t2, .Lfi_c6_fail
+        li      t1, FLASH_C6_IDENTITY_ABS_OFFSET + FLASH_IDENTITY_REGION_SIZE
+        li      t2, FLASH_C6_CHIP_SIZE
+        bne     t1, t2, .Lfi_c6_fail
+
+        addi    sp, sp, -16
+        sw      ra, 12(sp)
+        li      a0, FLASH_C6_CHIP_SIZE - 4
+        la      a1, flash_c6_word_scratch
+        li      a2, 4
+        li      t0, ESP_ROM_SPIFLASH_READ
+        jalr    ra, 0(t0)
+        lw      ra, 12(sp)
+        addi    sp, sp, 16
+        bnez    a0, .Lfi_c6_fail
+
+        li      a0, FLASH_OK
+        ret
+
+.Lfi_c6_fail:
+        li      a0, FLASH_ERR_INVAL
+        ret
+        .else
         la      t0, flash_model_initialized
         lw      t1, 0(t0)
         bnez    t1, .Lfi_ok
@@ -47,5 +77,6 @@ flash_init:
 .Lfi_ok:
         li      a0, FLASH_OK
         ret
+        .endif
 
         .size   flash_init, . - flash_init

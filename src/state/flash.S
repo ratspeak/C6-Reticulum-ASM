@@ -1,14 +1,17 @@
-/* Static qemu-virt flash model state (ADR-0002).
+/* Static flash state (ADR-0002).
  *
  * Milestone 4 reserves one identity sector. The qemu model stores that sector
  * in RAM and applies flash write semantics: erased bytes are 0xff, programming
- * may only clear bits, and erase restores the whole sector to 0xff.
+ * may only clear bits, and erase restores the whole sector to 0xff. TARGET_C6
+ * uses the physical reserved sector and only needs an aligned ROM-helper
+ * scratch word.
  */
 
         .include "flash.S"
 
         .section .bss.flash_model, "aw", @nobits
 
+        .ifndef TARGET_C6
         .global flash_model_region
         .type   flash_model_region, @object
         .balign 4
@@ -22,3 +25,11 @@ flash_model_region:
 flash_model_initialized:
         .zero   4
         .size   flash_model_initialized, 4
+        .endif
+
+        .global flash_c6_word_scratch
+        .type   flash_c6_word_scratch, @object
+        .balign 4
+flash_c6_word_scratch:
+        .zero   4
+        .size   flash_c6_word_scratch, 4

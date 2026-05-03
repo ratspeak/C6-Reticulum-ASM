@@ -23,26 +23,26 @@ keeps the milestone-3 announce path stable across resets.
 
 ## Definition of done
 
-- [ ] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-4 function with
+- [x] [FUNCTIONS.md](../../FUNCTIONS.md) lists every milestone-4 function with
       a source, tests, verifier artifact, and status `verified`.
-- [ ] `docs/hardware/flash.md` records the reserved identity sector, page and
+- [x] `docs/hardware/flash.md` records the reserved identity sector, page and
       sector sizes, target-specific backend assumptions, and erase/write safety
       rules.
-- [ ] `flash_init`, `flash_read`, `flash_write_page`, and
+- [x] `flash_init`, `flash_read`, `flash_write_page`, and
       `flash_erase_sector` implement bounded operations over only the reserved
       project flash region.
-- [ ] QEMU tests prove erase -> read returns `0xff`, page writes round-trip,
+- [x] QEMU tests prove erase -> read returns `0xff`, page writes round-trip,
       partial reads are bounds-checked, and attempts to set erased bits from
       `0` back to `1` fail without modifying storage.
-- [ ] `identity_save` writes the record format in this spec and
+- [x] `identity_save` writes the record format in this spec and
       `identity_load` accepts valid records while rejecting bad magic, version,
       checksum, length, and identity-hash fields.
-- [ ] `_main` loads an existing identity before creating a new one, emits
+- [x] `_main` loads an existing identity before creating a new one, emits
       `identity.loaded` or `identity.created`, and still sends an upstream-valid
       announce over KISS.
 - [ ] On TARGET_C6 hardware, an identity saved before reset is loaded after
       reset and has the same identity hash.
-- [ ] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and
+- [x] `make ci`, `make build TARGET=qemu-virt`, `make build TARGET=c6`, and
       `./verify <fn>` pass for every function added or modified in this
       milestone.
 
@@ -170,7 +170,9 @@ Verification:
   unchanged-on-failure behavior.
 - Symbolic execution over the qemu-virt model for bounds checks and the
   no-0-to-1 write rule.
-- TARGET_C6 hardware test for erase/write/read/reset retention.
+- TARGET_C6 ROM-helper backend builds into the C6 image, and
+  `tests/hardware/test_flash_persistence.py` implements the erase/write/read
+  reset-retention flow. Physical bench execution is still pending.
 
 ## Identity Record
 
