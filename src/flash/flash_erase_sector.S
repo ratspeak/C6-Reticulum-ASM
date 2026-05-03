@@ -9,10 +9,10 @@
 # @cycles:      bounded (4096 byte stores)
 # @ct:          not-required
 # @spec:        milestone-4 flash_erase_sector; qemu-virt reserved sector erase
-# @verify:      kat-only; qemu model coverage in tests/flash/test_flash_driver.py
+# @verify:      proofs/flash/flash_qemu_model.py
 # @tests:       tests/flash/test_flash_driver.py
 # @adrs:        0001, 0002, 0005, 0006, 0009
-# @status:      tested
+# @status:      verified
 # ============================================================================
 
 /* Erase one sector in the reserved qemu flash model. Milestone 4 reserves one

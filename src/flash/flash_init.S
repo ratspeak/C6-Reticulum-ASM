@@ -9,10 +9,10 @@
 # @cycles:      bounded (one 4096-byte erase on first qemu model init)
 # @ct:          not-required
 # @spec:        milestone-4 flash_init; qemu-virt reserved flash model initialization
-# @verify:      kat-only; qemu model coverage in tests/flash/test_flash_driver.py
+# @verify:      proofs/flash/flash_qemu_model.py
 # @tests:       tests/flash/test_flash_driver.py
 # @adrs:        0001, 0002, 0005, 0006, 0009
-# @status:      tested
+# @status:      verified
 # ============================================================================
 
 /* Initialize the qemu-virt flash model exactly once. The backing storage is

@@ -9,10 +9,10 @@
 # @cycles:      bounded (~8 + 7 per byte)
 # @ct:          not-required
 # @spec:        milestone-4 flash_read; bounded qemu-virt flash model read
-# @verify:      kat-only; qemu model coverage in tests/flash/test_flash_driver.py
+# @verify:      proofs/flash/flash_qemu_model.py
 # @tests:       tests/flash/test_flash_driver.py
 # @adrs:        0001, 0002, 0005, 0006, 0009
-# @status:      tested
+# @status:      verified
 # ============================================================================
 
 /* Copy bytes out of the reserved qemu flash model. Zero-length reads are
