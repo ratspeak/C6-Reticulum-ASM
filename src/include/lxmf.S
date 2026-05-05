@@ -5,6 +5,8 @@
         .equ LXMF_OK,                              0
         .equ LXMF_ERR_INVAL,                     -1
         .equ LXMF_ERR_OVERFLOW,                  -2
+        .equ LXMF_ERR_MISSING,                   -3
+        .equ LXMF_ERR_IO,                        -4
 
         .equ LXMF_HASH_SIZE,                     16
         .equ LXMF_MESSAGE_ID_SIZE,               32
@@ -25,6 +27,8 @@
         .equ LXMF_PAYLOAD_MAX_CONTENT,           255
         .equ LXMF_PAYLOAD_MAX_FIELDS,            64
         .equ LXMF_PAYLOAD_MAX_LEN,               397
+        .equ LXMF_SIGNING_PREFIX_SIZE,           (2 * LXMF_HASH_SIZE)
+        .equ LXMF_SIGNING_MAX_LEN,               LXMF_SIGNING_PREFIX_SIZE + LXMF_PAYLOAD_MAX_LEN + LXMF_MESSAGE_ID_SIZE
         .equ LXMF_STAMP_MAX_LEN,                 32
         .equ LXMF_PAYLOAD_MAX_STAMPED_LEN,       LXMF_PAYLOAD_MAX_LEN + 2 + LXMF_STAMP_MAX_LEN
         .equ LXMF_PAYLOAD_PARSED_HAS_STAMP,      1
