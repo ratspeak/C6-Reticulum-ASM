@@ -7,6 +7,7 @@
         .equ LXMF_ERR_OVERFLOW,                  -2
         .equ LXMF_ERR_MISSING,                   -3
         .equ LXMF_ERR_IO,                        -4
+        .equ LXMF_ERR_BAD_SIGNATURE,             -5
 
         .equ LXMF_HASH_SIZE,                     16
         .equ LXMF_MESSAGE_ID_SIZE,               32
