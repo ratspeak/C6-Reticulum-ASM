@@ -130,11 +130,14 @@ sx1262_init:
 .Lsx1262_init_p_fallback:
         .byte   SX1262_FALLBACK_STDBY_RC
 .Lsx1262_init_p_cal_image:
-        .byte   SX1262_IMAGE_CAL_863_870_1, SX1262_IMAGE_CAL_863_870_2
+        .byte   SX1262_IMAGE_CAL_902_928_1, SX1262_IMAGE_CAL_902_928_2
 .Lsx1262_init_p_packet_type:
         .byte   SX1262_PACKET_TYPE_LORA
 .Lsx1262_init_p_rf_freq:
-        .byte   0x36, 0x33, 0x33, 0x33
+        .byte   (SX1262_BENCH_RF_FREQ_WORD >> 24) & 0xff
+        .byte   (SX1262_BENCH_RF_FREQ_WORD >> 16) & 0xff
+        .byte   (SX1262_BENCH_RF_FREQ_WORD >> 8) & 0xff
+        .byte   SX1262_BENCH_RF_FREQ_WORD & 0xff
 .Lsx1262_init_p_tx_params:
         .byte   SX1262_BENCH_TX_POWER_DBM, SX1262_RAMP_200_US
 .Lsx1262_init_p_mod_params:

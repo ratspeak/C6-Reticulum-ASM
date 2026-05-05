@@ -31,8 +31,8 @@ ASM_SOURCES = (
 LORA_ERR_NO_PACKET = 0xFFFFFFF8
 LORA_ERR_CRC = 0xFFFFFFF7
 LORA_ERR_NOT_INITIALIZED = 0xFFFFFFF6
-LINK_ERR_INVAL = 0xFFFFFFFF
-LINK_STATUS_DECRYPTED = 2
+TRANSPORT_ERR_INVAL = 0xFFFFFFFF
+TRANSPORT_STATUS_UPDATED = 1
 GPIO_DIO1_MASK = 1 << 5
 IRQ_RX_DONE = 0x0002
 IRQ_CRC_ERR = 0x0040
@@ -106,12 +106,12 @@ _reset:
         sw      zero, 0(t0)
         la      t0, lora_interface_dispatch_status
         sw      zero, 0(t0)
-        la      t0, link_stub_raw_len
+        la      t0, transport_stub_raw_len
         sw      zero, 0(t0)
-        la      t0, link_stub_interface
+        la      t0, transport_stub_interface
         sw      zero, 0(t0)
-        la      t0, link_stub_return
-        li      t1, {LINK_STATUS_DECRYPTED}
+        la      t0, transport_stub_return
+        li      t1, {TRANSPORT_STATUS_UPDATED}
         sw      t1, 0(t0)
 
 {body}
@@ -171,14 +171,14 @@ _reset:
         sb      a0, 0(t0)
         ret
 
-        .global link_process_packet
-        .type   link_process_packet, @function
-link_process_packet:
-        la      t0, link_stub_raw_len
+        .global transport_process_packet
+        .type   transport_process_packet, @function
+transport_process_packet:
+        la      t0, transport_stub_raw_len
         sw      a1, 0(t0)
-        la      t0, link_stub_interface
+        la      t0, transport_stub_interface
         sw      a2, 0(t0)
-        la      t0, link_stub_return
+        la      t0, transport_stub_return
         lw      a0, 0(t0)
         ret
 
@@ -283,11 +283,11 @@ def _store_byte(symbol: str, offset: int, value: int) -> str:
 TEST_DATA = """
         .section .data.lora_interface_poll_test, "aw", @progbits
         .balign 4
-link_stub_return:
-        .word   2
-link_stub_raw_len:
+transport_stub_return:
+        .word   1
+transport_stub_raw_len:
         .word   0
-link_stub_interface:
+transport_stub_interface:
         .word   0
 """
 
@@ -313,14 +313,14 @@ def test_lora_interface_poll_dispatches_received_frame(tmp_path: Path) -> None:
         + _load_word("lora_interface_rx_buf")
         + _load_word("sx1262_model_last_irq")
         + _load_word("spi_model_transfer_count")
-        + _load_word("link_stub_raw_len")
-        + _load_word("link_stub_interface")
+        + _load_word("transport_stub_raw_len")
+        + _load_word("transport_stub_interface")
     )
     assert _run_body(tmp_path, body, 9, TEST_DATA) == [
-        LINK_STATUS_DECRYPTED,
+        TRANSPORT_STATUS_UPDATED,
         2,
-        LINK_STATUS_DECRYPTED,
-        LINK_STATUS_DECRYPTED,
+        TRANSPORT_STATUS_UPDATED,
+        TRANSPORT_STATUS_UPDATED,
         0x00005544,
         IRQ_RX_DONE,
         5,
@@ -337,7 +337,7 @@ def test_lora_interface_poll_returns_no_packet_without_dispatch(tmp_path: Path) 
         + _load_word("lora_interface_last_status")
         + _load_word("lora_interface_dispatch_status")
         + _load_word("spi_model_transfer_count")
-        + _load_word("link_stub_raw_len")
+        + _load_word("transport_stub_raw_len")
     )
     assert _run_body(tmp_path, body, 6, TEST_DATA) == [
         LORA_ERR_NO_PACKET,
@@ -357,7 +357,7 @@ def test_lora_interface_poll_requires_interface_init(tmp_path: Path) -> None:
         + _load_word("lora_interface_rx_len")
         + _load_word("lora_interface_last_status")
         + _load_word("spi_model_transfer_count")
-        + _load_word("link_stub_raw_len")
+        + _load_word("transport_stub_raw_len")
     )
     assert _run_body(tmp_path, body, 5, TEST_DATA) == [
         LORA_ERR_NOT_INITIALIZED,
@@ -378,7 +378,7 @@ def test_lora_interface_poll_records_radio_crc_without_dispatch(tmp_path: Path) 
         + _load_word("lora_interface_last_status")
         + _load_word("sx1262_model_last_irq")
         + _load_word("spi_model_transfer_count")
-        + _load_word("link_stub_raw_len")
+        + _load_word("transport_stub_raw_len")
     )
     assert _run_body(tmp_path, body, 6, TEST_DATA) == [
         LORA_ERR_CRC,
@@ -396,19 +396,19 @@ def test_lora_interface_poll_records_dispatch_error(tmp_path: Path) -> None:
         + _store_word("gpio_model_level", GPIO_DIO1_MASK)
         + _store_word("spi_model_rx_source", 0x44020000)
         + _store_byte("spi_model_rx_source", 4, 0x55)
-        + _store_word("link_stub_return", LINK_ERR_INVAL)
+        + _store_word("transport_stub_return", TRANSPORT_ERR_INVAL)
         + _call("lora_interface_poll", 100)
         + _load_word("lora_interface_rx_len")
         + _load_word("lora_interface_last_status")
         + _load_word("lora_interface_dispatch_status")
-        + _load_word("link_stub_raw_len")
-        + _load_word("link_stub_interface")
+        + _load_word("transport_stub_raw_len")
+        + _load_word("transport_stub_interface")
     )
     assert _run_body(tmp_path, body, 6, TEST_DATA) == [
-        LINK_ERR_INVAL,
+        TRANSPORT_ERR_INVAL,
         2,
-        LINK_ERR_INVAL,
-        LINK_ERR_INVAL,
+        TRANSPORT_ERR_INVAL,
+        TRANSPORT_ERR_INVAL,
         2,
         TRANSPORT_INTERFACE_LORA,
     ]

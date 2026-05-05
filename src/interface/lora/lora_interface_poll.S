@@ -2,7 +2,7 @@
 # @function:    lora_interface_poll
 # @module:      interface/lora
 # @inputs:      a0 = timeout polls or 0 for default
-# @outputs:     a0 = dispatch status, positive/zero stack status, or negative LORA_ERR_*/LINK_ERR_*
+# @outputs:     a0 = dispatch status, positive/zero stack status, or negative LORA_ERR_*/TRANSPORT_ERR_*
 # @clobbers:    a0..a5, t0..t6
 # @preserves:   sp, gp, ra, s0..s11
 # @stack:       32
@@ -50,7 +50,7 @@ lora_interface_poll:
         la      a0, lora_interface_rx_buf
         mv      a1, s1
         li      a2, TRANSPORT_INTERFACE_LORA
-        call    link_process_packet
+        call    transport_process_packet
         la      t0, lora_interface_dispatch_status
         sw      a0, 0(t0)
         j       .Llora_interface_poll_store_status

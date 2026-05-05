@@ -39,7 +39,7 @@ GPIO = parse_equ("src/include/gpio.S")
 def prove_profile_constants() -> None:
     freq = LORA["SX1262_BENCH_FREQUENCY_HZ"]
     expected_word = (freq * (1 << 25)) // 32_000_000
-    require(freq == 867_200_000, "bench frequency must mirror the documented RNode example")
+    require(freq == 915_000_000, "bench frequency must use US915 static profile")
     require(LORA["SX1262_BENCH_RF_FREQ_WORD"] == expected_word, "RF frequency word mismatch")
     require(LORA["SX1262_BENCH_TX_POWER_DBM"] == 7, "bench TX power mismatch")
     require(LORA["SX1262_BENCH_PREAMBLE_SYMBOLS"] == 12, "bench preamble mismatch")
@@ -109,7 +109,11 @@ def prove_source_shape() -> None:
         r"SX1262_CMD_SET_RF_FREQUENCY",
         r"SX1262_CMD_SET_DIO_IRQ_PARAMS",
         r"SX1262_CMD_GET_STATUS",
-        r"0x36,\s*0x33,\s*0x33,\s*0x33",
+        r"SX1262_IMAGE_CAL_902_928_1",
+        r"SX1262_IMAGE_CAL_902_928_2",
+        r"SX1262_BENCH_RF_FREQ_WORD\s*>>\s*24",
+        r"SX1262_BENCH_RF_FREQ_WORD\s*>>\s*16",
+        r"SX1262_BENCH_RF_FREQ_WORD\s*>>\s*8",
         r"SX1262_LORA_SF8",
         r"SX1262_LORA_BW_125_KHZ",
         r"SX1262_LORA_CR_4_5",

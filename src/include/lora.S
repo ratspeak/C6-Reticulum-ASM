@@ -50,8 +50,8 @@
         .equ SX1262_FALLBACK_STDBY_RC,      0x20
         .equ SX1262_PACKET_TYPE_LORA,       0x01
 
-        .equ SX1262_BENCH_FREQUENCY_HZ,     867200000
-        .equ SX1262_BENCH_RF_FREQ_WORD,     0x36333333
+        .equ SX1262_BENCH_FREQUENCY_HZ,     915000000
+        .equ SX1262_BENCH_RF_FREQ_WORD,     0x39300000
         .equ SX1262_BENCH_TX_POWER_DBM,     7
         .equ SX1262_BENCH_PREAMBLE_SYMBOLS, 12
         .equ SX1262_BENCH_PAYLOAD_MAX,      253
@@ -68,8 +68,8 @@
         .equ SX1262_LORA_HEADER_EXPLICIT,   0x00
         .equ SX1262_LORA_CRC_ON,            0x01
         .equ SX1262_LORA_IQ_STANDARD,       0x00
-        .equ SX1262_IMAGE_CAL_863_870_1,    0xd7
-        .equ SX1262_IMAGE_CAL_863_870_2,    0xdb
+        .equ SX1262_IMAGE_CAL_902_928_1,    0xe1
+        .equ SX1262_IMAGE_CAL_902_928_2,    0xe9
         .equ SX1262_IRQ_MASK_BENCH,         0x0263
         .equ SX1262_IRQ_TX_DONE,            0x0001
         .equ SX1262_IRQ_RX_DONE,            0x0002
