@@ -15,7 +15,9 @@
 # @status:      verified
 # ============================================================================
 
-/* Process a raw inbound HEADER_1/HEADER_2 announce into the transport path table. */
+/* Process a raw inbound HEADER_1/HEADER_2 announce into the transport path table
+ * and cache a byte-exact path-response packet for later Reticulum path requests.
+ */
 
         .include "announce.S"
         .include "packet.S"
@@ -70,8 +72,9 @@ transport_process_announce:
 .Ltpa_update:
         addi    a0, sp, TPA_PARSED_OFF
         mv      a1, s2
-        lbu     a2, ANNOUNCE_RAW_OFF_HOPS(s0)
-        addi    a2, a2, 1
+        lbu     s4, ANNOUNCE_RAW_OFF_HOPS(s0)
+        addi    s4, s4, 1
+        mv      a2, s4
         lbu     t0, ANNOUNCE_RAW_OFF_FLAGS(s0)
         andi    t0, t0, FLAG_HEADER_TYPE
         beqz    t0, .Ltpa_h1_next_hop
@@ -82,6 +85,11 @@ transport_process_announce:
 .Ltpa_next_hop_ready:
         call    transport_path_update
         bnez    a0, .Ltpa_invalid
+
+        mv      a0, s0
+        mv      a1, s1
+        mv      a2, s4
+        call    transport_path_response_cache_update
 
         mv      a0, s3
         j       .Ltpa_return

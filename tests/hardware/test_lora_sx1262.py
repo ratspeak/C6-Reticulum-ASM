@@ -10,13 +10,14 @@ from __future__ import annotations
 
 import pytest
 
-from harness import build, log_parser, target
+from harness import build, log_parser, oracle, target
 
 pytestmark = pytest.mark.hardware
 
 SX1262_STATUS_CHIP_MODE_MASK = 0x70
 SX1262_STATUS_STBY_RC = 0x20
 LORA_ERR_BUSY_TIMEOUT_HEX = "fffffffe"
+PATH_REQUEST_DEST_HASH = bytes.fromhex("6b9f66014d9853faab220fba47d02761")
 
 
 @pytest.fixture(scope="module")
@@ -62,3 +63,27 @@ def test_sx1262_boot_reset_init_status_readback(hw: target.HwTarget) -> None:
     status = int(status_raw, 16)
     assert status != 0, ready.raw
     assert (status & SX1262_STATUS_CHIP_MODE_MASK) == SX1262_STATUS_STBY_RC, ready.raw
+
+
+def test_sx1262_usb_triggered_tx_smoke(hw: target.HwTarget) -> None:
+    requested = bytes(range(0x40, 0x50))
+    tag = bytes(range(0xE0, 0xF0))
+    raw_packet = bytes([0x08, 0x00]) + PATH_REQUEST_DEST_HASH + bytes([0x00]) + requested + tag
+
+    hw.write(oracle.kiss_encode(b"T" + raw_packet))
+    out = bytearray()
+    events: list[log_parser.LogEvent] = []
+    for _ in range(120):
+        out.extend(hw.read(4096, timeout=0.25))
+        text = bytes(out).decode("utf-8", errors="replace")
+        events = log_parser.parse_lines(line + "\r\n" for line in text.splitlines())
+        if log_parser.find_event(events, module="lora", event="tx_frame"):
+            break
+        if log_parser.find_event(events, module="lora", event="tx_error"):
+            break
+
+    tx = log_parser.find_event(events, module="lora", event="tx_frame")
+    err = log_parser.find_event(events, module="lora", event="tx_error")
+    assert err is None, [e.raw for e in events]
+    assert tx is not None, bytes(out)
+    assert int(tx.fields.get("len", "0"), 16) == len(raw_packet), tx.raw

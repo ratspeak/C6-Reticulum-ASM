@@ -30,6 +30,7 @@ def test_main_initializes_lora_and_uses_nonblocking_usb_pump(
 
     for symbol in (
         "lora_interface_init",
+        "lora_interface_send",
         "uart_rx_available",
         "lora_interface_poll",
         "uart_rx_byte",

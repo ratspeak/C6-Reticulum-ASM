@@ -6,7 +6,7 @@
 # @clobbers:    a0, t0..t4
 # @preserves:   sp, gp, ra, all callee-saved
 # @stack:       0
-# @cycles:      bounded (~832 byte stores)
+# @cycles:      bounded (~3200 byte stores)
 # @ct:          not-required
 # @spec:        milestone-5 transport_path_init
 # @verify:      proofs/transport/path_table.py
@@ -15,7 +15,7 @@
 # @status:      verified
 # ============================================================================
 
-/* Clear the fixed-capacity RAM path table. */
+/* Clear the fixed-capacity RAM path table and path-response cache. */
 
         .include "transport.S"
 
@@ -30,7 +30,16 @@ transport_path_init:
         addi    t0, t0, 1
         addi    t1, t1, -1
         bnez    t1, 1b
-2:      li      a0, TRANSPORT_OK
+
+2:      la      t0, transport_path_response_cache
+        li      t1, TRANSPORT_PATH_RESPONSE_TABLE_SIZE
+        beqz    t1, 4f
+3:      sb      zero, 0(t0)
+        addi    t0, t0, 1
+        addi    t1, t1, -1
+        bnez    t1, 3b
+
+4:      li      a0, TRANSPORT_OK
         ret
 
         .size   transport_path_init, . - transport_path_init

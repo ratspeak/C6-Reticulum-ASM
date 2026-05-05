@@ -19,6 +19,7 @@ ASM_SOURCES = (
     "src/transport/transport_path_init.S",
     "src/transport/transport_path_update.S",
     "src/transport/transport_path_lookup.S",
+    "src/transport/transport_path_response_cache_update.S",
     "src/announce/announce_parse.S",
     "src/announce/announce_validate.S",
     "src/packet/packet_parse_header.S",
@@ -49,6 +50,7 @@ ASM_SOURCES = (
     "src/crypto/sha256/sha256_compress.S",
     "src/state/announce.S",
     "src/state/transport.S",
+    "src/state/identity.S",
     "src/state/ed25519.S",
     "src/state/sha512.S",
     "src/state/sha256.S",
@@ -381,6 +383,7 @@ def test_static_calls_required_components(artifacts: build.BuildArtifacts) -> No
         "announce_validate",
         "transport_path_lookup",
         "transport_path_update",
+        "transport_path_response_cache_update",
     ):
         assert callee in body
 

@@ -42,6 +42,11 @@
         .equ TPP_RA_OFF,    172
         .equ TPP_FRAME,     176
 
+        .section .rodata.transport_process_packet, "a", @progbits
+.Ltpp_path_request_dest_hash:
+        .byte   0x6b, 0x9f, 0x66, 0x01, 0x4d, 0x98, 0x53, 0xfa
+        .byte   0xab, 0x22, 0x0f, 0xba, 0x47, 0xd0, 0x27, 0x61
+
         .section .text.transport_process_packet, "ax", @progbits
         .global transport_process_packet
         .type   transport_process_packet, @function
@@ -77,10 +82,57 @@ transport_process_packet:
         lbu     t0, TPP_PKT_OFF + PKT_OFF_PACKET_TYPE(sp)
         li      t1, PKT_ANNOUNCE
         beq     t0, t1, .Ltpp_announce
+        li      t1, PKT_DATA
+        beq     t0, t1, .Ltpp_data
 
         lbu     t0, TPP_PKT_OFF + PKT_OFF_HEADER_TYPE(sp)
         bnez    t0, .Ltpp_transport
 
+        mv      a0, s0
+        mv      a1, s1
+        mv      a2, s2
+        call    link_process_packet
+        j       .Ltpp_return
+
+.Ltpp_data:
+        lbu     t0, TPP_PKT_OFF + PKT_OFF_HEADER_TYPE(sp)
+        bnez    t0, .Ltpp_transport
+
+        lhu     t0, TPP_PKT_OFF + PKT_OFF_PAYLOAD_OFF(sp)
+        add     s3, s0, t0              /* context byte ptr             */
+        lhu     s4, TPP_PKT_OFF + PKT_OFF_PAYLOAD_LEN(sp)
+        beqz    s4, .Ltpp_link_dispatch
+
+        lbu     t1, 0(s3)
+        li      t2, TRANSPORT_CONTEXT_NONE
+        bne     t1, t2, .Ltpp_link_dispatch
+
+        lhu     t0, TPP_PKT_OFF + PKT_OFF_DEST_HASH_OFF(sp)
+        add     a0, s0, t0
+        la      a1, .Ltpp_path_request_dest_hash
+        li      a2, HASH_LEN
+        call    .Ltpp_memeq
+        beqz    a0, .Ltpp_link_dispatch
+
+        addi    s3, s3, 1               /* path-request data ptr        */
+        addi    s4, s4, -1              /* path-request data len        */
+        li      t0, HASH_LEN * 2
+        bltu    s4, t0, .Ltpp_not_found /* requested hash + tag         */
+
+        mv      a0, s3                  /* requested destination hash   */
+        mv      a1, zero
+        bltu    t0, s4, .Ltpp_path_request_with_requestor
+        j       .Ltpp_path_request_ready
+
+.Ltpp_path_request_with_requestor:
+        addi    a1, s3, HASH_LEN        /* requestor transport id       */
+
+.Ltpp_path_request_ready:
+        mv      a2, s2
+        call    transport_path_response_send
+        j       .Ltpp_return
+
+.Ltpp_link_dispatch:
         mv      a0, s0
         mv      a1, s1
         mv      a2, s2

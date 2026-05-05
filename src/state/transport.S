@@ -33,3 +33,12 @@ transport_packet_hash_count:
 transport_packet_hash_next:
         .zero   4
         .size   transport_packet_hash_next, 4
+
+        .section .bss.transport_path_response_cache, "aw", @nobits
+
+        .global transport_path_response_cache
+        .type   transport_path_response_cache, @object
+        .balign 4
+transport_path_response_cache:
+        .zero   TRANSPORT_PATH_RESPONSE_TABLE_SIZE
+        .size   transport_path_response_cache, TRANSPORT_PATH_RESPONSE_TABLE_SIZE

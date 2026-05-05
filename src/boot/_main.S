@@ -54,6 +54,10 @@
  *            lora_interface_poll();
  *            if a frame was received:
  *                log_event("lora\\trx_frame");
+ *            if frame[0] == 'T':
+ *                lora_interface_send(frame+1, len-1);
+ *                log_event("lora\\ttx_frame\\tlen=..") or
+ *                log_event("lora\\ttx_error\\tcode=..");
  *
  * The loop never exits — milestone 1's main loop is the simplest
  * possible scheduler. A real scheduler arrives in a later milestone.
@@ -86,6 +90,14 @@
         .ascii "lora\trx_error"
 .Llora_rx_err_tag_end:
         .equ   .Llora_rx_err_tag_len, .Llora_rx_err_tag_end - .Llora_rx_err_tag
+.Llora_tx_tag:
+        .ascii "lora\ttx_frame\tlen="
+.Llora_tx_tag_end:
+        .equ   .Llora_tx_tag_len, .Llora_tx_tag_end - .Llora_tx_tag
+.Llora_tx_err_tag:
+        .ascii "lora\ttx_error\tcode="
+.Llora_tx_err_tag_end:
+        .equ   .Llora_tx_err_tag_len, .Llora_tx_err_tag_end - .Llora_tx_err_tag
 .Lkiss_rx_tag:
         .ascii "kiss\trx_frame"
 .Lkiss_rx_tag_end:
@@ -416,6 +428,8 @@ _main:
         beq     t1, t2, .Led25519_verify_kat
         li      t2, 0x4E                /* 'N' for milestone-3 announce TX */
         beq     t1, t2, .Lannounce_send_cmd
+        li      t2, 0x54                /* 'T' for raw LoRa TX smoke       */
+        beq     t1, t2, .Llora_tx_cmd
 
         la      a0, kiss_buf
         la      t0, kiss_buf_len
@@ -1249,6 +1263,64 @@ _main:
         la      a0, x25519_field_buf
         li      a1, 32
         call    log_hex_buf
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Llora_tx_cmd:
+        /* Hardware-smoke command:
+         *   'T' || raw Reticulum packet bytes
+         * It bypasses KISS-on-RF and sends the raw packet through SX1262.
+         */
+        la      t0, kiss_buf_len
+        lw      t1, 0(t0)
+        li      t2, 2
+        bltu    t1, t2, .Llora_tx_bad_len
+        addi    t1, t1, -1
+        sw      t1, 4(sp)
+
+        la      a0, kiss_buf
+        addi    a0, a0, 1
+        mv      a1, t1
+        li      a2, 2000
+        call    lora_interface_send
+        bnez    a0, .Llora_tx_error
+
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Llora_tx_tag
+        li      a1, .Llora_tx_tag_len
+        call    log_str
+        lw      a0, 4(sp)
+        li      a1, 2
+        call    log_hex
+        li      a0, 13
+        call    uart_tx_byte
+        li      a0, 10
+        call    uart_tx_byte
+        j       .Lloop
+
+.Llora_tx_bad_len:
+        li      a0, LORA_ERR_INVAL
+
+.Llora_tx_error:
+        sw      a0, 0(sp)
+        call    clock_now_ms
+        li      a1, 8
+        call    log_hex
+        li      a0, 9
+        call    uart_tx_byte
+        la      a0, .Llora_tx_err_tag
+        li      a1, .Llora_tx_err_tag_len
+        call    log_str
+        lw      a0, 0(sp)
+        li      a1, 8
+        call    log_hex
         li      a0, 13
         call    uart_tx_byte
         li      a0, 10

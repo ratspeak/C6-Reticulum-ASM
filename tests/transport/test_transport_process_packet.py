@@ -64,6 +64,9 @@ _reset:
         sw      zero, 0(t0)
         la      t0, lora_send_stub_return
         sw      zero, 0(t0)
+        la      t0, path_response_stub_return
+        li      t1, {TRANSPORT_STATUS_FORWARDED}
+        sw      t1, 0(t0)
 
 {body}
 
@@ -162,6 +165,27 @@ link_process_packet:
         lw      a0, 0(t0)
         ret
 
+        .global transport_path_response_send
+        .type   transport_path_response_send, @function
+transport_path_response_send:
+        la      t0, path_response_stub_calls
+        lw      t1, 0(t0)
+        addi    t1, t1, 1
+        sw      t1, 0(t0)
+        lbu     t1, 0(a0)
+        la      t0, path_response_stub_dest0
+        sw      t1, 0(t0)
+        mv      t1, zero
+        beqz    a1, 1f
+        lbu     t1, 0(a1)
+1:      la      t0, path_response_stub_requestor0
+        sw      t1, 0(t0)
+        la      t0, path_response_stub_interface
+        sw      a2, 0(t0)
+        la      t0, path_response_stub_return
+        lw      a0, 0(t0)
+        ret
+
         .global transport_path_lookup
         .type   transport_path_lookup, @function
 transport_path_lookup:
@@ -248,6 +272,17 @@ h2_announce_packet:
         .byte   0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27
         .byte   0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f
         .byte   0x00
+path_request_packet:
+        .byte   0x08, 0x00
+        .byte   0x6b, 0x9f, 0x66, 0x01, 0x4d, 0x98, 0x53, 0xfa
+        .byte   0xab, 0x22, 0x0f, 0xba, 0x47, 0xd0, 0x27, 0x61
+        .byte   0x00
+        .byte   0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47
+        .byte   0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f
+        .byte   0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7
+        .byte   0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf
+        .byte   0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7
+        .byte   0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef
 
         .section .data.transport_process_packet_test, "aw", @progbits
 announce_stub_return:
@@ -271,6 +306,16 @@ link_stub_len:
 link_stub_interface:
         .word   0
 link_stub_first:
+        .word   0
+path_response_stub_return:
+        .word   0
+path_response_stub_calls:
+        .word   0
+path_response_stub_dest0:
+        .word   0
+path_response_stub_requestor0:
+        .word   0
+path_response_stub_interface:
         .word   0
 path_lookup_stub_return:
         .word   0
@@ -446,6 +491,27 @@ def test_delegates_non_announce_to_link_dispatcher(tmp_path: Path) -> None:
         + _load_word("packet_seen_stub_first")
     )
     assert _run_body(tmp_path, body, 6) == [8, 19, TRANSPORT_INTERFACE_LORA, 0x00, 0, 0x00]
+
+
+def test_answers_path_request_before_link_dispatch(tmp_path: Path) -> None:
+    body = (
+        _call_label("path_request_packet", 67)
+        + _load_word("path_response_stub_calls")
+        + _load_word("path_response_stub_dest0")
+        + _load_word("path_response_stub_requestor0")
+        + _load_word("path_response_stub_interface")
+        + _load_word("link_stub_len")
+        + _load_word("path_lookup_stub_calls")
+    )
+    assert _run_body(tmp_path, body, 7) == [
+        TRANSPORT_STATUS_FORWARDED,
+        1,
+        0x40,
+        0xB0,
+        TRANSPORT_INTERFACE_LORA,
+        0,
+        0,
+    ]
 
 
 def test_duplicate_packet_returns_without_dispatch(tmp_path: Path) -> None:

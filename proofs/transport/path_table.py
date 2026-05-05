@@ -157,6 +157,14 @@ def prove_constants() -> None:
     require(TP["TRANSPORT_PATH_TABLE_SIZE"] ==
             TP["TRANSPORT_PATH_CAPACITY"] * TP["TRANSPORT_PATH_ENTRY_SIZE"],
             "table size product")
+    require(TP["TRANSPORT_PATH_RESPONSE_CAPACITY"] == 8, "response cache capacity")
+    require(TP["TRANSPORT_PATH_RESPONSE_RAW_MAX"] == 253, "response raw max")
+    require(TP["TRANSPORT_PATH_RESPONSE_ENTRY_SIZE"] == 280,
+            "response entry size")
+    require(TP["TRANSPORT_PATH_RESPONSE_TABLE_SIZE"] ==
+            TP["TRANSPORT_PATH_RESPONSE_CAPACITY"] *
+            TP["TRANSPORT_PATH_RESPONSE_ENTRY_SIZE"],
+            "response table size product")
     require(TP["TRANSPORT_PATH_OFF_PUBLIC_KEY"] + 64 ==
             TP["TRANSPORT_PATH_OFF_NEXT_HOP"],
             "public key ends before next hop")
@@ -204,9 +212,12 @@ def prove_source_shape() -> None:
             r"\bla\s+t0,\s*transport_path_table",
             r"\bli\s+t1,\s*TRANSPORT_PATH_TABLE_SIZE",
             r"\bsb\s+zero,\s*0\(t0\)",
+            r"\bla\s+t0,\s*transport_path_response_cache",
+            r"\bli\s+t1,\s*TRANSPORT_PATH_RESPONSE_TABLE_SIZE",
+            r"\bsb\s+zero,\s*0\(t0\)",
             r"\bli\s+a0,\s*TRANSPORT_OK",
         ],
-        "transport_path_init clears table",
+        "transport_path_init clears table and response cache",
     )
 
     update = body("src/transport/transport_path_update.S", "transport_path_update")
