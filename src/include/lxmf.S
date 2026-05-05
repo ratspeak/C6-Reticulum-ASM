@@ -8,6 +8,7 @@
         .equ LXMF_ERR_MISSING,                   -3
         .equ LXMF_ERR_IO,                        -4
         .equ LXMF_ERR_BAD_SIGNATURE,             -5
+        .equ LXMF_ERR_SHORT,                     -6
 
         .equ LXMF_HASH_SIZE,                     16
         .equ LXMF_MESSAGE_ID_SIZE,               32
@@ -75,6 +76,23 @@
         .equ LXMF_PAYLOAD_PARSED_OFF_FLAGS,                  52
         .equ LXMF_PAYLOAD_PARSED_OFF_WITHOUT_STAMP_BUF,      56
         .equ LXMF_PAYLOAD_PARSED_T_SIZE,                     456
+
+        /* lxmf_message_parsed_t struct offsets.
+         *
+         * The fixed views point into the inbound packed message. The embedded
+         * payload parser struct owns the no-stamp copy buffer used when a fifth
+         * LXMF stamp element is present.
+         */
+        .equ LXMF_MESSAGE_PARSED_OFF_DEST_HASH_PTR,           0
+        .equ LXMF_MESSAGE_PARSED_OFF_SOURCE_HASH_PTR,         4
+        .equ LXMF_MESSAGE_PARSED_OFF_SIGNATURE_PTR,           8
+        .equ LXMF_MESSAGE_PARSED_OFF_PAYLOAD_PTR,             12
+        .equ LXMF_MESSAGE_PARSED_OFF_PAYLOAD_LEN,             16
+        .equ LXMF_MESSAGE_PARSED_OFF_WITHOUT_STAMP_PTR,       20
+        .equ LXMF_MESSAGE_PARSED_OFF_WITHOUT_STAMP_LEN,       24
+        .equ LXMF_MESSAGE_PARSED_OFF_MESSAGE_ID,              28
+        .equ LXMF_MESSAGE_PARSED_OFF_PAYLOAD_PARSED,          60
+        .equ LXMF_MESSAGE_PARSED_T_SIZE,                      LXMF_MESSAGE_PARSED_OFF_PAYLOAD_PARSED + LXMF_PAYLOAD_PARSED_T_SIZE
 
         /* Upstream LXMF delivery announce app-data:
          * msgpack([display_name_or_nil, stamp_cost_or_nil]).
