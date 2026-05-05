@@ -3,12 +3,18 @@
         .equ TRANSPORT_OK,                    0
         .equ TRANSPORT_STATUS_ACCEPTED,       0
         .equ TRANSPORT_STATUS_UPDATED,        1
+        .equ TRANSPORT_STATUS_DUPLICATE,      2
+        .equ TRANSPORT_STATUS_FORWARDED,      3
         .equ TRANSPORT_ERR_INVAL,            -1
         .equ TRANSPORT_ERR_NOT_FOUND,        -2
 
         .equ TRANSPORT_PATH_CAPACITY,         8
         .equ TRANSPORT_INTERFACE_KISS,        1
         .equ TRANSPORT_INTERFACE_LORA,        2
+
+        .equ TRANSPORT_PACKET_HASH_SIZE,      16
+        .equ TRANSPORT_PACKET_HASH_CAPACITY,  16
+        .equ TRANSPORT_PACKET_HASH_TABLE_SIZE, 256
 
         .equ TRANSPORT_PATH_OFF_VALID,        0
         .equ TRANSPORT_PATH_OFF_INTERFACE,    1

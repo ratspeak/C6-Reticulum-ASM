@@ -70,6 +70,7 @@ transport_process_announce:
         addi    a0, sp, TPA_PARSED_OFF
         mv      a1, s2
         lbu     a2, ANNOUNCE_RAW_OFF_HOPS(s0)
+        addi    a2, a2, 1
         call    transport_path_update
         bnez    a0, .Ltpa_invalid
 

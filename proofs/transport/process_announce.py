@@ -124,6 +124,7 @@ def prove_source_shape() -> None:
             r"\bli\s+s3,\s*TRANSPORT_STATUS_UPDATED",
             r"\.Ltpa_update:",
             r"\blbu\s+a2,\s*ANNOUNCE_RAW_OFF_HOPS\(s0\)",
+            r"\baddi\s+a2,\s*a2,\s*1",
             r"\bcall\s+transport_path_update",
             r"\bbnez\s+a0,\s*\.Ltpa_invalid",
             r"\bmv\s+a0,\s*s3",

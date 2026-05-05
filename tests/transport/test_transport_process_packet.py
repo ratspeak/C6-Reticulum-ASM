@@ -18,6 +18,9 @@ ASM_SOURCES = (
 )
 
 TRANSPORT_ERR_INVAL = 0xFFFFFFFF
+TRANSPORT_ERR_NOT_FOUND = 0xFFFFFFFE
+TRANSPORT_STATUS_DUPLICATE = 2
+TRANSPORT_STATUS_FORWARDED = 3
 TRANSPORT_INTERFACE_LORA = 2
 
 
@@ -54,6 +57,13 @@ _reset:
         .option norelax
         la      gp, __global_pointer$
         .option pop
+
+        la      t0, packet_seen_stub_return
+        sw      zero, 0(t0)
+        la      t0, path_lookup_stub_return
+        sw      zero, 0(t0)
+        la      t0, lora_send_stub_return
+        sw      zero, 0(t0)
 
 {body}
 
@@ -112,6 +122,18 @@ _reset:
         sb      a0, 0(t0)
         ret
 
+        .global transport_packet_seen
+        .type   transport_packet_seen, @function
+transport_packet_seen:
+        la      t0, packet_seen_stub_len
+        sw      a1, 0(t0)
+        lbu     t1, 0(a0)
+        la      t0, packet_seen_stub_first
+        sw      t1, 0(t0)
+        la      t0, packet_seen_stub_return
+        lw      a0, 0(t0)
+        ret
+
         .global transport_process_announce
         .type   transport_process_announce, @function
 transport_process_announce:
@@ -140,9 +162,58 @@ link_process_packet:
         lw      a0, 0(t0)
         ret
 
+        .global transport_path_lookup
+        .type   transport_path_lookup, @function
+transport_path_lookup:
+        la      t0, path_lookup_stub_calls
+        lw      t1, 0(t0)
+        addi    t1, t1, 1
+        sw      t1, 0(t0)
+        lbu     t1, 0(a0)
+        la      t0, path_lookup_stub_dest0
+        sw      t1, 0(t0)
+        la      t0, path_lookup_stub_return
+        lw      t1, 0(t0)
+        bnez    t1, 1f
+        li      t2, {TRANSPORT_INTERFACE_LORA}
+        sb      t2, 1(a1)
+        li      t2, 1
+        sb      t2, 2(a1)
+1:      mv      a0, t1
+        ret
+
+        .global lora_interface_send
+        .type   lora_interface_send, @function
+lora_interface_send:
+        la      t0, lora_send_stub_len
+        sw      a1, 0(t0)
+        lbu     t1, 0(a0)
+        la      t0, lora_send_stub_first
+        sw      t1, 0(t0)
+        lbu     t1, 1(a0)
+        la      t0, lora_send_stub_hops
+        sw      t1, 0(t0)
+        lbu     t1, 2(a0)
+        la      t0, lora_send_stub_dest0
+        sw      t1, 0(t0)
+        la      t0, lora_send_stub_return
+        lw      a0, 0(t0)
+        ret
+
         .size   _reset, . - _reset
 
-        .section .rodata.transport_process_packet_test, "a"
+        .section .data.identity_current_test, "aw", @progbits
+        .global identity_current
+        .type   identity_current, @object
+        .balign 16
+identity_current:
+        .zero   128
+        .byte   0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7
+        .byte   0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf
+        .zero   16
+        .size   identity_current, 160
+
+        .section .data.transport_process_packet_test_packets, "aw", @progbits
 announce_packet:
         .byte   0x01, 0x03
         .byte   0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17
@@ -153,10 +224,23 @@ data_packet:
         .byte   0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27
         .byte   0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f
         .byte   0x00
+h2_packet:
+        .byte   0x50, 0x04
+        .byte   0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7
+        .byte   0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf
+        .byte   0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27
+        .byte   0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f
+        .byte   0x00, 0x55
 
         .section .data.transport_process_packet_test, "aw", @progbits
 announce_stub_return:
         .word   7
+packet_seen_stub_return:
+        .word   0
+packet_seen_stub_len:
+        .word   0
+packet_seen_stub_first:
+        .word   0
 announce_stub_len:
         .word   0
 announce_stub_interface:
@@ -170,6 +254,22 @@ link_stub_len:
 link_stub_interface:
         .word   0
 link_stub_first:
+        .word   0
+path_lookup_stub_return:
+        .word   0
+path_lookup_stub_calls:
+        .word   0
+path_lookup_stub_dest0:
+        .word   0
+lora_send_stub_return:
+        .word   0
+lora_send_stub_len:
+        .word   0
+lora_send_stub_first:
+        .word   0
+lora_send_stub_hops:
+        .word   0
+lora_send_stub_dest0:
         .word   0
 """
 
@@ -262,6 +362,14 @@ def _load_word(symbol: str) -> str:
 """
 
 
+def _store_word(symbol: str, value: int) -> str:
+    return f"""
+        la      t0, {symbol}
+        li      t1, {value:#x}
+        sw      t1, 0(t0)
+"""
+
+
 def test_dispatches_announce_to_transport_handler(tmp_path: Path) -> None:
     body = (
         _call_label("announce_packet", 19)
@@ -269,8 +377,29 @@ def test_dispatches_announce_to_transport_handler(tmp_path: Path) -> None:
         + _load_word("announce_stub_interface")
         + _load_word("announce_stub_first")
         + _load_word("link_stub_len")
+        + _load_word("packet_seen_stub_len")
     )
-    assert _run_body(tmp_path, body, 5) == [7, 19, TRANSPORT_INTERFACE_LORA, 0x01, 0]
+    assert _run_body(tmp_path, body, 6) == [7, 19, TRANSPORT_INTERFACE_LORA, 0x01, 0, 19]
+
+
+def test_rebroadcasts_accepted_announce_as_header2(tmp_path: Path) -> None:
+    body = (
+        _store_word("announce_stub_return", 0)
+        + _call_label("announce_packet", 19)
+        + _load_word("lora_send_stub_len")
+        + _load_word("lora_send_stub_first")
+        + _load_word("lora_send_stub_hops")
+        + _load_word("lora_send_stub_dest0")
+        + _load_word("link_stub_len")
+    )
+    assert _run_body(tmp_path, body, 6) == [
+        0,
+        35,
+        0x51,
+        4,
+        0xA0,
+        0,
+    ]
 
 
 def test_delegates_non_announce_to_link_dispatcher(tmp_path: Path) -> None:
@@ -280,8 +409,52 @@ def test_delegates_non_announce_to_link_dispatcher(tmp_path: Path) -> None:
         + _load_word("link_stub_interface")
         + _load_word("link_stub_first")
         + _load_word("announce_stub_len")
+        + _load_word("packet_seen_stub_first")
     )
-    assert _run_body(tmp_path, body, 5) == [8, 19, TRANSPORT_INTERFACE_LORA, 0x00, 0]
+    assert _run_body(tmp_path, body, 6) == [8, 19, TRANSPORT_INTERFACE_LORA, 0x00, 0, 0x00]
+
+
+def test_duplicate_packet_returns_without_dispatch(tmp_path: Path) -> None:
+    body = (
+        _store_word("packet_seen_stub_return", TRANSPORT_STATUS_DUPLICATE)
+        + _call_label("data_packet", 19)
+        + _load_word("link_stub_len")
+        + _load_word("announce_stub_len")
+    )
+    assert _run_body(tmp_path, body, 3) == [TRANSPORT_STATUS_DUPLICATE, 0, 0]
+
+
+def test_forwards_header2_packet_to_one_hop_lora_path(tmp_path: Path) -> None:
+    body = (
+        _call_label("h2_packet", 36)
+        + _load_word("path_lookup_stub_calls")
+        + _load_word("path_lookup_stub_dest0")
+        + _load_word("lora_send_stub_len")
+        + _load_word("lora_send_stub_first")
+        + _load_word("lora_send_stub_hops")
+        + _load_word("lora_send_stub_dest0")
+        + _load_word("link_stub_len")
+    )
+    assert _run_body(tmp_path, body, 8) == [
+        TRANSPORT_STATUS_FORWARDED,
+        1,
+        0x20,
+        20,
+        0x00,
+        5,
+        0x20,
+        0,
+    ]
+
+
+def test_header2_packet_for_unknown_path_is_not_forwarded(tmp_path: Path) -> None:
+    body = (
+        _store_word("path_lookup_stub_return", TRANSPORT_ERR_NOT_FOUND)
+        + _call_label("h2_packet", 36)
+        + _load_word("lora_send_stub_len")
+        + _load_word("link_stub_len")
+    )
+    assert _run_body(tmp_path, body, 3) == [TRANSPORT_ERR_NOT_FOUND, 0, 0]
 
 
 def test_rejects_truncated_packet_without_dispatch(tmp_path: Path) -> None:

@@ -394,7 +394,7 @@ def test_process_valid_new_announce(tmp_path: Path) -> None:
     assert lookup_ret == 0
     assert fields["valid"] == 1
     assert fields["interface"] == 1
-    assert fields["hops"] == 7
+    assert fields["hops"] == 8
     assert fields["last_seen"] == 100
     assert fields["dest_hash"] == parsed.destination_hash
     assert fields["identity_hash"] == oracle.identity_hash(parsed.public_key)
@@ -416,7 +416,7 @@ def test_process_duplicate_returns_update_status(tmp_path: Path) -> None:
     assert _signed_hex(first_line) == 0
     assert _signed_hex(second_line) == 1
     assert lookup_ret == 0
-    assert fields["hops"] == 9
+    assert fields["hops"] == 10
     assert fields["last_seen"] == 110
 
 
