@@ -9,6 +9,13 @@
         .equ LXMF_ERR_IO,                        -4
         .equ LXMF_ERR_BAD_SIGNATURE,             -5
         .equ LXMF_ERR_SHORT,                     -6
+        .equ LXMF_ERR_UNKNOWN_SOURCE,            -7
+        .equ LXMF_ERR_CAPACITY,                  -8
+        .equ LXMF_ERR_NO_LINK,                   -9
+        .equ LXMF_STATUS_DUPLICATE,               1
+
+        .equ LXMF_DISPATCH_MODE_DIRECT,           0
+        .equ LXMF_DISPATCH_MODE_OPPORTUNISTIC,    1
 
         .equ LXMF_HASH_SIZE,                     16
         .equ LXMF_MESSAGE_ID_SIZE,               32
@@ -35,6 +42,7 @@
         .equ LXMF_PACKED_MAX_LEN,                LXMF_PACKED_PREFIX_SIZE + LXMF_PAYLOAD_MAX_LEN
         .equ LXMF_STAMP_MAX_LEN,                 32
         .equ LXMF_PAYLOAD_MAX_STAMPED_LEN,       LXMF_PAYLOAD_MAX_LEN + 2 + LXMF_STAMP_MAX_LEN
+        .equ LXMF_PACKED_MAX_STAMPED_LEN,        LXMF_PACKED_PREFIX_SIZE + LXMF_PAYLOAD_MAX_STAMPED_LEN
         .equ LXMF_PAYLOAD_PARSED_HAS_STAMP,      1
 
         /* lxmf_payload_input_t struct offsets (28 bytes total).
