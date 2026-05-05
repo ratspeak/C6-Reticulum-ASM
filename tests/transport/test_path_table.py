@@ -44,7 +44,8 @@ TP_LAST_SEEN = 4
 TP_DEST_HASH = 8
 TP_IDENTITY_HASH = 24
 TP_PUBLIC_KEY = 40
-TP_ENTRY_SIZE = 104
+TP_NEXT_HOP = 104
+TP_ENTRY_SIZE = 120
 TP_CAPACITY = 8
 
 
@@ -119,6 +120,7 @@ def _update(index: int, interface_id: int = 1, hops: int = 0) -> str:
         la      a0, {_ann_label(index)}
         li      a1, {interface_id}
         li      a2, {hops}
+        mv      a3, zero
         call    transport_path_update
 """
 
@@ -369,6 +371,7 @@ def _entry_fields(entry: bytes) -> dict[str, bytes | int]:
         "dest_hash": entry[TP_DEST_HASH:TP_DEST_HASH + 16],
         "identity_hash": entry[TP_IDENTITY_HASH:TP_IDENTITY_HASH + 16],
         "public_key": entry[TP_PUBLIC_KEY:TP_PUBLIC_KEY + 64],
+        "next_hop": entry[TP_NEXT_HOP:TP_NEXT_HOP + 16],
     }
 
 
@@ -399,6 +402,7 @@ def test_insert_and_lookup_path(tmp_path: Path) -> None:
     assert fields["dest_hash"] == ANNOUNCES[0].dest_hash
     assert fields["identity_hash"] == oracle.identity_hash(ANNOUNCES[0].public_key)
     assert fields["public_key"] == ANNOUNCES[0].public_key
+    assert fields["next_hop"] == ANNOUNCES[0].dest_hash
 
 
 def test_update_existing_destination(tmp_path: Path) -> None:
@@ -421,6 +425,7 @@ def test_update_existing_destination(tmp_path: Path) -> None:
     assert fields["dest_hash"] == ANNOUNCES[0].dest_hash
     assert fields["identity_hash"] == oracle.identity_hash(ANN_UPDATE_SAME_DEST.public_key)
     assert fields["public_key"] == ANN_UPDATE_SAME_DEST.public_key
+    assert fields["next_hop"] == ANN_UPDATE_SAME_DEST.dest_hash
 
 
 def test_full_table_evicts_oldest_entry(tmp_path: Path) -> None:
@@ -468,11 +473,13 @@ def test_invalid_inputs_reject(tmp_path: Path) -> None:
         mv      a0, zero
         li      a1, 1
         li      a2, 0
+        mv      a3, zero
         call    transport_path_update
         call    .Lemit_hex32_line
         la      a0, ann0
         li      a1, 0
         li      a2, 0
+        mv      a3, zero
         call    transport_path_update
         call    .Lemit_hex32_line
         mv      a0, zero

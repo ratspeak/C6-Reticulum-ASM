@@ -5,7 +5,7 @@
 # @outputs:     a0 = transport/link dispatch status; TRANSPORT_ERR_INVAL on malformed input
 # @clobbers:    a0..a7, t0..t6, ra
 # @preserves:   sp, gp, s0..s6
-# @stack:       160
+# @stack:       176
 # @cycles:      bounded (~1 packet hash check plus path lookup/forward or delegated dispatch)
 # @ct:          not-required
 # @spec:        minimal LoRa transport-node ingress dispatcher
@@ -24,6 +24,7 @@
  * still delegate to link_process_packet for the existing local/link behavior.
  */
 
+        .include "announce.S"
         .include "identity.S"
         .include "lora.S"
         .include "packet.S"
@@ -31,15 +32,15 @@
 
         .equ TPP_PKT_OFF,   0
         .equ TPP_ENTRY_OFF, 24
-        .equ TPP_S0_OFF,    128
-        .equ TPP_S1_OFF,    132
-        .equ TPP_S2_OFF,    136
-        .equ TPP_S3_OFF,    140
-        .equ TPP_S4_OFF,    144
-        .equ TPP_S5_OFF,    148
-        .equ TPP_S6_OFF,    152
-        .equ TPP_RA_OFF,    156
-        .equ TPP_FRAME,     160
+        .equ TPP_S0_OFF,    144
+        .equ TPP_S1_OFF,    148
+        .equ TPP_S2_OFF,    152
+        .equ TPP_S3_OFF,    156
+        .equ TPP_S4_OFF,    160
+        .equ TPP_S5_OFF,    164
+        .equ TPP_S6_OFF,    168
+        .equ TPP_RA_OFF,    172
+        .equ TPP_FRAME,     176
 
         .section .text.transport_process_packet, "ax", @progbits
         .global transport_process_packet
@@ -106,8 +107,36 @@ transport_process_packet:
 
         lbu     t0, TPP_ENTRY_OFF + TRANSPORT_PATH_OFF_HOPS(sp)
         li      t1, 1
-        bne     t0, t1, .Ltpp_not_found
+        beq     t0, t1, .Ltpp_strip_to_h1
+        bltu    t1, t0, .Ltpp_forward_h2
+        j       .Ltpp_not_found
 
+.Ltpp_forward_h2:
+        addi    s3, sp, TPP_ENTRY_OFF + TRANSPORT_PATH_OFF_NEXT_HOP
+        addi    s4, s0, 2
+        li      s5, HASH_LEN
+.Ltpp_next_hop_copy:
+        beqz    s5, .Ltpp_h2_send
+        lbu     t0, 0(s3)
+        sb      t0, 0(s4)
+        addi    s3, s3, 1
+        addi    s4, s4, 1
+        addi    s5, s5, -1
+        j       .Ltpp_next_hop_copy
+
+.Ltpp_h2_send:
+        lbu     t1, 1(s0)
+        addi    t1, t1, 1
+        sb      t1, 1(s0)
+        mv      a0, s0
+        mv      a1, s1
+        mv      a2, zero
+        call    lora_interface_send
+        bnez    a0, .Ltpp_return
+        li      a0, TRANSPORT_STATUS_FORWARDED
+        j       .Ltpp_return
+
+.Ltpp_strip_to_h1:
         lbu     t0, 0(s0)
         andi    t0, t0, 0x0f
         sb      t0, 0(s0)
@@ -150,6 +179,10 @@ transport_process_packet:
 .Ltpp_rebroadcast_announce:
         li      t0, TRANSPORT_INTERFACE_LORA
         bne     s2, t0, .Ltpp_announce_status
+
+        lbu     t0, TPP_PKT_OFF + PKT_OFF_HEADER_TYPE(sp)
+        bnez    t0, .Ltpp_announce_h2_rebroadcast
+
         li      t0, SX1262_BENCH_PAYLOAD_MAX - HASH_LEN
         bltu    t0, s1, .Ltpp_announce_status
 
@@ -191,6 +224,37 @@ transport_process_packet:
 
         mv      a0, s0
         addi    a1, s1, HASH_LEN
+        mv      a2, zero
+        call    lora_interface_send
+        bnez    a0, .Ltpp_return
+        j       .Ltpp_announce_status
+
+.Ltpp_announce_h2_rebroadcast:
+        li      t0, SX1262_BENCH_PAYLOAD_MAX
+        bltu    t0, s1, .Ltpp_announce_status
+        la      s4, identity_current
+        addi    s4, s4, IDENTITY_OFF_HASH
+        addi    s5, s0, ANNOUNCE_H2_RAW_OFF_TRANSPORT_ID
+        li      s6, HASH_LEN
+.Ltpp_announce_h2_tid_copy:
+        beqz    s6, .Ltpp_announce_h2_header
+        lbu     t0, 0(s4)
+        sb      t0, 0(s5)
+        addi    s4, s4, 1
+        addi    s5, s5, 1
+        addi    s6, s6, -1
+        j       .Ltpp_announce_h2_tid_copy
+
+.Ltpp_announce_h2_header:
+        lbu     t0, 0(s0)
+        andi    t0, t0, 0x0f
+        ori     t0, t0, FLAG_HEADER_TYPE | FLAG_TRANSPORT
+        sb      t0, 0(s0)
+        lbu     t1, 1(s0)
+        addi    t1, t1, 1
+        sb      t1, 1(s0)
+        mv      a0, s0
+        mv      a1, s1
         mv      a2, zero
         call    lora_interface_send
         bnez    a0, .Ltpp_return

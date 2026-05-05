@@ -102,8 +102,8 @@ def prove_status_model() -> None:
 
 def prove_frame_constants() -> None:
     require(ANN["ANNOUNCE_RX_T_SIZE"] == 180, "parsed struct size")
-    require(TP["TRANSPORT_PATH_ENTRY_SIZE"] == 104, "lookup scratch size")
-    require(180 + 104 <= 284, "frame scratch layout")
+    require(TP["TRANSPORT_PATH_ENTRY_SIZE"] == 120, "lookup scratch size")
+    require(180 + 120 <= 300, "frame scratch layout")
 
 
 def prove_source_shape() -> None:
@@ -125,6 +125,8 @@ def prove_source_shape() -> None:
             r"\.Ltpa_update:",
             r"\blbu\s+a2,\s*ANNOUNCE_RAW_OFF_HOPS\(s0\)",
             r"\baddi\s+a2,\s*a2,\s*1",
+            r"\bFLAG_HEADER_TYPE\b",
+            r"\bANNOUNCE_H2_RAW_OFF_TRANSPORT_ID\b",
             r"\bcall\s+transport_path_update",
             r"\bbnez\s+a0,\s*\.Ltpa_invalid",
             r"\bmv\s+a0,\s*s3",

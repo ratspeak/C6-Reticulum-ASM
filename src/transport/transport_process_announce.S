@@ -5,7 +5,7 @@
 # @outputs:     a0 = 0 for new accepted path, 1 for existing path update, -1 on invalid/rejected announce
 # @clobbers:    a0..a7, t0..t6, ra
 # @preserves:   sp, gp, s0..s4
-# @stack:       320
+# @stack:       336
 # @cycles:      bounded (~24000000)
 # @ct:          not-required
 # @spec:        milestone-5 transport_process_announce
@@ -15,20 +15,21 @@
 # @status:      verified
 # ============================================================================
 
-/* Process a raw inbound HEADER_1 announce into the transport path table. */
+/* Process a raw inbound HEADER_1/HEADER_2 announce into the transport path table. */
 
         .include "announce.S"
+        .include "packet.S"
         .include "transport.S"
 
         .equ TPA_PARSED_OFF, 0
         .equ TPA_ENTRY_OFF,  180
-        .equ TPA_S0_OFF,    284
-        .equ TPA_S1_OFF,    288
-        .equ TPA_S2_OFF,    292
-        .equ TPA_S3_OFF,    296
-        .equ TPA_S4_OFF,    300
-        .equ TPA_RA_OFF,    316
-        .equ TPA_FRAME,     320
+        .equ TPA_S0_OFF,    300
+        .equ TPA_S1_OFF,    304
+        .equ TPA_S2_OFF,    308
+        .equ TPA_S3_OFF,    312
+        .equ TPA_S4_OFF,    316
+        .equ TPA_RA_OFF,    332
+        .equ TPA_FRAME,     336
 
         .section .text.transport_process_announce, "ax", @progbits
         .global transport_process_announce
@@ -71,6 +72,14 @@ transport_process_announce:
         mv      a1, s2
         lbu     a2, ANNOUNCE_RAW_OFF_HOPS(s0)
         addi    a2, a2, 1
+        lbu     t0, ANNOUNCE_RAW_OFF_FLAGS(s0)
+        andi    t0, t0, FLAG_HEADER_TYPE
+        beqz    t0, .Ltpa_h1_next_hop
+        addi    a3, s0, ANNOUNCE_H2_RAW_OFF_TRANSPORT_ID
+        j       .Ltpa_next_hop_ready
+.Ltpa_h1_next_hop:
+        addi    a3, sp, TPA_PARSED_OFF + ANNOUNCE_RX_OFF_DEST_HASH
+.Ltpa_next_hop_ready:
         call    transport_path_update
         bnez    a0, .Ltpa_invalid
 

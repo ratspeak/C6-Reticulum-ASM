@@ -9,7 +9,7 @@
 # @outputs:     a0 = delivered/duplicate status or negative errno
 # @clobbers:    a0..a7, t0..t6, ra
 # @preserves:   sp, gp, s0..s11
-# @stack:       1216
+# @stack:       1232
 # @cycles:      bounded (path lookup + payload parse + SHA-256 + Ed25519 verify)
 # @ct:          not-required
 # @spec:        milestone-9 inbound delivery dispatch
@@ -35,20 +35,20 @@
         .equ LID_PACKED_OFF,   0
         .equ LID_PARSED_OFF,   528
         .equ LID_ENTRY_OFF,    1044
-        .equ LID_S0_OFF,       1152
-        .equ LID_S1_OFF,       1156
-        .equ LID_S2_OFF,       1160
-        .equ LID_S3_OFF,       1164
-        .equ LID_S4_OFF,       1168
-        .equ LID_S5_OFF,       1172
-        .equ LID_S6_OFF,       1176
-        .equ LID_S7_OFF,       1180
-        .equ LID_S8_OFF,       1184
-        .equ LID_S9_OFF,       1188
-        .equ LID_S10_OFF,      1192
-        .equ LID_S11_OFF,      1196
-        .equ LID_RA_OFF,       1212
-        .equ LID_FRAME,        1216
+        .equ LID_S0_OFF,       1168
+        .equ LID_S1_OFF,       1172
+        .equ LID_S2_OFF,       1176
+        .equ LID_S3_OFF,       1180
+        .equ LID_S4_OFF,       1184
+        .equ LID_S5_OFF,       1188
+        .equ LID_S6_OFF,       1192
+        .equ LID_S7_OFF,       1196
+        .equ LID_S8_OFF,       1200
+        .equ LID_S9_OFF,       1204
+        .equ LID_S10_OFF,      1208
+        .equ LID_S11_OFF,      1212
+        .equ LID_RA_OFF,       1228
+        .equ LID_FRAME,        1232
 
         .section .text.lxmf_inbound_dispatch, "ax", @progbits
         .global lxmf_inbound_dispatch

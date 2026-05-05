@@ -6,7 +6,7 @@
 # @clobbers:    a0..a2, t0..t6, ra
 # @preserves:   sp, gp, s0..s3
 # @stack:       32
-# @cycles:      bounded (~8 entries * 16-byte compare + one 104-byte copy)
+# @cycles:      bounded (~8 entries * 16-byte compare + one 120-byte copy)
 # @ct:          not-required
 # @spec:        milestone-5 transport_path_lookup
 # @verify:      proofs/transport/path_table.py

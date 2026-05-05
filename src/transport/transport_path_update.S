@@ -1,11 +1,12 @@
 # ============================================================================
 # @function:    transport_path_update
 # @module:      transport
-# @inputs:      a0 = announce_rx_t* valid announce, a1 = interface_id, a2 = hops
+# @inputs:      a0 = announce_rx_t* valid announce, a1 = interface_id, a2 = hops,
+#               a3 = next_hop ptr (16 bytes), or 0 to use destination hash
 # @outputs:     a0 = 0 on inserted/updated/evicted, -1 on invalid input
 # @clobbers:    a0..a7, t0..t6, ra
-# @preserves:   sp, gp, s0..s9
-# @stack:       64
+# @preserves:   sp, gp, s0..s10
+# @stack:       80
 # @cycles:      bounded (~8 entries * 16-byte compare + fixed copies)
 # @ct:          not-required
 # @spec:        milestone-5 transport_path_update
@@ -37,8 +38,9 @@
         .equ TPU_S7_OFF,     44
         .equ TPU_S8_OFF,     48
         .equ TPU_S9_OFF,     52
-        .equ TPU_RA_OFF,     60
-        .equ TPU_FRAME,      64
+        .equ TPU_S10_OFF,    56
+        .equ TPU_RA_OFF,     76
+        .equ TPU_FRAME,      80
 
         .section .text.transport_path_update, "ax", @progbits
         .global transport_path_update
@@ -55,11 +57,13 @@ transport_path_update:
         sw      s7, TPU_S7_OFF(sp)
         sw      s8, TPU_S8_OFF(sp)
         sw      s9, TPU_S9_OFF(sp)
+        sw      s10, TPU_S10_OFF(sp)
         sw      ra, TPU_RA_OFF(sp)
 
         mv      s0, a0                  /* announce_rx_t*              */
         mv      s1, a1                  /* interface_id                */
         mv      s2, a2                  /* hops                        */
+        mv      s10, a3                 /* next_hop ptr or null        */
         beqz    s0, .Ltpu_fail
         beqz    s1, .Ltpu_fail
         srli    t0, s1, 8
@@ -154,6 +158,16 @@ transport_path_update:
         li      a2, ANNOUNCE_PUBLIC_KEY_SIZE
         call    .Ltpu_copy_bytes
 
+        bnez    s10, .Ltpu_copy_next_hop
+        addi    a0, s0, ANNOUNCE_RX_OFF_DEST_HASH
+        j       .Ltpu_next_hop_src_ready
+.Ltpu_copy_next_hop:
+        mv      a0, s10
+.Ltpu_next_hop_src_ready:
+        addi    a1, s9, TRANSPORT_PATH_OFF_NEXT_HOP
+        li      a2, ANNOUNCE_DESTINATION_HASH_SIZE
+        call    .Ltpu_copy_bytes
+
         li      a0, TRANSPORT_OK
         j       .Ltpu_return
 
@@ -171,6 +185,7 @@ transport_path_update:
         lw      s7, TPU_S7_OFF(sp)
         lw      s8, TPU_S8_OFF(sp)
         lw      s9, TPU_S9_OFF(sp)
+        lw      s10, TPU_S10_OFF(sp)
         lw      ra, TPU_RA_OFF(sp)
         addi    sp, sp, TPU_FRAME
         ret

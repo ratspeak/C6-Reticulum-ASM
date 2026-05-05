@@ -21,6 +21,7 @@ ASM_SOURCES = (
 
 ANNOUNCE_BASE_RAW_LEN = 167
 ANNOUNCE_HEADER_LEN = 19
+ANNOUNCE_H2_HEADER_LEN = 35
 ANNOUNCE_FIXED_FIELD_LEN = 164
 ANNOUNCE_RX_T_SIZE = 180
 RETICULUM_MDU = 484
@@ -57,9 +58,16 @@ def _announce_packet(app_data: bytes = b"", *, hops: int = 0) -> bytes:
     )
 
 
+def _announce_h2_packet(app_data: bytes = b"", *, hops: int = 0) -> bytes:
+    raw = _announce_packet(app_data, hops=hops)
+    transport_id = _bytes_from(0xA0, oracle.DESTINATION_HASH_LEN)
+    return bytes([0x51, raw[1]]) + transport_id + raw[2:]
+
+
 VALID_CASES = (
     Case("empty-app", _announce_packet()),
     Case("nonzero-hops", _announce_packet(b"hello announce", hops=7)),
+    Case("header2-transport", _announce_h2_packet(b"transport announce", hops=3)),
     Case("max-app", _announce_packet(_bytes_from(0x44, MAX_APP_DATA))),
 )
 
@@ -358,7 +366,15 @@ def test_static_length_and_error_shape(artifacts: build.BuildArtifacts) -> None:
 @pytest.mark.parametrize("case", VALID_CASES, ids=[c.name for c in VALID_CASES])
 def test_announce_parse_valid_qemu(tmp_path: Path, case: Case) -> None:
     result = _parse_output(_run_qemu(_build_test_elf(tmp_path, case)))
-    expected = oracle.announce_parse(case.raw_packet)
+    expected_raw = (
+        bytes([0x01, case.raw_packet[1]]) + case.raw_packet[18:]
+        if case.raw_packet[0] == 0x51
+        else case.raw_packet
+    )
+    expected_payload_off = (
+        ANNOUNCE_H2_HEADER_LEN if case.raw_packet[0] == 0x51 else ANNOUNCE_HEADER_LEN
+    )
+    expected = oracle.announce_parse(expected_raw)
 
     fixed = (
         expected.destination_hash
@@ -373,7 +389,7 @@ def test_announce_parse_valid_qemu(tmp_path: Path, case: Case) -> None:
 
     assert result.ret == 0
     assert result.raw_len == len(case.raw_packet)
-    assert result.payload_len == len(case.raw_packet) - ANNOUNCE_HEADER_LEN
+    assert result.payload_len == len(case.raw_packet) - expected_payload_off
     assert result.app_data_len == len(expected.app_data)
     assert result.fixed_fields == fixed
     assert result.app_view == app_view

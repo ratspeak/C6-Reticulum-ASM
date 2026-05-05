@@ -102,6 +102,11 @@ def _valid_packet(app_data: bytes = b"payload") -> bytes:
     return oracle.announce_build(identity, name_hash, random_hash, app_data).raw_packet
 
 
+def _h2_packet(raw: bytes) -> bytes:
+    transport_id = bytes(range(0xA0, 0xB0))
+    return bytes([0x51, raw[1]]) + transport_id + raw[2:]
+
+
 def _tampered(raw: bytes, offset: int) -> bytes:
     out = bytearray(raw)
     out[offset] ^= 0x01
@@ -120,6 +125,8 @@ def _case(name: str) -> Case:
     }
     if name == "valid":
         return Case(name, raw, 0, expect_pyca=True)
+    if name == "valid-h2-transport":
+        return Case(name, _h2_packet(raw), 0, expect_pyca=None)
     if name == "valid-empty-app":
         return Case(name, _valid_packet(b""), 0, expect_pyca=True)
     if name == "null-parsed":
@@ -303,6 +310,7 @@ def test_static_length_and_error_shape(artifacts: build.BuildArtifacts) -> None:
     "name",
     [
         "valid",
+        "valid-h2-transport",
         "valid-empty-app",
         "tampered-destination-hash",
         "tampered-public-key",

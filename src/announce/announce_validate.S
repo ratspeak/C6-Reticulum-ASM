@@ -15,7 +15,7 @@
 # @status:      verified
 # ============================================================================
 
-/* Validate a parsed non-ratchet Reticulum HEADER_1 announce.
+/* Validate a parsed non-ratchet Reticulum HEADER_1 or HEADER_2 announce.
  *
  * The parsed packet is public network input, so validation may branch on
  * malformed fields. The signature check delegates to the verified Ed25519
@@ -58,11 +58,23 @@ announce_validate:
         lw      s1, ANNOUNCE_RX_OFF_APP_DATA_LEN(s0)
         li      t1, ANNOUNCE_BASE_RAW_LEN
         sub     t2, t0, t1
-        bne     s1, t2, .Lav_fail
+        bne     s1, t2, .Lav_try_h2_shape
         lw      t3, ANNOUNCE_RX_OFF_PAYLOAD_LEN(s0)
         li      t1, ANNOUNCE_HEADER_LEN
         sub     t2, t0, t1
+        beq     t3, t2, .Lav_shape_ok
+
+.Lav_try_h2_shape:
+        li      t1, ANNOUNCE_H2_BASE_RAW_LEN
+        bltu    t0, t1, .Lav_fail
+        sub     t2, t0, t1
+        bne     s1, t2, .Lav_fail
+        lw      t3, ANNOUNCE_RX_OFF_PAYLOAD_LEN(s0)
+        li      t1, ANNOUNCE_H2_HEADER_LEN
+        sub     t2, t0, t1
         bne     t3, t2, .Lav_fail
+
+.Lav_shape_ok:
         li      t1, ANNOUNCE_MAX_APP_DATA
         bltu    t1, s1, .Lav_fail
 

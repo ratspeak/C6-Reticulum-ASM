@@ -70,11 +70,13 @@ def ordered(src: str, patterns: list[str], description: str) -> None:
 
 
 def parse_accepts(length: int, flags: int, context: int) -> bool:
-    if length < ANN["ANNOUNCE_BASE_RAW_LEN"]:
+    header2 = flags == ANN["ANNOUNCE_HEADER2_FLAGS"]
+    base_len = ANN["ANNOUNCE_H2_BASE_RAW_LEN"] if header2 else ANN["ANNOUNCE_BASE_RAW_LEN"]
+    if length < base_len:
         return False
     if length > ANN["ANNOUNCE_RETICULUM_MDU"]:
         return False
-    if flags != ANN["ANNOUNCE_HEADER_FLAGS"]:
+    if flags not in (ANN["ANNOUNCE_HEADER_FLAGS"], ANN["ANNOUNCE_HEADER2_FLAGS"]):
         return False
     if context != ANN["ANNOUNCE_CONTEXT_NONE"]:
         return False
@@ -83,7 +85,10 @@ def parse_accepts(length: int, flags: int, context: int) -> bool:
 
 def prove_constants() -> None:
     require(ANN["ANNOUNCE_HEADER_LEN"] == 19, "HEADER_1 announce header length")
+    require(ANN["ANNOUNCE_H2_HEADER_LEN"] == 35, "HEADER_2 announce header length")
     require(ANN["ANNOUNCE_BASE_RAW_LEN"] == 167, "fixed announce prefix")
+    require(ANN["ANNOUNCE_H2_BASE_RAW_LEN"] == 183, "fixed HEADER_2 announce prefix")
+    require(ANN["ANNOUNCE_PAYLOAD_FIXED_LEN"] == 149, "context+fixed payload length")
     require(ANN["ANNOUNCE_RETICULUM_MDU"] == 484, "Reticulum MDU")
     require(ANN["ANNOUNCE_RX_OFF_RAW_LEN"] == 0, "raw_len offset")
     require(ANN["ANNOUNCE_RX_OFF_PAYLOAD_LEN"] == 4, "payload_len offset")
@@ -115,25 +120,55 @@ def prove_acceptance_domain() -> None:
         )
         require(not parse_accepts(length, 0x00, 0x00), f"bad flags accepted at {length}")
         require(not parse_accepts(length, 0x01, 0x01), f"bad context accepted at {length}")
+        accepts_h2 = parse_accepts(
+            length,
+            ANN["ANNOUNCE_HEADER2_FLAGS"],
+            ANN["ANNOUNCE_CONTEXT_NONE"],
+        )
+        require(
+            accepts_h2 == (
+                ANN["ANNOUNCE_H2_BASE_RAW_LEN"]
+                <= length
+                <= ANN["ANNOUNCE_RETICULUM_MDU"]
+            ),
+            f"HEADER_2 length predicate mismatch at {length}",
+        )
     require(not parse_accepts(U32_MAX, 0x01, 0x00), "u32 max length accepted")
 
 
 def prove_field_ranges() -> None:
-    ranges = (
+    ranges_h1 = (
         ("destination_hash", ANN["ANNOUNCE_RAW_OFF_DEST_HASH"], ANN["ANNOUNCE_DESTINATION_HASH_SIZE"]),
         ("public_key", ANN["ANNOUNCE_RAW_OFF_PUBLIC_KEY"], ANN["ANNOUNCE_PUBLIC_KEY_SIZE"]),
         ("name_hash", ANN["ANNOUNCE_RAW_OFF_NAME_HASH"], ANN["ANNOUNCE_NAME_HASH_SIZE"]),
         ("random_hash", ANN["ANNOUNCE_RAW_OFF_RANDOM_HASH"], ANN["ANNOUNCE_RANDOM_HASH_SIZE"]),
         ("signature", ANN["ANNOUNCE_RAW_OFF_SIGNATURE"], ANN["ANNOUNCE_SIGNATURE_SIZE"]),
     )
+    ranges_h2 = (
+        ("destination_hash", ANN["ANNOUNCE_H2_RAW_OFF_DEST_HASH"], ANN["ANNOUNCE_DESTINATION_HASH_SIZE"]),
+        ("public_key", ANN["ANNOUNCE_H2_RAW_OFF_PUBLIC_KEY"], ANN["ANNOUNCE_PUBLIC_KEY_SIZE"]),
+        ("name_hash", ANN["ANNOUNCE_H2_RAW_OFF_NAME_HASH"], ANN["ANNOUNCE_NAME_HASH_SIZE"]),
+        ("random_hash", ANN["ANNOUNCE_H2_RAW_OFF_RANDOM_HASH"], ANN["ANNOUNCE_RANDOM_HASH_SIZE"]),
+        ("signature", ANN["ANNOUNCE_H2_RAW_OFF_SIGNATURE"], ANN["ANNOUNCE_SIGNATURE_SIZE"]),
+    )
     for length in range(ANN["ANNOUNCE_BASE_RAW_LEN"], ANN["ANNOUNCE_RETICULUM_MDU"] + 1):
-        for name, off, size in ranges:
+        for name, off, size in ranges_h1:
             require(off + size <= length, f"{name} copy overruns accepted length {length}")
         payload_len = length - ANN["ANNOUNCE_HEADER_LEN"]
         app_len = length - ANN["ANNOUNCE_BASE_RAW_LEN"]
         require(payload_len >= 0, "negative payload len")
         require(0 <= app_len <= ANN["ANNOUNCE_MAX_APP_DATA"], "app length out of range")
         require(ANN["ANNOUNCE_RAW_OFF_APP_DATA"] + app_len == length, "app view not bounded")
+    for length in range(ANN["ANNOUNCE_H2_BASE_RAW_LEN"], ANN["ANNOUNCE_RETICULUM_MDU"] + 1):
+        for name, off, size in ranges_h2:
+            require(off + size <= length, f"H2 {name} copy overruns accepted length {length}")
+        payload_len = length - ANN["ANNOUNCE_H2_HEADER_LEN"]
+        app_len = length - ANN["ANNOUNCE_H2_BASE_RAW_LEN"]
+        require(payload_len >= 0, "negative H2 payload len")
+        require(0 <= app_len <= ANN["ANNOUNCE_RETICULUM_MDU"] - ANN["ANNOUNCE_H2_BASE_RAW_LEN"],
+                "H2 app length out of range")
+        require(ANN["ANNOUNCE_H2_RAW_OFF_APP_DATA"] + app_len == length,
+                "H2 app view not bounded")
 
 
 def prove_source_shape() -> None:
@@ -143,18 +178,16 @@ def prove_source_shape() -> None:
         [
             r"\bbeqz\s+s0,\s*\.Lap_fail",
             r"\bbeqz\s+s2,\s*\.Lap_fail",
-            r"\bli\s+t0,\s*ANNOUNCE_BASE_RAW_LEN",
-            r"\bbltu\s+s1,\s*t0,\s*\.Lap_fail",
             r"\bli\s+t0,\s*ANNOUNCE_RETICULUM_MDU",
             r"\bbltu\s+t0,\s*s1,\s*\.Lap_fail",
             r"\bcall\s+packet_parse_header",
             r"\blbu\s+t0,\s*AP_PKT_OFF \+ PKT_OFF_HEADER_TYPE\(sp\)",
-            r"\bbnez\s+t0,\s*\.Lap_fail",
+            r"\.Lap_h1_shape:",
+            r"ANNOUNCE_BASE_RAW_LEN",
+            r"\.Lap_shape_ready:",
             r"\blbu\s+t0,\s*AP_PKT_OFF \+ PKT_OFF_PACKET_TYPE\(sp\)",
             r"\bbne\s+t0,\s*t1,\s*\.Lap_fail",
-            r"\blbu\s+t0,\s*ANNOUNCE_RAW_OFF_FLAGS\(s0\)",
-            r"\bbne\s+t0,\s*t1,\s*\.Lap_fail",
-            r"\blbu\s+t0,\s*ANNOUNCE_RAW_OFF_CONTEXT\(s0\)",
+            r"\bPKT_OFF_PAYLOAD_OFF\b",
             r"\bbne\s+t0,\s*t1,\s*\.Lap_fail",
             r"\bsw\s+s1,\s*ANNOUNCE_RX_OFF_RAW_LEN\(s2\)",
         ],
@@ -168,8 +201,12 @@ def prove_source_shape() -> None:
     )
     require(src.count("call    .Lap_copy_bytes") == 5, "fixed-field copy count")
     require(
-        re.search(r"\baddi\s+t0,\s*s0,\s*ANNOUNCE_RAW_OFF_APP_DATA", src),
+        re.search(r"\baddi\s+t0,\s*s4,\s*ANNOUNCE_PAYLOAD_FIXED_LEN", src),
         "app data pointer not derived from raw packet",
+    )
+    require(
+        re.search(r"\baddi\s+t0,\s*t0,\s*1\s+/\* skip announce context byte", src),
+        "payload length must exclude announce context byte",
     )
     require(
         re.search(r"\bsw\s+t0,\s*ANNOUNCE_RX_OFF_APP_DATA_PTR\(s2\)", src),

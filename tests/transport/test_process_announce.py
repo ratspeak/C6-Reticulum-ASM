@@ -61,7 +61,8 @@ TP_LAST_SEEN = 4
 TP_DEST_HASH = 8
 TP_IDENTITY_HASH = 24
 TP_PUBLIC_KEY = 40
-TP_ENTRY_SIZE = 104
+TP_NEXT_HOP = 104
+TP_ENTRY_SIZE = 120
 
 
 @dataclasses.dataclass(frozen=True)
@@ -109,6 +110,11 @@ def _packet(app_data: bytes, random_seed: int, hops: int) -> bytes:
     raw = bytearray(oracle.announce_build(identity, name_hash, random_hash, app_data).raw_packet)
     raw[1] = hops & 0xFF
     return bytes(raw)
+
+
+def _h2_packet(app_data: bytes, random_seed: int, hops: int, transport_id: bytes) -> bytes:
+    raw = _packet(app_data, random_seed, hops)
+    return bytes([0x51, raw[1]]) + transport_id + raw[2:]
 
 
 def _packets() -> PacketCase:
@@ -360,6 +366,7 @@ def _entry_fields(entry: bytes) -> dict[str, bytes | int]:
         "dest_hash": entry[TP_DEST_HASH:TP_DEST_HASH + 16],
         "identity_hash": entry[TP_IDENTITY_HASH:TP_IDENTITY_HASH + 16],
         "public_key": entry[TP_PUBLIC_KEY:TP_PUBLIC_KEY + 64],
+        "next_hop": entry[TP_NEXT_HOP:TP_NEXT_HOP + 16],
     }
 
 
@@ -399,6 +406,7 @@ def test_process_valid_new_announce(tmp_path: Path) -> None:
     assert fields["dest_hash"] == parsed.destination_hash
     assert fields["identity_hash"] == oracle.identity_hash(parsed.public_key)
     assert fields["public_key"] == parsed.public_key
+    assert fields["next_hop"] == parsed.destination_hash
 
 
 def test_process_duplicate_returns_update_status(tmp_path: Path) -> None:
@@ -418,6 +426,34 @@ def test_process_duplicate_returns_update_status(tmp_path: Path) -> None:
     assert lookup_ret == 0
     assert fields["hops"] == 10
     assert fields["last_seen"] == 110
+
+
+def test_process_header2_announce_records_transport_next_hop(tmp_path: Path) -> None:
+    transport_id = bytes(range(0xA0, 0xB0))
+    raw = _h2_packet(b"h2-path", 0x50, hops=3, transport_id=transport_id)
+    packets = PacketCase(raw0=raw, raw1=raw, bad=raw[:-1] + b"\x00")
+    body = f"""
+        call    transport_path_init
+{_emit_process("raw0", len(raw), interface_id=2)}
+        la      a0, raw0
+        addi    a0, a0, 18
+        la      a1, out_entry
+        call    transport_path_lookup
+        la      a1, out_entry
+        li      a2, {TP_ENTRY_SIZE}
+        call    .Lemit_ret_bytes
+"""
+    ret_line, lookup_line = _run_qemu(tmp_path, packets, body, line_count=2)
+    lookup_ret, entry = _parse_ret_entry(lookup_line)
+    fields = _entry_fields(entry)
+    parsed = oracle.announce_parse(bytes([0x01, raw[1]]) + raw[18:])
+
+    assert _signed_hex(ret_line) == 0
+    assert lookup_ret == 0
+    assert fields["interface"] == 2
+    assert fields["hops"] == 4
+    assert fields["dest_hash"] == parsed.destination_hash
+    assert fields["next_hop"] == transport_id
 
 
 def test_process_invalid_announce_does_not_update_table(tmp_path: Path) -> None:

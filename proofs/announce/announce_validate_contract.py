@@ -73,9 +73,16 @@ def validate_shape(raw_len: int, payload_len: int, app_len: int, app_ptr: int) -
         return False
     if raw_len > ANN["ANNOUNCE_RETICULUM_MDU"]:
         return False
-    if app_len != raw_len - ANN["ANNOUNCE_BASE_RAW_LEN"]:
-        return False
-    if payload_len != raw_len - ANN["ANNOUNCE_HEADER_LEN"]:
+    h1_shape = (
+        app_len == raw_len - ANN["ANNOUNCE_BASE_RAW_LEN"]
+        and payload_len == raw_len - ANN["ANNOUNCE_HEADER_LEN"]
+    )
+    h2_shape = (
+        raw_len >= ANN["ANNOUNCE_H2_BASE_RAW_LEN"]
+        and app_len == raw_len - ANN["ANNOUNCE_H2_BASE_RAW_LEN"]
+        and payload_len == raw_len - ANN["ANNOUNCE_H2_HEADER_LEN"]
+    )
+    if not (h1_shape or h2_shape):
         return False
     if app_len > ANN["ANNOUNCE_MAX_APP_DATA"]:
         return False
@@ -98,6 +105,7 @@ def prove_constants() -> None:
 
 def prove_shape_model() -> None:
     base = ANN["ANNOUNCE_BASE_RAW_LEN"]
+    h2_base = ANN["ANNOUNCE_H2_BASE_RAW_LEN"]
     mdu = ANN["ANNOUNCE_RETICULUM_MDU"]
     for raw_len in range(base, mdu + 1):
         payload_len = raw_len - ANN["ANNOUNCE_HEADER_LEN"]
@@ -111,6 +119,18 @@ def prove_shape_model() -> None:
         if app_len:
             require(not validate_shape(raw_len, payload_len, app_len, 0),
                     f"null app ptr accepted at {raw_len}")
+    for raw_len in range(h2_base, mdu + 1):
+        payload_len = raw_len - ANN["ANNOUNCE_H2_HEADER_LEN"]
+        app_len = raw_len - h2_base
+        require(validate_shape(raw_len, payload_len, app_len, 1),
+                f"valid H2 shape rejected at {raw_len}")
+        require(not validate_shape(raw_len, payload_len + 1, app_len, 1),
+                f"bad H2 payload len accepted at {raw_len}")
+        require(not validate_shape(raw_len, payload_len, app_len + 1, 1),
+                f"bad H2 app len accepted at {raw_len}")
+        if app_len:
+            require(not validate_shape(raw_len, payload_len, app_len, 0),
+                    f"null H2 app ptr accepted at {raw_len}")
     require(not validate_shape(base - 1, 0, 0, 1), "short raw len accepted")
     require(not validate_shape(mdu + 1, 0, 0, 1), "over-MDU raw len accepted")
 
@@ -125,9 +145,13 @@ def prove_source_shape() -> None:
             r"\bbltu\s+t0,\s*t1,\s*\.Lav_fail",
             r"\bbltu\s+t1,\s*t0,\s*\.Lav_fail",
             r"\blw\s+s1,\s*ANNOUNCE_RX_OFF_APP_DATA_LEN\(s0\)",
-            r"\bbne\s+s1,\s*t2,\s*\.Lav_fail",
+            r"\bbne\s+s1,\s*t2,\s*\.Lav_try_h2_shape",
             r"\blw\s+t3,\s*ANNOUNCE_RX_OFF_PAYLOAD_LEN\(s0\)",
-            r"\bbne\s+t3,\s*t2,\s*\.Lav_fail",
+            r"\bbeq\s+t3,\s*t2,\s*\.Lav_shape_ok",
+            r"\.Lav_try_h2_shape:",
+            r"\bANNOUNCE_H2_BASE_RAW_LEN\b",
+            r"\bANNOUNCE_H2_HEADER_LEN\b",
+            r"\.Lav_shape_ok:",
             r"\blw\s+s3,\s*ANNOUNCE_RX_OFF_APP_DATA_PTR\(s0\)",
             r"\bbeqz\s+s1,\s*\.Lav_app_ptr_ok",
             r"\bbeqz\s+s3,\s*\.Lav_fail",

@@ -74,6 +74,7 @@ class Entry:
     dest_hash: bytes = bytes(16)
     identity_hash: bytes = bytes(16)
     public_key: bytes = bytes(64)
+    next_hop: bytes = bytes(16)
 
 
 def body(path: str, symbol: str) -> str:
@@ -110,7 +111,8 @@ def path_lookup(table: list[Entry], dest_hash: bytes) -> Entry | None:
 
 
 def path_update(
-    table: list[Entry], ann: Ann, interface_id: int, hops: int, now: int
+    table: list[Entry], ann: Ann, interface_id: int, hops: int, now: int,
+    next_hop: bytes | None = None,
 ) -> list[Entry]:
     require(0 < interface_id < 256, "interface id byte")
     require(0 <= hops < 256, "hops byte")
@@ -143,20 +145,24 @@ def path_update(
         dest_hash=ann.dest_hash,
         identity_hash=ann.identity_hash,
         public_key=ann.public_key,
+        next_hop=next_hop or ann.dest_hash,
     )
     return out
 
 
 def prove_constants() -> None:
     require(TP["TRANSPORT_PATH_CAPACITY"] == 8, "capacity")
-    require(TP["TRANSPORT_PATH_ENTRY_SIZE"] == 104, "entry size")
-    require(TP["TRANSPORT_PATH_TABLE_SIZE"] == 832, "table size")
+    require(TP["TRANSPORT_PATH_ENTRY_SIZE"] == 120, "entry size")
+    require(TP["TRANSPORT_PATH_TABLE_SIZE"] == 960, "table size")
     require(TP["TRANSPORT_PATH_TABLE_SIZE"] ==
             TP["TRANSPORT_PATH_CAPACITY"] * TP["TRANSPORT_PATH_ENTRY_SIZE"],
             "table size product")
     require(TP["TRANSPORT_PATH_OFF_PUBLIC_KEY"] + 64 ==
+            TP["TRANSPORT_PATH_OFF_NEXT_HOP"],
+            "public key ends before next hop")
+    require(TP["TRANSPORT_PATH_OFF_NEXT_HOP"] + 16 ==
             TP["TRANSPORT_PATH_ENTRY_SIZE"],
-            "public key ends at entry size")
+            "next hop ends at entry size")
 
 
 def prove_model() -> None:
@@ -168,13 +174,17 @@ def prove_model() -> None:
     got = path_lookup(table, anns[0].dest_hash)
     require(got is not None and got.hops == 3 and got.last_seen == 100,
             "insert lookup")
+    require(got is not None and got.next_hop == anns[0].dest_hash,
+            "default next hop")
 
     replacement = Ann(anns[0].dest_hash, make_ann(99).public_key)
-    table = path_update(table, replacement, 1, 5, 110)
+    custom_next_hop = bytes(range(0xA0, 0xB0))
+    table = path_update(table, replacement, 1, 5, 110, custom_next_hop)
     require(sum(1 for e in table if e.valid) == 1, "existing update duplicated entry")
     got = path_lookup(table, anns[0].dest_hash)
     require(got is not None and got.hops == 5 and got.public_key == replacement.public_key,
             "existing update failed")
+    require(got is not None and got.next_hop == custom_next_hop, "custom next hop")
 
     table = path_init(table)
     for idx in range(TP["TRANSPORT_PATH_CAPACITY"]):
@@ -203,6 +213,7 @@ def prove_source_shape() -> None:
     ordered(
         update,
         [
+            r"\bmv\s+s10,\s*a3",
             r"\bbeqz\s+s0,\s*\.Ltpu_fail",
             r"\bbeqz\s+s1,\s*\.Ltpu_fail",
             r"\bcall\s+identity_hash",
@@ -217,11 +228,12 @@ def prove_source_shape() -> None:
             r"\.Ltpu_write_entry:",
             r"\bsb\s+t0,\s*TRANSPORT_PATH_OFF_VALID\(s9\)",
             r"\bsw\s+s3,\s*TRANSPORT_PATH_OFF_LAST_SEEN\(s9\)",
+            r"\bTRANSPORT_PATH_OFF_NEXT_HOP",
         ],
         "transport_path_update scans, chooses, and writes deterministically",
     )
-    require(update.count("call    .Ltpu_copy_bytes") == 3,
-            "update must copy dest, identity hash, and public key")
+    require(update.count("call    .Ltpu_copy_bytes") == 4,
+            "update must copy dest, identity hash, public key, and next hop")
 
     lookup = body("src/transport/transport_path_lookup.S", "transport_path_lookup")
     ordered(

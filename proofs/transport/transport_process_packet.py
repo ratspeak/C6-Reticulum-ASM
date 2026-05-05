@@ -96,7 +96,7 @@ def prove_source_shape() -> None:
     require(src.count("call    packet_parse_header") == 1, "packet_parse_header call count")
     require(src.count("call    transport_packet_seen") == 1, "packet hash check call count")
     require(src.count("call    transport_path_lookup") == 1, "path lookup call count")
-    require(src.count("call    lora_interface_send") == 2, "LoRa send call count")
+    require(src.count("call    lora_interface_send") == 4, "LoRa send call count")
     require(src.count("call    transport_process_announce") == 1, "announce dispatch call count")
     require(src.count("call    link_process_packet") == 1, "non-announce delegate call count")
     require_patterns(src, [
@@ -105,8 +105,11 @@ def prove_source_shape() -> None:
         r"\bIDENTITY_OFF_HASH\b",
         r"\bTRANSPORT_INTERFACE_LORA\b",
         r"\bTRANSPORT_PATH_OFF_HOPS\b",
+        r"\bTRANSPORT_PATH_OFF_NEXT_HOP\b",
         r"\bTRANSPORT_STATUS_FORWARDED\b",
         r"\bSX1262_BENCH_PAYLOAD_MAX - HASH_LEN\b",
+        r"\bSX1262_BENCH_PAYLOAD_MAX\b",
+        r"\bANNOUNCE_H2_RAW_OFF_TRANSPORT_ID\b",
         r"\bFLAG_HEADER_TYPE \| FLAG_TRANSPORT\b",
         r"\bbnez\s+a0,\s*\.Ltpp_invalid",
         r"\bPKT_OFF_PACKET_TYPE\b",
